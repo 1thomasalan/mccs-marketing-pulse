@@ -137,6 +137,9 @@ a.btn:visited{color:var(--txt)}
 .unlock{display:flex;gap:10px;justify-content:center;margin:26px auto 8px;max-width:420px}.unlock input{flex:1;min-width:0;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:999px;padding:13px 20px;font-size:16px;color:var(--txt)}
 .shake{animation:shk .4s}@keyframes shk{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 
+.tag.em{color:#f3d9a4;border-color:rgba(243,217,164,.55)}.card.etoday{border-color:rgba(243,217,164,.5)}.etoday .wic{background:rgba(243,217,164,.15);color:#f3d9a4}
+.cols.tw{margin-top:0}.cols.tw .wtoday{margin-top:14px}@media(min-width:820px){.cols.tw,.cols.e2{grid-template-columns:1fr 1fr!important}}
+button.card.ecamp{display:block;width:100%;text-align:left;margin-top:0;cursor:pointer}a.hbar{color:inherit;text-decoration:none}.hbar small{font-size:11.5px}
 /* ---------- report ---------- */
 #report{position:fixed;inset:0;z-index:8;background:#1a1f33;overflow:auto;display:none;padding:118px 10px 40px}
 #report.show{display:block}
@@ -146,7 +149,7 @@ a.btn:visited{color:var(--txt)}
 .a4{--bg:#060b33;--fg:#fff;--sub:#b8bce0;--cbg:#fff;--cfg:#0b0f2e;--cline:#f0363b;--pbg:#000;--pfg:#fff;--muted:#6b7280;--cfb:#1877f2;--cig:#e1306c;--rule:#3a3f6b;--stripe:#f3f4f8;
  width:210mm;min-height:297mm;margin:0 auto 16px;background:var(--bg);color:var(--fg);padding:12mm 11mm;font-family:Inter,"Helvetica Neue",Arial,sans-serif;transform-origin:top center;position:relative}
 .a4.st-light{--bg:#fff;--fg:#0b1a3a;--sub:#5b6478;--cbg:#f6f7fb;--cfg:#0b1a3a;--cline:#dfe3ec;--pbg:#0b1a3a;--pfg:#fff;--rule:#dfe3ec;--stripe:#eef0f6}
-.a4.st-light .hd b{color:#c8102e}.a4.st-light .wc{border-left:3px solid #c8102e}
+.a4.st-light .hd b{color:#c8102e}
 .a4.st-dusk{--bg:linear-gradient(170deg,#0e1420 0%,#2b3352 45%,#6d5a7a 80%,#c98f6b 115%);--fg:#eef1f6;--sub:rgba(238,241,246,.65);--cbg:rgba(255,255,255,.09);--cfg:#eef1f6;--cline:rgba(243,217,164,.45);--pbg:rgba(243,217,164,.18);--pfg:#f3d9a4;--muted:rgba(238,241,246,.6);--cfb:#8fb4ff;--cig:#f3a6b8;--rule:rgba(255,255,255,.18);--stripe:rgba(255,255,255,.05)}
 .a4.st-dusk .ttl{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-weight:400;font-style:italic}.a4.st-dusk .bv{font-weight:300!important}.a4.st-dusk .tp .ph{background-color:rgba(0,0,0,.35)}.a4.st-dusk .tp .vp{background:rgba(243,217,164,.2);color:#f3d9a4}.a4.st-dusk th{color:#f3d9a4!important}
 .a4 .hd{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--rule);padding-bottom:5mm}
@@ -219,7 +222,7 @@ a.btn:visited{color:var(--txt)}
   <button data-v="explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Explore</button>
   <button id="bReport" class="main"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 13h7M9 17h5"/></svg>Report</button>
 </div>
-<input type="file" id="file" accept=".csv,text/csv" multiple hidden>
+<input type="file" id="file" accept=".csv,text/csv,.json,application/json" multiple hidden>
 <input type="file" id="bfile" accept=".json,application/json" hidden>
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet"><button class="close" id="closeSheet">×</button><button class="shbtn" id="shareSheet" hidden aria-label="Share"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span>Share</span></button><div id="sheetBody"></div></div>
