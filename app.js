@@ -30,7 +30,7 @@ function setRange(){if(!(S.preset==='custom'&&S.s)){const r=P.preset(S.preset);S
 function ctx(plat){plat=plat||S.plat;setRange();const L=P.filter(S.posts,S.s,S.e,plat),C=P.filter(S.posts,S.cs,S.ce,plat);return {L,C,t:P.totals(L),c:P.totals(C)}}
 const dl=(a,b,has)=>{const p=P.pct(a,b);if(!has||p==null||!isFinite(p))return '<span class="mut">no comparison data</span>';return `<span class="${p>=0?'up':'down'}">${p>=0?'▲':'▼'} ${Math.abs(p).toFixed(1)}%</span>`};
 const cmpLabel=()=>CFG.compare==='yoy'||S.preset==='ytd'?'same period last year':'prior period';
-function greet(){const h=+new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Tokyo',hour:'numeric',hour12:false}).format(new Date());return (h<12?'Good morning':h<18?'Good afternoon':'Good evening')+', Alan'}
+function greet(){const h=+new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Tokyo',hour:'numeric',hour12:false}).format(new Date());return (h<12?'Good morning':h<18?'Good afternoon':'Good evening')}
 const ICON={gear:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
  imp:'<svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>'};
 // ---- chart ----
@@ -63,7 +63,7 @@ function topbar(){return `<div class="top"><span>MCCS Pulse</span><button class=
 // ---- render ----
 function render(){const app=$('#app');
   if(S.locked&&SYNC.meta){$('#dock').style.display='none';app.innerHTML=topbar()+lockScreen();bindTop();bindLock();return;}
-  if(!S.posts.length){$('#dock').style.display='none';app.innerHTML=`${topbar()}<div class="empty"><div class="orb"></div><h1>Your social, at a glance.</h1><p>Waiting for data. Drop in your Meta Business Suite exports (Facebook and Instagram, Post level, Lifetime). Everything stays on this device.</p><div class="drop" id="drop" style="margin-top:24px">Drop CSV files here<br>or<br><button class="btn" id="pick" style="margin-top:10px">Choose files</button></div></div>`;bindDrop();bindTop();return;}
+  if(!S.posts.length){$('#dock').style.display='none';app.innerHTML=`${topbar()}<div class="empty"><div class="orb"></div><h1>Marketing metrics,<br>at a glance.</h1><p>Waiting for data. Drop in your Meta Business Suite exports (Facebook and Instagram, Post level, Lifetime). Everything stays on this device.</p><div class="drop" id="drop" style="margin-top:24px">Drop CSV files here<br>or<br><button class="btn" id="pick" style="margin-top:10px">Choose files</button></div></div>`;bindDrop();bindTop();return;}
   $('#dock').style.display='flex';$$('#dock [data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
   let {L,C,t,c}=ctx();let accts=null;
   {accts=P.byPage(L);if(S.acct!=='all'&&!accts.some(g=>g.plat+'|'+g.page===S.acct))S.acct='all';
@@ -411,7 +411,7 @@ async function sync(){let meta;try{const r=await fetch('data.enc.json?t='+Date.n
   SYNC.meta=meta;const pass=localStorage.pulsePass;
   if(pass){if(localStorage.pulseSynced===meta.updated&&S.posts.length&&(!meta.web||localStorage.pulseWebSynced===meta.web.iv)&&(!meta.email||localStorage.pulseEmailSynced===meta.email.iv))return;try{await applyRemote(meta,pass);render();toast(`Latest data loaded · through ${P.fmtDate(meta.through,{year:'numeric'})}`)}catch(e){delete localStorage.pulsePass;S.locked=!S.posts.length;render()}}
   else{S.locked=true;render()}}
-function lockScreen(){return `<div class="empty lock"><div class="orb"></div><h1>Your social, at a glance.</h1><p>Enter your MCCS Pulse passcode to load the latest ${esc(CFG.rOrg)} metrics. You only do this once on each device.</p>
+function lockScreen(){return `<div class="empty lock"><div class="orb"></div><h1>Marketing metrics,<br>at a glance.</h1><p>Enter your MCCS Pulse passcode to load the latest ${esc(CFG.rOrg)} metrics. You only do this once on each device.</p>
   <form id="unlock" class="unlock"><input id="pass" type="password" autocomplete="current-password" placeholder="Passcode" autocapitalize="none" spellcheck="false"><button class="btn" type="submit">Unlock</button></form><p class="mut sm" id="lockErr" style="min-height:20px"></p>
   ${S.posts.length?'<button class="more" id="skipLock" style="max-width:320px">Not now, use data on this device</button>':''}</div>`}
 function bindLock(){const f=$('#unlock');if(!f)return;f.onsubmit=async e=>{e.preventDefault();const p=$('#pass').value.trim();if(!p)return;$('#lockErr').textContent='Unlocking…';
