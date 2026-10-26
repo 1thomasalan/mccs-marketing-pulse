@@ -6,7 +6,7 @@ const THEMES={dusk:{s:[[0,'#c98f6b'],[.28,'#6d5a7a'],[.55,'#2b3352'],[.85,'#0e14
  forest:{s:[[0,'#b9cc8c'],[.28,'#55806a'],[.58,'#1f3b33'],[.9,'#0a1613']],g:'#e6f2c4',n:'Forest'},
  midnight:{s:[[0,'#1b2131'],[.5,'#090b11'],[.85,'#000000']],g:'#cfd8ec',n:'Midnight'}};
 const SERIF='"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif',SANS='system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
-const C={txt:'#eef1f6',mut:'rgba(238,241,246,.66)',line:'rgba(255,255,255,.16)',card:'rgba(10,14,26,.34)',fb:'#8fb4ff',ig:'#f3a6b8',up:'#9ee6b4',down:'#ffb0a8'};
+const C={txt:'#eef1f6',mut:'rgba(238,241,246,.66)',line:'rgba(255,255,255,.16)',card:'rgba(10,14,26,.34)',fb:'#8fb4ff',ig:'#f3a6b8',em:'#f3d9a4',up:'#9ee6b4',down:'#ffb0a8'};
 const SH={fmt:localStorage.pulseShareFmt||'v',blob:null,model:null,busy:0};
 const th=()=>THEMES[(typeof CFG!=='undefined'&&CFG.theme)||'dusk']||THEMES.dusk;
 
