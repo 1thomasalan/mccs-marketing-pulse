@@ -206,5 +206,44 @@ P.webInsights=function(posts,wr,s,e){const out={};if(!wr)return out;
     const avg=W.map(x=>({s:x.n?x.s/x.n:0,w:x.n?x.w/x.n:0}));const pS=avg.reduce((m,x,i)=>x.s>avg[m].s?i:m,0),pW=avg.reduce((m,x,i)=>x.w>avg[m].w?i:m,0);
     const wk=avg.slice(0,5).map((x,i)=>[x.w,i]).sort((a,b)=>a[0]-b[0]);out.timing={avg,peakSocial:pS,peakWeb:pW,lowWeekday:wk[0][1]}}
   return out};
+
+// ---- email (Constant Contact) ----
+const EMON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+const enum_=v=>{if(v==null)return null;const m=String(v).replace(/,/g,'').match(/-?\d+(\.\d+)?/);return m?+m[0]:null};
+const epad2=n=>String(n).padStart(2,'0');
+P.emDate=function(t){t=String(t||'');let m=t.match(/([A-Za-z]{3})[a-z]*\.? (\d{1,2})(?:st|nd|rd|th)?,? (\d{4})(?:,? (?:at )?(\d{1,2}):(\d{2}) ?([AP]M))?/);
+  if(m&&EMON[m[1].toLowerCase()]){let h=m[4]?+m[4]%12+(m[6]==='PM'?12:0):null;return {d:`${m[3]}-${epad2(EMON[m[1].toLowerCase()])}-${epad2(m[2])}`,t:h==null?'':`${epad2(h)}:${m[5]}`}}
+  m=t.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);if(m)return {d:`${m[3].length===2?'20'+m[3]:m[3]}-${epad2(m[1])}-${epad2(m[2])}`,t:''};return null};
+P.emName=n=>String(n||'').replace(/^\s*\d{1,2}\/\d{1,2}\/\d{2,4}\s*-\s*/,'').trim();
+P.emailKind=function(text){const h=String(text).replace(/^\uFEFF/,'').slice(0,300);
+  if(/^"?Section"?,"?Metric"?,"?Value"?/i.test(h)&&/Email Performance|Email marketing funnel/.test(text))return 'hub';
+  if(/^"?Link"?,"?Unique Clicks"?/i.test(h))return 'links';
+  if(/^\s*\{/.test(h)&&/"kind"\s*:\s*"camp"/.test(text))return 'camp';return null};
+P.parseEmailHub=function(text,fname){const rows=P.parseCSV(String(text).replace(/^\uFEFF/,''));const g={};let blk=null;const top=[],low=[];
+  for(const r of rows){const [sec,met,val,cmp]=r;if(!sec)continue;if(met==='Campaign'){blk=/Top/i.test(sec)?top:/Low/i.test(sec)?low:null;continue}
+    if(/campaigns by/i.test(sec)){const L=/Top/i.test(sec)?top:low;const dt=P.emDate(val)||P.emDate(met)||{};L.push({name:P.emName(met)||'(untitled)',full:met,date:dt.d||'',time:dt.t||'',rate:enum_(cmp)});continue}
+    g[sec.trim()+'|'+String(met).trim()]=[val,cmp]};
+  const v=k=>g[k]?enum_(g[k][0]):null,c=k=>g[k]&&g[k][1]?enum_(g[k][1]):null;
+  const fd=(String(fname||'').match(/(\d{2})-(\d{2})-(\d{4})/)||[]);const asOf=fd[3]?`${fd[3]}-${fd[1]}-${fd[2]}`:new Date().toISOString().slice(0,10);
+  return {kind:'hub',start:asOf.slice(0,4)+'-01-01',end:asOf,
+    sent:v('Email Performance|Emails sent'),delivered:v('Email Performance|Delivered'),openRate:v('Email Performance|Open rate'),clickRate:v('Email Performance|Click rate'),
+    bounced:v('Email Performance|Bounced'),unsubs:v('Email Performance|Unsubscribed'),opened:v('Email marketing funnel|Opened'),clicked:v('Email marketing funnel|Clicked'),
+    ctor:v('Email marketing funnel|Click-to-open rate'),
+    vsPrev:{sent:c('Email Performance|Emails sent'),delivered:c('Email Performance|Delivered'),openRate:c('Email Performance|Open rate'),clickRate:c('Email Performance|Click rate'),bounced:c('Email Performance|Bounced'),unsubs:c('Email Performance|Unsubscribed')},
+    vsInd:{openRate:c('Email marketing funnel|Open rate'),clickRate:c('Email marketing funnel|Click rate')},
+    dev:{openMobile:v('Opens by Device|Mobile Opens'),openDesktop:v('Opens by Device|Desktop Opens'),clickMobile:v('Clicks by Device|Mobile Clicks'),clickDesktop:v('Clicks by Device|Desktop Clicks')},top,low}};
+P.parseEmailLinks=function(text,fname){const rows=P.parseCSV(String(text).replace(/^\uFEFF/,''));const links=[];let total=null;
+  for(const r of rows.slice(1)){if(!r[0])continue;if(/^Total/i.test(r[0])){total=enum_(r[1]);continue}links.push([r[0],enum_(r[1])||0])}
+  const fd=String(fname||'').match(/(\d{4})-(\d{2})-(\d{2})/);return {kind:'links',exported:fd?fd.slice(1).join('-'):'',links,total:total==null?links.reduce((a,l)=>a+l[1],0):total}};
+P.parseEmail=function(text,fname){const k=P.emailKind(text);if(k==='hub')return P.parseEmailHub(text,fname);if(k==='links')return P.parseEmailLinks(text,fname);
+  if(k==='camp'){const o=JSON.parse(text);return Array.isArray(o)?o:[o]}return null};
+// list holds one 'hub' per end date and 'camp' entries by id; a 'links' item attaches to the newest campaign sent on/before its export date that has no links yet
+P.mergeEmail=function(list,item){list=(list||[]).slice();const items=Array.isArray(item)?item:[item];let note='';
+  for(const it of items){if(!it)continue;
+    if(it.kind==='hub'){list=list.filter(x=>!(x.kind==='hub'&&x.end===it.end));list.push(it);note='hub'}
+    else if(it.kind==='camp'){it.id=it.id||it.date+'|'+it.name;const old=list.find(x=>x.kind==='camp'&&x.id===it.id);if(old&&old.links&&!it.links){it.links=old.links;it.linksTotal=old.linksTotal}list=list.filter(x=>!(x.kind==='camp'&&x.id===it.id));list.push(it);note=it.name}
+    else if(it.kind==='links'){const cs=list.filter(x=>x.kind==='camp'&&(!it.exported||x.date<=it.exported)).sort((a,b)=>a.date<b.date?1:-1);const tg=cs.find(x=>!x.links)||cs[0];
+      if(!tg)throw new Error('Link clicks need a campaign to attach to. Add the campaign first.');Object.assign(tg,{links:it.links,linksTotal:it.total});note='links:'+tg.name}}
+  list.sort((a,b)=>(a.date||a.end)<(b.date||b.end)?-1:1);list.note=note;return list};
 G.Pulse=P;
 })(typeof window!=='undefined'?window:globalThis);
