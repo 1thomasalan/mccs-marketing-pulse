@@ -222,6 +222,7 @@ button.card.ecamp{display:block;width:100%;text-align:left;margin-top:0;cursor:p
 <div class="dock" id="dock" style="display:none">
   <button data-v="overview"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>Today</button>
   <button data-v="explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Explore</button>
+  <button data-v="signage"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Signage</button>
   <button id="bReport" class="main"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 13h7M9 17h5"/></svg>Report</button>
 </div>
 <input type="file" id="file" accept=".csv,text/csv,.json,application/json" multiple hidden>
@@ -231,6 +232,8 @@ button.card.ecamp{display:block;width:100%;text-align:left;margin-top:0;cursor:p
 <div class="toast" id="toast"></div>
 <div id="report"><div class="rbar"><button id="rBack">← Back</button><div id="rStyleBar"></div><button class="main" id="rPrint">Save as PDF</button><span>Tap text to edit · tap a post tile to add its image · more options in Settings</span></div><div id="pages"></div></div>
 <script src="core.js"></script>
+<script src="signage.js"></script>
+<script src="tv.js"></script>
 <script src="app.js"></script>
 <script src="share.js"></script>
 </body>
