@@ -16,7 +16,7 @@ const nf=n=>Math.round(n).toLocaleString('en-US');
 const acctName=(plat,page)=>plat==='ig'?'@'+page:P.short(page);
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2800)}
 function openSheet(html,wide,share){S.share=share||null;$('#shareSheet').hidden=!share;$('#sheetBody').innerHTML=html;$('#sheet').classList.toggle('wide',!!wide);$('#sheet').classList.add('show');$('#scrim').classList.add('show');$('#sheet').scrollTop=0}
-function closeSheet(){$('#sheet').classList.remove('show');$('#scrim').classList.remove('show')}
+function closeSheet(){$('#sheet').classList.remove('show');$('#scrim').classList.remove('show');if(typeof closeSettings==='function')closeSettings(true)}
 $('#closeSheet').onclick=closeSheet;$('#shareSheet').onclick=()=>S.share&&window.PulseShare&&PulseShare.open(S.share);
 const dd=(a,b,has)=>{const p=P.pct(a,b);if(!has||p==null||!isFinite(p))return null;return {txt:`${p>=0?'▲':'▼'} ${Math.abs(p).toFixed(1)}%`,up:p>=0}};
 const shPost=r=>({rank:0,title:P.label(r),meta:`${r.plat==='fb'?'FB':'IG'} · ${acctName(r.plat,r.page)} · ${P.fmtDate(r.d)}`,v:P.fmt(r.v),plat:r.plat});
@@ -186,7 +186,7 @@ document.addEventListener('dragover',e=>e.preventDefault());document.addEventLis
 $('#file').onchange=e=>{importFiles(e.target.files);e.target.value=''};
 async function importFiles(files){files=[...files];const msgs=[];for(const f of files){try{const txt=await f.text();if(P.emailKind(txt)){S.email=P.mergeEmail(S.email,P.parseEmail(txt,f.name));const n=S.email.note;delete S.email.note;await DB.set('email',S.email);impMark('email',f.name);msgs.push(n==='hub'?'Email: year-to-date report added':n.startsWith('links:')?`Email link clicks added to ${n.slice(6)}`:`Email campaign added: ${n}`);continue}if(P.isGA4(txt)){const w=P.parseGA4(txt);S.web=P.mergeWeb(S.web,w);await DB.set('web',S.web);impMark('web',f.name);msgs.push(`Website${w.kind==='ch'?' traffic by day':w.kind==='pg'?' pages by day':''}: ${P.rangeLabel(w.start,w.end)} added`);continue}const m=P.mapRows(P.parseCSV(txt));const r=P.merge(S.posts,m.rows);S.posts=dropExcluded(r.posts);impMark(m.plat,f.name);msgs.push(`${m.plat==='fb'?'Facebook':'Instagram'}: ${r.add} new, ${r.upd} updated`)}catch(err){msgs.push(`${f.name}: ${err.message}`)}}
   await DB.set('posts',S.posts);closeSheet();render();toast(msgs.join(' · '))}
-function importSheet(){openSheet(`<button class="back" id="toSet">‹ Settings</button><h3>Import exports</h3><div class="drop" id="drop">Drop Facebook, Instagram, GA4 website, or Constant Contact email CSVs here<br><button class="btn" id="pick" style="margin-top:12px">Choose files</button></div><div class="sec">How to export</div><p class="mut" style="font-size:14px;line-height:1.6;margin:0">Meta Business Suite › Insights › Content › Export data. Facebook tab, all Pages, Content level Post, Data view Lifetime, Filter Creation date. Repeat on the Instagram tab. Re-importing updates metrics; nothing is duplicated.</p><p class="mut" style="font-size:14px;line-height:1.6">Website: Google Analytics › Reports snapshot › pick the date range › Share › Download CSV. Weekly (Monday, last week) works best. For day-by-day pages and sources, also export Traffic acquisition and Pages and screens with Date added as a second column.</p>`);bindDrop();$('#toSet').onclick=settings}
+function importSheet(){closeSettings(false);openSheet(`<button class="back" id="toSet">‹ Data &amp; sync</button><h3>Import exports</h3><div class="drop" id="drop">Drop Facebook, Instagram, GA4 website, or Constant Contact email CSVs here<br><button class="btn" id="pick" style="margin-top:12px">Choose files</button></div><div class="sec">How to export</div><p class="mut" style="font-size:14px;line-height:1.6;margin:0">Meta Business Suite › Insights › Content › Export data. Facebook tab, all Pages, Content level Post, Data view Lifetime, Filter Creation date. Repeat on the Instagram tab. Re-importing updates metrics; nothing is duplicated.</p><p class="mut" style="font-size:14px;line-height:1.6">Website: Google Analytics › Reports snapshot › pick the date range › Share › Download CSV. Weekly (Monday, last week) works best. For day-by-day pages and sources, also export Traffic acquisition and Pages and screens with Date added as a second column.</p>`);bindDrop();$('#toSet').onclick=()=>settings('data')}
 function rangeSheet(){const end=dataEnd()||P.todayKey();openSheet(`<h3>Choose a range</h3><div class="range left">${PRESETS.filter(p=>p[0]!=='custom').map(([k,l])=>`<button data-sp="${k}" class="${S.preset===k?'on':''}">${l}</button>`).join('')}</div>
  <div class="sec">Custom</div><div class="opt"><span>From</span><input type="date" id="ds" value="${S.s||P.addDays(end,-29)}"></div><div class="opt"><span>To</span><input type="date" id="de" value="${S.e||end}"></div><button class="btn wide" id="apply">Apply</button>`);
  $$('[data-sp]').forEach(b=>b.onclick=()=>{S.preset=b.dataset.sp;localStorage.pulsePreset=S.preset;closeSheet();render()});
@@ -195,45 +195,185 @@ function rangeSheet(){const end=dataEnd()||P.todayKey();openSheet(`<h3>Choose a 
 function seg(name,opts,val){return `<div class="seg" data-seg="${name}">${opts.map(([k,l])=>`<button data-val="${k}" class="${String(val)===String(k)?'on':''}">${l}</button>`).join('')}</div>`}
 // ---- data status: what each source holds and when it last arrived ----
 function impMark(k,file){let o={};try{o=JSON.parse(localStorage.pulseImp||'{}')}catch(e){}o[k]={file,at:new Date().toISOString()};localStorage.pulseImp=JSON.stringify(o)}
+const socSrc=p=>{const l=S.posts.filter(r=>r.plat===p);if(!l.length)return null;const ds=l.map(r=>r.d).sort();return {lab:'Posts through',through:ds[ds.length-1],what:`${nf(l.length)} posts, ${P.rangeLabel(ds[0],ds[ds.length-1])}`}};
+const webSrc=()=>{if(!S.web.length)return null;const st=S.web.map(x=>x.start).sort()[0],en=S.web.map(x=>x.end).sort().pop(),k=new Set(S.web.map(x=>x.kind||'snap'));return {through:en,what:`${[k.has('ch')||k.has('pg')?'daily traffic & pages':'',k.has('snap')||[...k].some(x=>!['ch','pg'].includes(x))?'weekly snapshots':''].filter(Boolean).join(' + ')}, ${P.rangeLabel(st,en)}`}};
+const emSrc=()=>{const h=emHub(),cs=emCamps();if(!h&&!cs.length)return null;const en=[h&&h.end,...cs.map(c=>c.date)].filter(Boolean).sort().pop();return {through:en,what:[h?`year-to-date summary through ${P.fmtDate(h.end)}`:'',cs.length?`${cs.length} campaign report${cs.length>1?'s':''}, latest ${cs[0].name} (${P.fmtDate(cs[0].date)})`:''].filter(Boolean).join(' · ')}};
+// Signage (signage.js): SG.meta is the plaintext signage.json the GitHub Action writes about every 15 min
+// ({checked: ISO time of the last ScreenCloud check, updated: when the screens last changed}); SG.data is the decrypted
+// signage.bin ({total, live, offline, groups[], items[]}). Read-only here.
+const sgSrc=()=>{const d=SG.data,m=SG.meta||{},at=m.checked||(d&&d.checked);if(!d||!at)return null;const g=d.groups||[],n=(d.items||[]).length;
+  return {lab:'Last synced',through:at,time:1,what:`${nf(d.total)} screens (${nf(d.live)} live) · ${g.length} location${g.length===1?'':'s'} · ${nf(n)} in rotation`,how:'Syncs from ScreenCloud by itself about every 15 minutes'}};
+const sgEmptyTxt=()=>!localStorage.pulsePass?'Unlock Pulse with your passcode to load signage.':SG.err==='nodata'?'Signage has not been published yet.':SG.err==='fail'?'Signage could not be loaded. It retries on the next check.':'Checking ScreenCloud…';
+// Every data source Pulse knows about, in display order. Data & sync and the health summary are built from this list,
+// so adding a source is a one-entry change. Fields: k, l (label), short (used in sentences), due (days a source stays
+// "Current"), late (extra days before "Out of date", default 7), auto (syncs by itself; ages in hours), get() returning
+// {lab, through, what, how?, time?} or null, empty() for the no-data line. planned:true shows "Not set up yet · coming
+// soon" with a neutral chip and never counts as an update due.
+// Next: Strategic Events from its Google Sheet, published encrypted like the other sources (see /mockup/hub/ and
+// files/hub-mockup/design-notes.md). When it ships, replace the planned entry with {k:'events', ..., due, get:evSrc}.
+const SOURCES=[
+ {k:'fb',l:'Facebook',due:8,get:()=>socSrc('fb')},
+ {k:'ig',l:'Instagram',due:8,get:()=>socSrc('ig')},
+ {k:'web',l:'Website (GA4)',short:'Website',due:8,get:webSrc},
+ {k:'email',l:'Email (Constant Contact)',short:'Email',due:10,get:emSrc},
+ {k:'signage',l:'Digital Signage (ScreenCloud)',short:'Signage',due:2,late:5,auto:1,get:sgSrc,empty:sgEmptyTxt},
+ {k:'events',l:'Strategic Events',short:'Events',planned:1,note:'Not set up yet · coming soon'}
+];
 function dataStatus(){let src={},imp={};try{src=JSON.parse(localStorage.pulseSrc||'{}')}catch(e){}try{imp=JSON.parse(localStorage.pulseImp||'{}')}catch(e){}
  const today=P.todayKey(),age=d=>d?Math.round((new Date(today)-new Date(d))/864e5):null;
- const soc=p=>{const l=S.posts.filter(r=>r.plat===p);if(!l.length)return null;const ds=l.map(r=>r.d).sort();return {lab:'Posts through',through:ds[ds.length-1],what:`${nf(l.length)} posts, ${P.rangeLabel(ds[0],ds[ds.length-1])}`}};
- const web=()=>{if(!S.web.length)return null;const st=S.web.map(x=>x.start).sort()[0],en=S.web.map(x=>x.end).sort().pop(),k=new Set(S.web.map(x=>x.kind||'snap'));return {through:en,what:`${[k.has('ch')||k.has('pg')?'daily traffic & pages':'',k.has('snap')||[...k].some(x=>!['ch','pg'].includes(x))?'weekly snapshots':''].filter(Boolean).join(' + ')}, ${P.rangeLabel(st,en)}`}};
- const em=()=>{const h=emHub(),cs=emCamps();if(!h&&!cs.length)return null;const en=[h&&h.end,...cs.map(c=>c.date)].filter(Boolean).sort().pop();return {through:en,what:[h?`year-to-date summary through ${P.fmtDate(h.end)}`:'',cs.length?`${cs.length} campaign report${cs.length>1?'s':''}, latest ${cs[0].name} (${P.fmtDate(cs[0].date)})`:''].filter(Boolean).join(' · ')}};
- return [['fb','Facebook',soc('fb'),8],['ig','Instagram',soc('ig'),8],['web','Website (GA4)',web(),8],['email','Email (Constant Contact)',em(),10]].map(([k,l,d,due])=>{
-  const a=d?age(d.through):null,stt=!d?['none','No data']:a<=due?['ok','Current']:a<=due+7?['due','Update due']:['old','Out of date'];
-  const r=src[k]||{},i=imp[k];const pub=r.published||null,loc=i&&(!pub||i.at>pub)?i:null;
-  return {k,l,d,a,stt,file:loc?loc.file:r.file||null,when:loc?loc.at:pub||(d&&localStorage.pulseSynced)||null,how:loc?'imported on this device':pub||localStorage.pulseSynced?'published by Hark':''}})}
-function statusRows(){const fdt=t=>new Date(t).toLocaleString('en-US',{timeZone:'Asia/Tokyo',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
- return dataStatus().map(x=>`<div class="dsr"><div class="dsh"><b>${x.l}</b><span class="dst ${x.stt[0]}">${x.stt[1]}</span></div>${x.d?`<div class="dsl">${x.d.lab||'Data through'} <b>${P.fmtDate(x.d.through,{year:'numeric'})}</b>${x.a!=null?` · ${x.a===0?'today':x.a===1?'1 day ago':x.a+' days ago'}`:''}</div><div class="dsl">${esc(x.d.what)}</div>${x.when?`<div class="dsl mut">Updated ${fdt(x.when)} JST${x.how?' · '+x.how:''}</div>`:''}${x.file?`<div class="dsl mut dsf">${esc(x.file)}</div>`:''}`:`<div class="dsl mut">Nothing loaded yet.</div>`}</div>`).join('')}
-function settings(){const T={dusk:'#6d5a7a',dawn:'#f2a7a0',ocean:'#2b7a9e',forest:'#55806a',midnight:'#1b2131'};const RS=[['navy','Navy','#060b33','#fff','#f0363b'],['light','Clean','#ffffff','#0b1a3a','#c8102e'],['dusk','Dusk','linear-gradient(160deg,#2b3352,#6d5a7a 60%,#c98f6b)','#fff','#f3d9a4']];
- openSheet(`<h3>Settings</h3>
- <div class="sec">App theme</div><div class="swrow">${Object.entries(T).map(([k,c])=>`<button class="sw ${CFG.theme===k?'on':''}" data-t="${k}" style="background:${c}"><small>${k}</small></button>`).join('')}</div>
- <div class="sec">Compare against</div>${seg('compare',[['prior','Previous period'],['yoy','Same period last year']],CFG.compare)}
- <div class="sec">PDF report style</div><div class="styles">${RS.map(([k,l,bg,fg,ac])=>`<button class="stile ${CFG.rStyle===k?'on':''}" data-rs="${k}"><span class="pv" style="background:${bg}"><i style="background:${k==='light'?'#f3f4f8':'rgba(255,255,255,.9)'};border-color:${ac}"></i><i style="background:${k==='light'?'#f3f4f8':'rgba(255,255,255,.9)'};border-color:${ac}"></i><em style="background:${k==='light'?'#f3f4f8':'rgba(255,255,255,.9)'};border-color:${ac}"></em></span>${l}</button>`).join('')}</div>
- <div class="sec">PDF report text</div><label class="fld">Title<input id="rTitle" value="${esc(CFG.rTitle)}"></label><label class="fld">Header<input id="rHead" value="${esc(CFG.rHead)}"></label><label class="fld">Organization<input id="rOrg" value="${esc(CFG.rOrg)}"></label>
- <div class="sec">PDF report sections</div>${[['summary','Executive summary'],['chart','Views chart'],['eff','Platform efficiency'],['top','Top 3 posts'],['web','Website at a glance'],['email','Email at a glance'],['watch','Watch list'],['team','Page 2: account detail']].map(([k,l])=>`<label class="opt tog"><span>${l}</span><input type="checkbox" data-sec="${k}" ${CFG.rSec[k]?'checked':''}><i></i></label>`).join('')}
- <div class="sec">Watch list (default lines)</div>${CFG.watch.map((w,i)=>`<label class="fld"><textarea data-w="${i}" rows="2">${esc(w)}</textarea></label>`).join('')}
- <div class="sec">TV views</div><p class="mut" style="margin:0 0 12px;font-size:13px;line-height:1.5">Full-screen dashboards for an office TV. Open one in the TV's browser, unlock once, and it refreshes itself. Double-click to go full screen.</p><div class="sgtv" style="margin-bottom:22px">${TVS.map(([k,l])=>`<a class="chip" href="?tv=${k}" target="_blank" rel="noopener">${l} ↗</a>`).join('')}</div>
-  <div class="sec">Staff guide</div><p class="mut" style="margin:0 0 12px;font-size:13px;line-height:1.5">What Pulse is, how the weekly update works, and what to do if the Admin is away.</p><a class="btn" href="https://docs.google.com/document/d/1G-gQ9kEomm7TqIuzi4PqhZOfnoUY9KYRUoqqWHcylog/edit?usp=drivesdk" target="_blank" rel="noopener" style="display:inline-block;margin-bottom:22px">Open the Pulse SOP</a><div class="sec">Data status</div><div class="dstat">${statusRows()}</div><p class="note" style="margin-top:6px">Social and website exports are due weekly (Monday). Current = data within ${8} days.</p>
- <div class="sec">Your data</div><div class="opt"><span>${nf(S.posts.length)} posts · through ${dataEnd()?P.fmtDate(dataEnd(),{year:'numeric'}):'—'}</span></div>
- <div class="opt"><span>Import Meta CSV exports</span><button class="chip" id="imp">${ICON.imp.replace('<svg','<svg class="ci"')}Import</button></div>
- ${localStorage.pulseSynced?`<div class="opt"><span>Synced from Hark ${new Date(localStorage.pulseSynced).toLocaleString('en-US',{timeZone:'Asia/Tokyo',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</span><button class="chip" id="resync">Check now</button></div><div class="opt"><span>Passcode saved on this device</span><button class="chip" id="forget">Forget</button></div>`:''}
- <div class="opt"><span>Back up to a file</span><button class="chip" id="bk">Export</button></div><div class="opt"><span>Restore a backup</span><button class="chip" id="rs">Restore</button></div><div class="opt"><span>Erase all data on this device</span><button class="chip" id="er" style="color:#ffb0a8">Erase</button></div>
- <p class="note">MCCS Pulse never uploads your data. It lives only in this browser.</p>
- <div class="savebar"><button class="btn wide" id="saveHome">Save and return home</button></div>`);
- $('#saveHome').onclick=()=>{saveCfg();closeSheet();S.view='overview';render();scrollTo({top:0,behavior:'smooth'});toast('Settings saved')};
- $('#imp').onclick=importSheet;
- $$('[data-t]').forEach(b=>b.onclick=()=>{CFG.theme=b.dataset.t;document.body.dataset.theme=CFG.theme;saveCfg();$$('[data-t]').forEach(x=>x.classList.toggle('on',x===b))});
- $$('[data-seg] button').forEach(b=>b.onclick=()=>{const n=b.parentNode.dataset.seg;CFG[n]=b.dataset.val;saveCfg();b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));if(n==='compare')render()});
- $$('[data-rs]').forEach(b=>b.onclick=()=>{CFG.rStyle=b.dataset.rs;saveCfg();$$('[data-rs]').forEach(x=>x.classList.toggle('on',x===b))});
- ['rTitle','rHead','rOrg'].forEach(k=>$('#'+k).oninput=e=>{CFG[k]=e.target.value;saveCfg()});
- $$('[data-sec]').forEach(i=>i.onchange=()=>{CFG.rSec[i.dataset.sec]=i.checked?1:0;saveCfg()});
- $$('[data-w]').forEach(t=>t.oninput=()=>{CFG.watch[+t.dataset.w]=t.value;saveCfg()});
- $('#bk').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S.posts)],{type:'application/json'}));a.download=`mccs-pulse-backup-${P.todayKey()}.json`;a.click()};
- $('#rs').onclick=()=>$('#bfile').click();
- const rsy=$('#resync');if(rsy)rsy.onclick=async()=>{localStorage.pulseSynced='';closeSheet();await sync();toast('Up to date')};const fg=$('#forget');if(fg)fg.onclick=()=>{delete localStorage.pulsePass;delete localStorage.pulseSynced;toast('Passcode forgotten on this device');closeSheet()};
- $('#er').onclick=async()=>{if(!confirm('Erase all posts stored in MCCS Pulse on this device?'))return;S.posts=[];await DB.set('posts',[]);closeSheet();render()}}
+ return SOURCES.map(s=>{const base={k:s.k,l:s.l,short:s.short||s.l,auto:!!s.auto};
+  if(s.planned)return Object.assign(base,{planned:1,note:s.note,stt:['plan','Coming soon']});
+  const d=s.get(),a=d?(s.auto?(Date.now()-new Date(d.through))/864e5:age(d.through)):null,late=s.late==null?7:s.late;
+  const stt=!d?['none','No data']:a<=s.due?['ok','Current']:a<=s.due+late?['due',s.auto?'Sync late':'Update due']:['old','Out of date'];
+  if(d&&d.how)return Object.assign(base,{d,a,stt,file:null,when:null,how:d.how});
+  const r=src[s.k]||{},i=imp[s.k];const pub=r.published||null,loc=i&&(!pub||i.at>pub)?i:null;
+  return Object.assign(base,{d,a,stt,empty:s.empty?s.empty():'Nothing loaded yet.',file:loc?loc.file:r.file||null,when:loc?loc.at:pub||(d&&localStorage.pulseSynced)||null,how:loc?'imported on this device':pub||localStorage.pulseSynced?'published by Hark':''})})}
+const fdtJ=t=>new Date(t).toLocaleString('en-US',{timeZone:'Asia/Tokyo',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+const fTimeJ=t=>{const d=new Date(t),k=x=>x.toLocaleDateString('en-CA',{timeZone:'Asia/Tokyo'});return k(d)===k(new Date())?d.toLocaleTimeString('en-US',{timeZone:'Asia/Tokyo',hour:'numeric',minute:'2-digit'}):fdtJ(t)};
+const agoTxt=x=>{if(x.a==null)return '';if(x.auto){const h=x.a*24;return h<1?'under an hour ago':h<36?Math.round(h)+(Math.round(h)===1?' hour ago':' hours ago'):Math.round(x.a)+' days ago'}return x.a===0?'today':x.a===1?'1 day ago':x.a+' days ago'};
+function statusRows(){return dataStatus().map(x=>{
+ if(x.planned)return `<div class="ssrc"><div class="ssh"><b>${esc(x.l)}</b><span class="spill plan">${x.stt[1]}</span></div><p>${esc(x.note)}</p></div>`;
+ return `<div class="ssrc"><div class="ssh"><b>${esc(x.l)}</b><span class="spill ${x.stt[0]}">${x.stt[1]}</span></div>${x.d?`<p>${x.d.lab||'Data through'} <b>${x.d.time?fdtJ(x.d.through)+' JST':P.fmtDate(x.d.through,{year:'numeric'})}</b>${x.a!=null?' · '+agoTxt(x):''}</p><p>${esc(x.d.what)}</p>${x.when?`<p class="f">Updated ${fdtJ(x.when)} JST${x.how?' · '+x.how:''}</p>`:x.how?`<p class="f">${esc(x.how)}</p>`:''}${x.file?`<p class="f">${esc(x.file)}</p>`:''}`:`<p class="f">${esc(x.empty)}</p>`}</div>`}).join('')}
+function healthHTML(open){const rows=dataStatus().filter(x=>!x.planned),bad=rows.filter(x=>x.stt[0]==='due'||x.stt[0]==='old'),none=rows.filter(x=>x.stt[0]==='none');
+ const why=x=>x.auto?`${x.short} last synced ${agoTxt(x)}`:`${x.short} is ${x.a} day${x.a===1?'':'s'} old`;
+ const head=bad.length?`${bad.length} update${bad.length===1?'':'s'} due`:none.length===rows.length?'No data loaded yet':'All sources current';
+ const sub=bad.length?bad.slice(0,2).map(why).join('. ')+'.'+(bad.length+none.length<rows.length?' Others current.':''):none.length&&none.length<rows.length?`${none.map(x=>x.short).join(', ')}: nothing loaded yet.`:none.length?'Import exports or unlock to sync.':'Everything is up to date.';
+ const dot=bad.some(x=>x.stt[0]==='old')?'old':bad.length?'due':none.length===rows.length?'none':'ok';
+ return `<button class="shhb" id="spHb" aria-expanded="${open?'true':'false'}" aria-controls="spHl"><span class="shdot ${dot}" aria-hidden="true"></span><span class="shtxt"><b>${head}</b><span>${sub}</span></span>${SI('chev','schev')}</button>
+ <div class="shl" id="spHl">${rows.map(x=>`<div class="shsrc"><span>${esc(x.short)}<small>${x.d?(x.d.time?'Synced '+fTimeJ(x.d.through):'Through '+P.fmtDate(x.d.through)):'Nothing loaded'}</small></span><span class="spill ${x.stt[0]}">${x.stt[1]}</span></div>`).join('')}<button class="shmore" data-go="data">Details in Data &amp; sync ${SI('chev')}</button></div>`}
+// ---- settings: grouped list with drill-in pages (phone) / two panes (desktop 1100px+) ----
+const SI=(id,c)=>`<svg class="si${c?' '+c:''}" aria-hidden="true"><use href="#si-${id}"/></svg>`;
+const SPRITE=`<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="si-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol><symbol id="si-chevL" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+<symbol id="si-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="si-cmp" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+<symbol id="si-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+<symbol id="si-tv" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+<symbol id="si-sync" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/></symbol>
+<symbol id="si-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.7"/><path d="M12 17.2v.1"/></symbol>
+<symbol id="si-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4h6v3"/></symbol>
+<symbol id="si-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+<symbol id="si-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></symbol>
+<symbol id="si-imp" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 19h16"/></symbol>
+<symbol id="si-exp" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5"/><path d="M4 19h16"/></symbol>
+<symbol id="si-rst" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+<symbol id="si-out" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+<symbol id="si-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="si-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></symbol>
+<symbol id="si-warn" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19z"/><path d="M12 10v4.5M12 17.3v.1"/></symbol></svg>`;
+const THM=[['dusk','Dusk','#c98f6b 0%,#6d5a7a 28%,#2b3352 55%,#0e1420 85%'],['dawn','Dawn','#ffd3a5 0%,#f2a7a0 26%,#8f8bc6 56%,#34416e 92%'],['ocean','Ocean','#6fd6d6 0%,#2b7a9e 28%,#173a5e 58%,#07142a 90%'],['forest','Forest','#b9cc8c 0%,#55806a 28%,#1f3b33 58%,#0a1613 90%'],['midnight','Midnight','#1b2131 0%,#090b11 50%,#000 85%']];
+const RSN={navy:'Navy',light:'Clean',dusk:'Dusk'};
+const RSEC=[['summary','Executive summary'],['chart','Views chart'],['eff','Platform efficiency'],['top','Top 3 posts'],['web','Website at a glance'],['email','Email at a glance'],['watch','Watch list'],['team','Page 2: account detail']];
+const TVD={all:'Every channel on one screen',signage:'Screens live and what is playing',social:'Facebook and Instagram',web:'GA4 traffic and top pages',cycle:'Cycles through each view'};
+const SOP_URL='https://docs.google.com/document/d/1G-gQ9kEomm7TqIuzi4PqhZOfnoUY9KYRUoqqWHcylog/edit?usp=drivesdk';
+const secOn=()=>RSEC.filter(([k])=>CFG.rSec[k]).length;
+const radioRow=(attr,k,on,label,sub)=>`<div class="srow" role="radio" tabindex="${on?0:-1}" aria-checked="${on}" data-${attr}="${k}"><span class="slb">${label}${sub?`<small>${sub}</small>`:''}</span>${SI('check','stick')}</div>`;
+function cmpRanges(){const keep=CFG.compare,out={};for(const k of ['prior','yoy']){CFG.compare=k;setRange();out[k]=`${P.rangeLabel(S.s,S.e)} vs ${P.rangeLabel(S.cs,S.ce)}`}CFG.compare=keep;setRange();return out}
+// Settings groups: one row on the top level and one drill-in page each. sec puts rows into the same inset list;
+// parent marks a deeper page (no top-level row). To add a group later (e.g. "Events": event matching and the review
+// queue), add one entry here with its page() and bind(); the list, navigation and desktop panes pick it up as is.
+const SET_GROUPS=[
+ {id:'appearance',sec:1,title:'Appearance',icon:'<span class="smsky"></span>',val:()=>(THM.find(t=>t[0]===CFG.theme)||THM[0])[1],
+  page:()=>`<div class="sgt">App theme</div><div class="slist"><div class="sthemes" role="radiogroup" aria-label="App theme">${THM.map(([k,l,g])=>`<button class="sth" role="radio" aria-checked="${CFG.theme===k}" tabindex="${CFG.theme===k?0:-1}" data-th="${k}"><span class="ssk" style="background:radial-gradient(130% 80% at 50% 110%,${g})"><span class="sck">${SI('check')}</span></span>${l}</button>`).join('')}</div></div><p class="sfoot">Pulse changes the moment you choose. The PDF report has its own style under Report.</p>`,
+  bind:()=>spRadios('[data-th]','th',v=>{CFG.theme=v;document.body.dataset.theme=v})},
+ {id:'compare',sec:1,title:'Comparisons',icon:SI('cmp'),val:()=>CFG.compare==='yoy'?'Last year':'Previous period',
+  page:()=>{const r=cmpRanges();return `<div class="sgt">Compare each range against</div><div class="slist noic" role="radiogroup" aria-label="Compare against">${radioRow('cmp','prior',CFG.compare!=='yoy','Previous period',r.prior)}${radioRow('cmp','yoy',CFG.compare==='yoy','Same period last year',r.yoy)}</div><p class="sfoot">Sets every “vs” figure on the home screen and in the PDF report. Year to date always compares with the same period last year.</p>`},
+  bind:()=>spRadios('[data-cmp]','cmp',v=>{CFG.compare=v;render()})},
+ {id:'report',sec:2,title:'Report',icon:SI('doc'),val:()=>`${RSN[CFG.rStyle]||'Navy'} · ${secOn()} of ${RSEC.length}`,
+  page:()=>`<div class="sgt">Style</div><div class="slist"><div class="srstyles" role="radiogroup" aria-label="PDF report style">${Object.entries(RSN).map(([k,l])=>`<button class="srs" role="radio" aria-checked="${CFG.rStyle===k}" tabindex="${CFG.rStyle===k?0:-1}" data-rsty="${k}"><span class="sa4 sst-${k}" aria-hidden="true"><span class="h"></span><span class="t"></span><span class="k"><i></i><i></i><i></i><i></i></span><span class="c"><svg viewBox="0 0 100 40" preserveAspectRatio="none"><path d="M0 32 L18 26 L34 29 L52 15 L70 19 L86 8 L100 12" fill="none" stroke="currentColor" stroke-width="3" vector-effect="non-scaling-stroke"/></svg></span><span class="c2"><i></i><i></i></span></span>${l}</button>`).join('')}</div>
+   <button class="srow sline" id="spPrev"><span class="sic">${SI('eye')}</span><span class="slb">Preview report</span>${SI('chev','schev')}</button></div>
+   <div class="sgt">Text on the cover</div><div class="slist"><label class="sfld"><span>Title</span><input data-cf="rTitle" value="${esc(CFG.rTitle)}"></label><label class="sfld"><span>Header</span><input data-cf="rHead" value="${esc(CFG.rHead)}"></label><label class="sfld"><span>Organization</span><input data-cf="rOrg" value="${esc(CFG.rOrg)}"></label></div>
+   <div class="sgt">Sections</div><div class="slist noic">${RSEC.map(([k,l])=>`<label class="srow"><span class="slb">${l}</span><span class="ssw"><input type="checkbox" role="switch" data-rsec="${k}" ${CFG.rSec[k]?'checked':''}><i></i></span></label>`).join('')}</div><p class="sfoot" id="spSecFoot">${secOn()} of ${RSEC.length} sections on. Page 2 adds an account scorecard for the team.</p>
+   <div class="sgt">Watch list</div><div class="slist"><button class="srow" data-go="watch"><span class="sic">${SI('list')}</span><span class="slb">Default lines<small>Pre-filled on every report; edit per report too</small></span><span class="sval" data-v="watch">${CFG.watch.filter(Boolean).length}</span>${SI('chev','schev')}</button></div>`,
+  bind:()=>{spRadios('[data-rsty]','rsty',v=>CFG.rStyle=v);
+   $$('#setp [data-cf]').forEach(i=>i.oninput=()=>{CFG[i.dataset.cf]=i.value;spSave(true)});
+   $$('#setp [data-rsec]').forEach(i=>i.onchange=()=>{CFG.rSec[i.dataset.rsec]=i.checked?1:0;spSave();$('#spSecFoot').textContent=`${secOn()} of ${RSEC.length} sections on. Page 2 adds an account scorecard for the team.`});
+   $('#spPrev').onclick=()=>{closeSettings(false);buildReport()}}},
+ {id:'watch',parent:'report',title:'Watch list',
+  page:()=>`<p class="splede">These lines start every report’s Watch list. One idea per line.</p><div class="slist">${CFG.watch.map((w,i)=>`<label class="sfld"><span>Line ${i+1}</span><textarea rows="2" data-wl="${i}">${esc(w)}</textarea></label>`).join('')}</div>`,
+  bind:()=>$$('#setp [data-wl]').forEach(t=>t.oninput=()=>{CFG.watch[+t.dataset.wl]=t.value;spSave(true)})},
+ {id:'tv',sec:2,title:'TV & signage',icon:SI('tv'),val:()=>`${TVS.length} views`,
+  page:()=>`<p class="splede">Full-screen dashboards for an office TV. Open one in the TV’s browser, unlock once, and it refreshes itself.</p><div class="slist">${TVS.map(([k,l])=>`<a class="srow" href="?tv=${k}" target="_blank" rel="noopener"><span class="sic">${SI(k==='cycle'?'sync':'tv')}</span><span class="slb">${l}<small>${TVD[k]||''}</small></span>${SI('out','schev sout')}<span class="sr">(opens in a new tab)</span></a>`).join('')}</div><p class="sfoot">On the TV, double-click anywhere to go full screen.</p>`},
+ {id:'data',sec:3,title:'Data & sync',icon:SI('sync'),val:()=>localStorage.pulseSynced?'Synced '+fTimeJ(localStorage.pulseSynced):`${nf(S.posts.length)} posts`,
+  page:()=>{const end=dataEnd();return `<div class="sgt">Sources</div><div class="slist" id="spSrc">${statusRows()}</div><p class="sfoot">Social and website exports are due weekly on Monday. Current means data within 8 days (email, 10). Signage syncs by itself, so it is current when under 2 days old.</p>
+   <div class="sgt">Sync</div><div class="slist">${localStorage.pulseSynced?`<div class="srow"><span class="sic">${SI('sync')}</span><span class="slb">Synced from Hark<small id="spWhen">${fdtJ(localStorage.pulseSynced)} JST</small></span><button class="sact" id="spCheck">Check now</button></div>`:`<div class="srow"><span class="sic">${SI('sync')}</span><span class="slb">Not synced from Hark<small>Unlock with the passcode to get published data</small></span></div>`}${localStorage.pulsePass?`<div class="srow"><span class="sic">${SI('key')}</span><span class="slb">Passcode<small>Saved on this device</small></span><button class="stxt" id="spForget">Forget</button></div>`:''}</div>
+   <div class="sgt">On this device</div><div class="slist"><div class="sstat"><b>${nf(S.posts.length)}</b><span>posts${end?' · through '+P.fmtDate(end,{year:'numeric'}):''}</span></div>
+   <button class="srow sline" id="spImp"><span class="sic">${SI('imp')}</span><span class="slb">Import CSV exports<small>Facebook, Instagram, GA4 website, Constant Contact email</small></span>${SI('chev','schev')}</button>
+   <button class="srow" id="spBk"><span class="sic">${SI('exp')}</span><span class="slb">Back up to a file</span>${SI('chev','schev')}</button>
+   <button class="srow" id="spRs"><span class="sic">${SI('rst')}</span><span class="slb">Restore a backup</span>${SI('chev','schev')}</button></div><p class="sfoot">To remove everything, use Danger zone at the bottom of Settings.</p>`},
+  bind:()=>{$('#spImp').onclick=importSheet;$('#spBk').onclick=backupFile;$('#spRs').onclick=()=>$('#bfile').click();
+   const c=$('#spCheck');if(c)c.onclick=async()=>{c.textContent='Checking…';c.disabled=true;localStorage.pulseSynced='';await sync();await sgLoad(true);spRefreshData();const w=$('#spWhen');if(w)w.textContent='Just now · up to date';toast('Up to date')};
+   const f=$('#spForget');if(f)f.onclick=()=>{delete localStorage.pulsePass;delete localStorage.pulseSynced;closeSettings(true);toast('Passcode forgotten on this device')}}},
+ {id:'help',sec:3,title:'Help',icon:SI('help'),val:()=>'Staff guide',
+  page:()=>`<div class="sgt">Staff guide</div><div class="slist"><a class="srow" href="${SOP_URL}" target="_blank" rel="noopener"><span class="sic">${SI('doc')}</span><span class="slb">Open the Pulse SOP<small>What Pulse is, how the weekly update works, and what to do if the Admin is away</small></span>${SI('out','schev sout')}<span class="sr">(opens in a new tab)</span></a></div><p class="sprivacy">${SI('lock')}<span>MCCS Pulse never uploads your data. It lives only in this browser.</span></p>`}
+];
+const SP={stack:['root'],dirty:false,st:0,y0:null};
+const spDesk=()=>matchMedia('(min-width:1100px)').matches;
+const spG=id=>SET_GROUPS.find(g=>g.id===id);
+const spTitle=id=>id==='root'?'Settings':spG(id).title;
+function backupFile(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S.posts)],{type:'application/json'}));a.download=`mccs-pulse-backup-${P.todayKey()}.json`;a.click()}
+function spSave(quiet){saveCfg();SP.dirty=true;spVals();clearTimeout(SP.st);SP.st=setTimeout(()=>{const s=$('#spSaved');if(!s)return;s.classList.add('on');$('#spSavedT').textContent='Saved';SP.st=setTimeout(()=>{s.classList.remove('on');$('#spSavedT').textContent='Saves as you go'},1700)},quiet?500:0)}
+function spVals(){SET_GROUPS.forEach(g=>{const v=$(`#setp .sroot [data-v="${g.id}"]`);if(v&&g.val)v.textContent=g.val()});const w=$('#setp [data-v=watch]');if(w)w.textContent=CFG.watch.filter(Boolean).length}
+function spRadios(sel,attr,apply){const items=$$('#setp '+sel);items.forEach((b,i)=>{
+ b.onclick=()=>{items.forEach(x=>{x.setAttribute('aria-checked',x===b);x.tabIndex=x===b?0:-1});apply(b.dataset[attr]);spSave()};
+ b.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();b.click();return}const d={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1}[e.key];if(!d)return;e.preventDefault();const n=items[(i+d+items.length)%items.length];n.focus();n.click()}})}
+function spPage(g){return `<section class="spane spage" id="sp-${g.id}" aria-labelledby="spt-${g.id}"><div class="swrap">${g.parent?`<button class="spback" data-go="${g.parent}">${SI('chevL')}${esc(spTitle(g.parent))}</button>`:''}<h2 class="sptitle" id="spt-${g.id}" tabindex="-1">${esc(g.title)}</h2>${g.page()}</div></section>`}
+function spRoot(){const secs=[...new Set(SET_GROUPS.filter(g=>!g.parent).map(g=>g.sec))];
+ return `<nav class="spane sroot" id="sp-root" aria-label="Settings groups"><div class="shealth" id="spHealth">${healthHTML(false)}</div>
+ ${secs.map(s=>`<div class="slist">${SET_GROUPS.filter(g=>g.sec===s&&!g.parent).map(g=>`<button class="srow" data-go="${g.id}"><span class="sic">${g.icon}</span><span class="slb">${esc(g.title)}</span><span class="sval" data-v="${g.id}">${esc(g.val())}</span>${SI('chev','schev')}</button>`).join('')}</div>`).join('')}
+ <div class="sgt sdgt">Danger zone</div><div class="slist sdanger"><button class="srow" id="spErRow"><span class="sic">${SI('trash')}</span><span class="slb">Erase all data on this device</span></button></div><p class="sfoot">Asks first, and offers a backup before anything is removed.</p>
+ <p class="sprivacy">${SI('lock')}<span>MCCS Pulse never uploads your data. It lives only in this browser.</span></p></nav>`}
+function spEraseHTML(){const pass=!!localStorage.pulsePass;return `<div class="sconf"><div class="swi" aria-hidden="true">${SI('warn')}</div><h2 id="spETitle">Erase all data on this device?</h2><p id="spEBody">This removes everything Pulse holds in this browser. It can’t be undone.</p>
+ <ul><li><span>Posts</span><b>${nf(S.posts.length)}</b></li><li><span>Website, email and signage data</span><b>Removed</b></li><li><span>Saved passcode</span><b>${pass?'Forgotten':'None saved'}</b></li></ul>
+ <p class="ssm">Data Hark publishes syncs back after you unlock again. CSV files imported only on this device do not.</p>
+ <div class="scbtns"><button class="sb-back" id="spEBk">Back up first</button><button class="sb-erase" id="spEGo">Erase all data</button><button class="sb-cancel" id="spECancel">Cancel</button></div></div>`}
+async function eraseAll(){S.posts=[];S.web=[];S.email=[];SG.data=null;SG.meta=null;SG.priv=null;
+ await DB.set('posts',[]);await DB.set('web',[]);await DB.set('email',[]);await DB.set('sg:data',null);
+ ['pulseImp','pulsePass','pulseSynced','pulseWebSynced','pulseEmailSynced'].forEach(k=>localStorage.removeItem(k));
+ closeSettings(false);render();toast('Erased everything Pulse held on this device')}
+function spNav(focus){const desk=spDesk(),cur=SP.stack[SP.stack.length-1],page=desk&&cur==='root'?'appearance':cur,par=spG(page)&&spG(page).parent;
+ $$('#setp .spage').forEach(p=>{const id=p.id.slice(3);p.classList.toggle('cur',id===page);p.classList.toggle('under',!desk&&SP.stack.includes(id)&&id!==page)});
+ $('#sp-root').classList.toggle('under',!desk&&cur!=='root');
+ $$('#setp .sroot .srow[data-go]').forEach(r=>{const on=desk&&(r.dataset.go===page||r.dataset.go===par);r.classList.toggle('sel',on);if(on)r.setAttribute('aria-current','page');else r.removeAttribute('aria-current')});
+ $('#spTitle').textContent=desk?'Settings':spTitle(cur);
+ const prev=SP.stack[SP.stack.length-2]||'root',b=$('#spBack');b.classList.toggle('show',!desk&&cur!=='root');$('#spBackL').textContent=spTitle(prev);b.setAttribute('aria-label','Back to '+spTitle(prev));
+ spLined();if(focus){const t=desk||cur!=='root'?$('#spt-'+page):null;if(t)t.focus({preventScroll:true})}}
+function spGo(id){const g=spG(id);if(spDesk())SP.stack=g&&g.parent?['root',g.parent,id]:['root',id];else SP.stack.push(id);const p=$('#sp-'+id);if(p)p.scrollTop=0;spNav(true)}
+function spBack(){if(SP.stack.length>1&&!spDesk()){SP.stack.pop();spNav(true);return true}return false}
+function spLined(){const p=$$('#setp .spane').find(x=>getComputedStyle(x).visibility!=='hidden'&&(x.classList.contains('cur')||(x.id==='sp-root'&&!x.classList.contains('under'))));$('#spHead').classList.toggle('lined',spDesk()||!!(p&&p.scrollTop>4))}
+function spBindGo(root){(root||$('#setp')).querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>spGo(b.dataset.go))}
+function spBindHealth(){const hb=$('#spHb');hb.onclick=()=>{const h=$('#spHealth'),x=!h.classList.contains('exp');h.classList.toggle('exp',x);hb.setAttribute('aria-expanded',x)};spBindGo($('#spHealth'))}
+function spRefreshData(){if(!$('#setp')||!$('#setp').classList.contains('show'))return;const h=$('#spHealth'),open=h.classList.contains('exp');h.innerHTML=healthHTML(open);spBindHealth();
+ const g=spG('data'),p=$('#sp-data');if(p){const top=p.scrollTop;p.outerHTML=spPage(g);spBindGo($('#sp-data'));g.bind();$('#sp-data').addEventListener('scroll',spLined,{passive:true});spNav();$('#sp-data').scrollTop=top}spVals()}
+function settings(start){start=typeof start==='string'?start:null;closeSheet();let p=$('#setp');
+ if(!p){p=document.createElement('section');p.id='setp';p.className='setp';p.setAttribute('role','dialog');p.setAttribute('aria-modal','true');p.setAttribute('aria-labelledby','spTitle');p.tabIndex=-1;document.body.appendChild(p);
+  const ed=document.createElement('dialog');ed.id='spErase';ed.className='serase';ed.setAttribute('aria-labelledby','spETitle');ed.setAttribute('aria-describedby','spEBody');document.body.appendChild(ed);
+  ed.addEventListener('click',e=>{if(e.target===ed)ed.close()});addEventListener('resize',()=>{if($('#setp').classList.contains('show'))spNav()})}
+ SP.dirty=false;SP.stack=start?(spG(start)&&spG(start).parent?['root',spG(start).parent,start]:['root',start]):['root'];
+ p.innerHTML=`${SPRITE}<header class="shead" id="spHead"><span class="sgrab" aria-hidden="true"></span><div class="shrow">
+  <button class="sback" id="spBack" aria-label="Back to Settings">${SI('chevL')}<span id="spBackL">Settings</span></button>
+  <div class="shtitle"><b id="spTitle">Settings</b><div class="ssaved" id="spSaved" aria-live="polite">${SI('check')}<span id="spSavedT">Saves as you go</span></div></div>
+  <div class="shside"><span class="skbd" aria-hidden="true">esc</span><button class="sdone" id="spDone">Done</button></div></div></header>
+  <div class="sstage">${spRoot()}${SET_GROUPS.map(spPage).join('')}</div>`;
+ spBindGo();spBindHealth();SET_GROUPS.forEach(g=>g.bind&&g.bind());
+ $$('#setp .spane').forEach(x=>x.addEventListener('scroll',spLined,{passive:true}));
+ $('#spBack').onclick=spBack;$('#spDone').onclick=()=>closeSettings(true);
+ $('#spErRow').onclick=()=>{const d=$('#spErase');d.innerHTML=spEraseHTML();d.showModal();$('#spECancel').focus();
+  $('#spECancel').onclick=()=>{d.close();$('#spErRow').focus()};$('#spEBk').onclick=()=>{d.close();backupFile();toast('Backup saved. Erase is still here if you want it.')};$('#spEGo').onclick=()=>{d.close();eraseAll()}};
+ // swipe down on the header to close (phone and tablet)
+ const hd=$('#spHead');
+ hd.onpointerdown=e=>{if(spDesk()||e.target.closest('button'))return;SP.y0=e.clientY;p.classList.add('drag');hd.setPointerCapture(e.pointerId)};
+ hd.onpointermove=e=>{if(SP.y0==null)return;p.style.transform=`translateY(${Math.max(0,e.clientY-SP.y0)}px)`};
+ hd.onpointerup=hd.onpointercancel=e=>{if(SP.y0==null)return;const d=e.clientY-SP.y0;SP.y0=null;p.classList.remove('drag');p.style.transform='';if(d>110)closeSettings(true)};
+ spNav();$('#app').inert=true;$('#dock').inert=true;$('#scrim').classList.add('show');requestAnimationFrame(()=>{p.classList.add('show');setTimeout(()=>{if(start)spNav(true);else p.focus({preventScroll:true})},60)});
+ // signage status comes from signage.js; load it if this device has not checked in the last 10 minutes
+ if(localStorage.pulsePass&&!SG.loading&&(!SG.meta||Date.now()-new Date(SG.meta.checked)>10*6e4))sgLoad().then(()=>spRefreshData())}
+function closeSettings(done){const p=$('#setp');if(!p||!p.classList.contains('show'))return;const d=$('#spErase');if(d&&d.open)d.close();
+ p.classList.remove('show');p.style.transform='';if(!$('#sheet').classList.contains('show'))$('#scrim').classList.remove('show');$('#app').inert=false;$('#dock').inert=false;
+ if(done){render();if(SP.dirty)toast('Settings saved');const g=$('#gear');if(g)g.focus({preventScroll:true})}SP.dirty=false}
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;const p=$('#setp');
+ if(p&&p.classList.contains('show')){const d=$('#spErase');if(d&&d.open)return;e.preventDefault();if(!spBack())closeSettings(true);return}
+ if($('#sheet').classList.contains('show'))closeSheet()});
 $('#bfile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const arr=JSON.parse(await f.text());const r=P.merge(S.posts,arr);S.posts=r.posts;await DB.set('posts',S.posts);closeSheet();render();toast(`Restored ${arr.length} posts`)}catch(err){toast('That file is not an MCCS Pulse backup')}e.target.value=''};
 // ---- report ----
 function buildReport(){const {L,C,t,c}=ctx('all');const sm=P.summary(t,c,L,S.s,S.e),top=topMix(L,3),pages=P.byPage(L),rl=P.rangeLabel(S.s,S.e),R=CFG.rSec;
