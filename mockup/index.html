@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0e1420">
+<title>MCCS Pulse · Design review mockup</title>
+<style>
+@font-face{font-family:"Newsreader";src:url(newsreader.woff2) format("woff2");font-weight:300 700;font-style:normal;font-display:swap}
+@font-face{font-family:"Newsreader";src:url(newsreader-italic.woff2) format("woff2");font-weight:300 700;font-style:italic;font-display:swap}
+:root{
+  --txt:#eef1f6;--mut:rgba(238,241,246,.58);--mut2:rgba(238,241,246,.74);--line:rgba(255,255,255,.12);--glow:#f3d9a4;
+  --card:rgba(255,255,255,.055);--glass:rgba(14,20,32,.45);--fb:#8fb4ff;--ig:#f3a6b8;--good:#9ee6b4;--bad:#ffb0a8;
+  --sky:radial-gradient(120% 80% at 50% 110%,#c98f6b 0%,#6d5a7a 28%,#2b3352 55%,#0e1420 85%);
+  --oldserif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --serif:"Newsreader","Iowan Old Style",Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box}
+html{background:#0e1420;color:var(--txt);font-family:var(--sans);-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;background:#0e1420}
+::selection{background:color-mix(in srgb,var(--glow) 35%,transparent);color:#fff}
+a{color:var(--glow);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--glow);outline-offset:3px;border-radius:8px}
+.pagesky{position:fixed;inset:0;background:var(--sky);opacity:.55;z-index:0;pointer-events:none}
+.page{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:28px clamp(16px,4vw,36px) 80px}
+
+/* ---------- page chrome ---------- */
+.mast{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:var(--mut2)}
+.mast span:last-child{letter-spacing:.2px;text-transform:none;font-size:13px}
+.intro{max-width:760px;margin:48px 0 28px}
+.intro h1{font-family:var(--serif);font-weight:400;font-size:clamp(34px,6vw,54px);line-height:1.05;letter-spacing:-.02em;margin:0 0 14px;text-wrap:balance}
+.intro p{font-size:16px;line-height:1.6;color:var(--mut2);margin:0 0 10px;max-width:68ch}
+.howto{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:18px;font-size:14px;color:var(--mut2)}
+.howto b{color:var(--txt);font-weight:500}
+.reply{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;background:var(--glass);border:1px solid color-mix(in srgb,var(--glow) 45%,transparent);color:var(--txt);font-size:14px}
+.score{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border:1px solid var(--line);border-radius:16px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);margin:0 0 40px;overflow:hidden}
+.score>div{padding:16px 18px;border-right:1px solid var(--line)}
+.score>div:last-child{border-right:0}
+.score .l{font-size:13px;color:var(--mut2)}
+.score .v{font-size:26px;font-weight:300;margin-top:4px;font-variant-numeric:tabular-nums}
+.score .v small{font-size:14px;color:var(--mut2)}
+.score .s{font-size:12.5px;color:var(--mut2);margin-top:2px;line-height:1.4}
+
+h2.sec{font-family:var(--serif);font-weight:400;font-size:30px;letter-spacing:-.01em;margin:56px 0 6px}
+p.secp{color:var(--mut2);margin:0 0 22px;font-size:15px;line-height:1.55;max-width:70ch}
+
+/* toc */
+.toc{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 28px;margin:0 0 8px;padding:0;list-style:none}
+.toc li{border-bottom:1px solid var(--line)}
+.toc a{display:flex;gap:12px;align-items:baseline;padding:12px 2px;color:var(--txt);text-decoration:none;font-size:15px;min-height:44px}
+.toc a:hover{color:var(--glow)}
+.toc .n{font-family:var(--serif);font-size:20px;color:var(--glow);width:26px;flex:none}
+.toc .e{margin-left:auto;font-size:12px;color:var(--mut2);flex:none}
+
+/* change cards */
+.chg{margin:22px 0 0;padding:26px clamp(16px,3vw,30px) 28px;border:1px solid var(--line);border-radius:20px;background:rgba(14,20,32,.62);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);scroll-margin-top:16px}
+.chg header{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;align-items:baseline}
+.chg .num{grid-row:span 2;font-family:var(--serif);font-size:54px;line-height:.9;color:var(--glow);font-variant-numeric:lining-nums}
+.chg h3{font-family:var(--serif);font-weight:400;font-size:26px;letter-spacing:-.01em;margin:0;line-height:1.15;text-wrap:balance}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12.5px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--mut2)}
+.tag.eff{color:var(--glow);border-color:color-mix(in srgb,var(--glow) 40%,transparent)}
+.why{font-size:15px;line-height:1.6;color:var(--mut2);margin:14px 0 18px;max-width:78ch}
+.why b{color:var(--txt);font-weight:500}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.ba.wideafter{grid-template-columns:1fr 1.35fr}
+@media(max-width:860px){.ba,.ba.wideafter{grid-template-columns:1fr}}
+.pane{min-width:0}
+.pane>.cap{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut2);margin:0 0 8px}
+.pane>.cap i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3)}
+.pane.after>.cap{color:var(--txt)}
+.pane.after>.cap i{background:var(--glow);box-shadow:0 1px 6px color-mix(in srgb,var(--glow) 50%,transparent)}
+.note{font-size:13px;line-height:1.5;color:var(--mut2);margin:10px 0 0}
+.note b{color:var(--bad);font-weight:500}
+.note.ok b{color:var(--good)}
+
+/* ---------- the "screen" surface used inside frames ---------- */
+.scr{position:relative;overflow:hidden;border-radius:16px;border:1px solid var(--line);background:#0e1420;isolation:isolate}
+.scr::before{content:"";position:absolute;inset:0;background:var(--sky);z-index:-1}
+.scr .in{padding:18px}
+.scr.flat::before{background:linear-gradient(180deg,#121a2a,#0e1420)}
+
+/* device frames */
+.phone{width:min(100%,360px);margin:0 auto;border-radius:44px;padding:8px;background:#05070c;border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 60px rgba(0,0,0,.45)}
+.phone .scr{border-radius:34px;height:720px;border:0}
+.phone .island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:96px;height:26px;border-radius:20px;background:#000;z-index:5}
+.desk{border-radius:14px;border:1px solid rgba(255,255,255,.14);background:#05070c;box-shadow:0 30px 60px rgba(0,0,0,.45);overflow:hidden}
+.desk .bar{display:flex;gap:6px;align-items:center;padding:9px 12px;background:#0a0e16;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--mut2)}
+.desk .bar i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.18)}
+.desk .bar span{margin-left:10px;padding:3px 12px;border-radius:6px;background:rgba(255,255,255,.06)}
+.desk .scr{border:0;border-radius:0}
+.overview{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:26px;align-items:start}
+@media(max-width:980px){.overview{grid-template-columns:1fr}.overview .deskwrap{display:none}}
+.onlyphone{display:none}
+@media(max-width:980px){.onlyphone{display:block}}
+.trio{display:grid;grid-template-columns:repeat(2,minmax(0,360px));gap:26px;justify-content:center}
+@media(max-width:800px){.trio{grid-template-columns:minmax(0,360px)}}
+
+/* ---------- shared app atoms (new + old) ---------- */
+.top{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--mut)}
+.ibtn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;background:var(--card);color:var(--txt)}
+.ibtn.old{width:38px;height:38px}
+svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);font-size:13.5px;color:var(--mut);background:rgba(255,255,255,.03);white-space:nowrap}
+.chip.on{border-color:var(--glow);color:var(--txt);background:color-mix(in srgb,var(--glow) 13%,transparent)}
+.chip.n{min-height:44px;padding:0 16px;color:var(--mut2)}
+.chip.n.on{color:var(--txt)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--glass);padding:3px;gap:2px}
+.seg b{font-weight:400;font-size:13.5px;padding:0 13px;min-height:38px;display:grid;place-items:center;border-radius:999px;color:var(--mut2);white-space:nowrap}
+.seg b.on{background:color-mix(in srgb,var(--glow) 16%,rgba(255,255,255,.04));color:var(--txt);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--glow) 55%,transparent)}
+.up{color:var(--good)}.down{color:var(--bad)}
+.ptag{display:inline-block;font-size:10px;letter-spacing:1px;padding:1px 6px;border-radius:999px;border:1px solid;margin-right:6px;vertical-align:1px}
+.ptag.fb{color:var(--fb);border-color:color-mix(in srgb,var(--fb) 50%,transparent)}
+.ptag.ig{color:var(--ig);border-color:color-mix(in srgb,var(--ig) 50%,transparent)}
+.ptag2{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--mut2)}
+.ptag2 i{width:7px;height:7px;border-radius:50%}
+.ptag2 .f{background:var(--fb)}.ptag2 .g{background:var(--ig)}
+
+/* old hero */
+.ohero{text-align:center;padding:4px 0 6px}
+.ohero .g{font-family:var(--oldserif);font-style:italic;font-size:17px;color:var(--mut)}
+.ohero .big{font-weight:200;font-size:76px;letter-spacing:-1px;line-height:1.05;margin:2px 0;text-shadow:0 0 50px color-mix(in srgb,var(--glow) 45%,transparent)}
+.ohero .sub{font-size:10.5px;letter-spacing:3px;text-transform:uppercase;color:var(--mut)}
+.ohero .pill{display:inline-block;margin-top:8px;padding:4px 11px;border-radius:999px;font-size:12px;border:1px solid var(--line)}
+.orange{display:flex;gap:6px;overflow:hidden;justify-content:center;flex-wrap:wrap;margin:14px 0 4px}
+.orange .chip{padding:7px 11px;font-size:12px}
+.olabel{text-align:center;font-family:var(--oldserif);font-size:15px;margin-top:6px}
+.olabel small{display:block;font-family:var(--sans);font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);margin-top:3px}
+
+/* new hero */
+.nhero{text-align:center;padding:6px 0 2px}
+.nhero .big{font-weight:250;font-size:clamp(60px,9vw,88px);letter-spacing:-.03em;line-height:1;margin:0;font-variant-numeric:tabular-nums;text-shadow:0 6px 30px rgba(0,0,0,.25)}
+.nhero .sub{font-size:14px;color:var(--mut2);margin-top:8px}
+.nhero .sub b{color:var(--txt);font-weight:500}
+.nhero .dl{margin-top:8px;font-size:14px}
+.nhero .lag{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:12.5px;color:var(--mut2)}
+.nhero .lag i{width:14px;height:6px;border-radius:3px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.35) 0 3px,transparent 3px 5px)}
+.insight{max-width:520px;margin:14px auto 0;font-family:var(--serif);font-style:italic;font-size:17px;line-height:1.4;color:var(--txt);text-wrap:balance}
+
+/* control bar */
+.cbar{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:nowrap;margin:18px 0 0}
+.cbar .chip.n svg{width:14px;height:14px}
+@media(max-width:420px){.cbar .acct{display:none}}
+.phone .cbar .acct{display:none}
+.phone .cbar{gap:6px;flex-wrap:nowrap}.phone .seg b{padding:0 9px;font-size:13px}.phone .chip.n{padding:0 11px;font-size:13px;gap:4px}.phone .cbar .chip.n svg:first-child{display:none}
+.cbar{flex-wrap:wrap}
+
+/* old KPI cards */
+.okpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.okpis.w4{grid-template-columns:repeat(4,1fr)}
+.okpi{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px;backdrop-filter:blur(14px)}
+.okpi .l{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--mut)}
+.okpi .v{font-weight:250;font-size:30px;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.okpi .d{font-size:12px}
+.okpi .s{font-size:11px;color:var(--mut)}
+
+/* new KPI strip */
+.strip{display:grid;grid-template-columns:repeat(4,1fr);background:var(--glass);border:1px solid var(--line);border-radius:16px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.strip>div{padding:14px 16px;border-right:1px solid var(--line);min-width:0}
+.strip>div:last-child{border-right:0}
+.strip .l{font-size:13px;color:var(--mut2)}
+.strip .v{font-weight:300;font-size:28px;margin:4px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.strip .d{font-size:12.5px;color:var(--mut2)}
+.strip .d b{font-weight:500}
+.strip.c2{grid-template-columns:repeat(2,1fr)}
+.strip.c2>div:nth-child(2n){border-right:0}
+.strip.c2>div:nth-child(-n+2){border-bottom:1px solid var(--line)}
+@media(max-width:560px){.strip:not(.c2){grid-template-columns:repeat(2,1fr)}.strip:not(.c2)>div:nth-child(2n){border-right:0}.strip:not(.c2)>div:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+
+/* panels */
+.pnl{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:16px 18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.opnl{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px;backdrop-filter:blur(14px)}
+.ph{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 0 10px}
+.ph h4{font-family:var(--serif);font-weight:400;font-size:20px;margin:0;display:flex;align-items:center;gap:8px;letter-spacing:-.005em}
+.ph h4 svg{color:var(--mut2)}
+.ph .hint{font-size:12.5px;color:var(--mut2);display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.ph.old h4{font-family:var(--oldserif)}
+.ph.old .hint{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut)}
+.row2{display:flex;justify-content:space-between;font-size:13.5px;padding:9px 0;border-top:1px solid var(--line)}
+.row2 span:last-child{font-variant-numeric:tabular-nums}
+.tile{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex:none}
+
+/* charts */
+svg.ch{display:block;width:100%;height:auto;overflow:visible}
+.legend{display:flex;gap:14px;font-size:12.5px;color:var(--mut2);margin-top:6px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+
+/* posts */
+.post{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--line);align-items:center}
+.post .rk{font-family:var(--oldserif);font-size:22px;width:22px;color:var(--glow);flex:none;line-height:1;align-self:flex-start}
+.post .t{font-size:14px;line-height:1.35}
+.post .m{font-size:12px;color:var(--mut);margin-top:3px}
+.post .n{margin-left:auto;text-align:right;flex:none;font-variant-numeric:tabular-nums}
+.post .n b{font-weight:300;font-size:20px;display:block}
+.post .n small{font-size:9.5px;letter-spacing:1px;color:var(--mut)}
+.npost{display:grid;grid-template-columns:22px 48px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.npost .rk{font-family:var(--serif);font-size:20px;color:var(--glow);text-align:center}
+.npost .th{width:48px;height:48px;border-radius:10px;border:1px solid var(--line);background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.02));display:grid;place-items:center;color:var(--mut2)}
+.npost .th svg{width:18px;height:18px}
+.npost .t{font-size:14px;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.npost .m{font-size:12.5px;color:var(--mut2);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 10px}
+.npost .n{text-align:right;font-weight:300;font-size:19px;font-variant-numeric:tabular-nums}
+.npost .n small{display:block;font-size:11.5px;color:var(--mut2)}
+.colh{display:grid;grid-template-columns:22px 48px minmax(0,1fr) auto;gap:12px;font-size:12px;color:var(--mut2);padding:0 0 6px}
+.colh span:last-child{text-align:right}
+
+/* dock */
+.dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:4px;padding:6px;border-radius:999px;background:rgba(14,20,32,.78);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);z-index:4}
+.dock b{font-weight:400;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 14px;border-radius:999px;font-size:11px;color:var(--mut2);min-width:64px}
+.dock b.on{background:rgba(255,255,255,.08);color:var(--txt)}
+.dock b.main{border:1px solid color-mix(in srgb,var(--glow) 60%,transparent);color:var(--txt)}
+
+/* toast */
+.otoast{margin:0 auto;max-width:92%;text-align:center;background:rgba(14,20,32,.92);border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:12.5px;line-height:1.35}
+.ntoast{display:flex;align-items:center;gap:10px;margin:0 auto;width:fit-content;max-width:100%;background:rgba(14,20,32,.92);border:1px solid var(--line);padding:6px 6px 6px 14px;border-radius:999px;font-size:13.5px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.ntoast .ok{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.ntoast .ok svg{width:12px;height:12px;stroke-width:2.4}
+.ntoast button{all:unset;cursor:pointer;padding:0 14px;min-height:36px;display:grid;place-items:center;border-radius:999px;background:rgba(255,255,255,.07);font-size:13px}
+
+/* sheets */
+.osheet{background:rgba(14,20,32,.96);border:1px solid var(--line);border-bottom:0;border-radius:22px 22px 0 0;padding:18px}
+.osheet .meta{font-size:12px;color:var(--mut)}
+.osheet h5{font-family:var(--oldserif);font-weight:400;font-size:19px;margin:8px 0}
+.otiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.otiles div{border:1px solid var(--line);border-radius:12px;padding:9px 10px;background:rgba(255,255,255,.03)}
+.otiles b{display:block;font-weight:400;font-size:18px}
+.otiles small{font-size:9.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)}
+.nsheet{background:rgba(14,20,32,.97);border:1px solid var(--line);border-radius:20px;padding:20px 22px;box-shadow:0 30px 70px rgba(0,0,0,.5)}
+.nsheet .acts{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.nsheet .meta{font-size:13px;color:var(--mut2);margin-top:12px}
+.nsheet h5{font-family:var(--serif);font-weight:400;font-size:24px;line-height:1.2;margin:6px 0 10px;text-wrap:balance}
+.nsheet .bigv{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.nsheet .bigv b{font-weight:250;font-size:52px;letter-spacing:-.02em;line-height:1}
+.nsheet .bigv span{font-size:14px;color:var(--mut2)}
+.nstats{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line);border-radius:14px;margin:14px 0}
+.nstats div{padding:10px 12px;border-right:1px solid var(--line)}
+.nstats div:last-child{border-right:0}
+.nstats b{display:block;font-weight:300;font-size:20px;font-variant-numeric:tabular-nums}
+.nstats small{font-size:12px;color:var(--mut2)}
+@media(max-width:560px){.nstats{grid-template-columns:repeat(2,1fr)}.nstats div:nth-child(2n){border-right:0}.nstats div:nth-child(-n+4){border-bottom:1px solid var(--line)}.nstats div:last-child{grid-column:1/-1}}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border-radius:999px;border:1px solid color-mix(in srgb,var(--glow) 55%,transparent);background:rgba(255,255,255,.05);color:var(--txt);font-size:14px;white-space:nowrap}
+.btn.q{border-color:var(--line)}
+.capt{font-size:14.5px;line-height:1.6;color:var(--txt);max-width:65ch}
+
+/* settings */
+.oset .s{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--mut);margin:14px 0 8px}
+.oset h5{font-family:var(--oldserif);font-weight:400;font-size:22px;margin:0}
+.sw{display:flex;gap:10px}
+.sw i{width:34px;height:34px;border-radius:50%;display:block}
+.nset h5{font-family:var(--serif);font-weight:400;font-size:24px;margin:0}
+.grp{margin:16px 0 0}
+.grp .gh{font-size:13px;color:var(--mut2);margin:0 4px 6px}
+.grp .gb{border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.035);overflow:hidden}
+.grp .gr{display:flex;align-items:center;gap:12px;min-height:50px;padding:8px 14px;border-top:1px solid var(--line);font-size:14px}
+.grp .gr:first-child{border-top:0}
+.grp .gr .v{margin-left:auto;color:var(--mut2);font-size:13.5px;display:flex;align-items:center;gap:6px;text-align:right}
+.grp .gr svg.i{color:var(--mut2)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.dot.g{background:var(--good)}.dot.a{background:#f3cf8a}
+.swn{display:flex;gap:10px;flex-wrap:wrap}
+.swn span{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;color:var(--mut2)}
+.swn i{width:40px;height:40px;border-radius:12px;display:block;border:1px solid var(--line)}
+.swn span.on i{box-shadow:0 0 0 2px #0e1420,0 0 0 4px var(--glow)}
+.swn span.on{color:var(--txt)}
+
+/* contrast demo */
+.band{border-radius:16px;overflow:hidden;position:relative;padding:18px;min-height:150px;background:linear-gradient(180deg,#2b3352 0%,#6d5a7a 55%,#9a7576 100%)}
+.cr{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.35);margin-left:6px;vertical-align:1px}
+
+/* type demo */
+.typo{display:grid;gap:10px}
+.typo .a{font-size:28px;line-height:1.15}
+.typo .b{font-size:13px;color:var(--mut2)}
+
+/* focus demo */
+.fr{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.ring{box-shadow:0 0 0 2px #0e1420,0 0 0 4px var(--glow)}
+.measure{position:relative}
+.measure::after{content:attr(data-h);position:absolute;right:-6px;top:50%;transform:translate(100%,-50%);font-size:11px;color:var(--mut2);white-space:nowrap}
+
+/* lock */
+.lockv{text-align:center;padding:30px 18px 26px;position:relative}
+.orb-old{width:110px;height:110px;margin:0 auto 18px;border-radius:50%;background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--glow) 32%,transparent),color-mix(in srgb,var(--glow) 9%,transparent) 60%,transparent 72%);box-shadow:0 0 70px color-mix(in srgb,var(--glow) 18%,transparent)}
+.sun{position:relative;width:140px;height:70px;margin:0 auto 22px;overflow:hidden}
+.sun::before{content:"";position:absolute;left:0;right:0;top:0;height:140px;border-radius:50%;background:radial-gradient(circle at 50% 50%,#fff3dc 0%,#f6d7a2 34%,#e7a77c 58%,rgba(201,143,107,0) 72%);animation:rise 9s var(--ease) infinite alternate}
+.sun::after{content:"";position:absolute;left:-30px;right:-30px;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(243,217,164,.7),transparent)}
+@keyframes rise{from{transform:translateY(8px)}to{transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.sun::before{animation:none}}
+.lockv h4{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.1;margin:0 0 10px;letter-spacing:-.01em}
+.lockv h4.old{font-family:var(--oldserif)}
+.lockv p{font-size:13.5px;line-height:1.5;color:var(--mut2);max-width:300px;margin:0 auto 16px}
+.passf{display:flex;gap:8px;max-width:300px;margin:0 auto}
+.passf .f{flex:1;display:flex;align-items:center;min-height:46px;padding:0 6px 0 16px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.07);font-size:14px;color:var(--mut2)}
+.passf .f svg{margin-left:auto;color:var(--mut2)}
+.passf .f .eye{width:36px;height:36px;display:grid;place-items:center;margin-left:auto}
+.lockv .help{display:inline-flex;margin-top:14px;font-size:13px;color:var(--mut2);gap:6px;align-items:center}
+
+/* report tiles */
+.rp{background:#030a3a;border-radius:12px;padding:16px}
+.rp .h{display:flex;justify-content:space-between;align-items:center;color:#fff;font:600 12px/1 Arial,sans-serif;margin-bottom:10px}
+.rpt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rt2 .ft2{overflow-wrap:anywhere}@media(max-width:560px){.rt2 .im .pt{font-size:8px}.rt2 .nm2{font-size:16px}.rp{padding:12px}.rpt{gap:6px}}
+.rt{background:#fff;border-radius:10px;padding:6px;font-family:Arial,sans-serif;color:#0b1033}
+.rt .im{height:96px;border-radius:7px;background:#000;color:#fff;position:relative;overflow:hidden;padding:8px;font-family:Georgia,serif;font-size:15px;line-height:1.35}
+.rt .im .nm{position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);background:#000;color:#fff;font:700 15px/1 Arial,sans-serif;padding:6px 14px;border-radius:10px 10px 0 0}
+.rt .ft{font-size:9px;text-align:center;margin-top:5px;line-height:1.3}
+.rt .ft b{font-size:9px}
+.rt2 .im{height:96px;border-radius:7px;background:linear-gradient(160deg,#16205a,#0b1240);color:#dfe5ff;padding:9px;display:flex;flex-direction:column;justify-content:space-between}
+.rt2 .im .pt{font:600 9px/1 Arial,sans-serif;letter-spacing:.06em;opacity:.8;display:flex;align-items:center;gap:5px}
+.rt2 .im .pt i{width:7px;height:7px;border-radius:50%}
+.rt2 .im .tx{font:500 11.5px/1.3 Arial,sans-serif;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.rt2 .nm2{font:700 18px/1 Arial,sans-serif;margin:7px 2px 2px}
+.rt2 .ft2{font:10px/1.3 Arial,sans-serif;color:#4a5280;margin:0 2px}
+
+.foot{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--mut2);line-height:1.6}
+
+@media(max-width:560px){
+  .chg .num{font-size:42px}
+  .chg h3{font-size:22px}
+  .okpis.w4{grid-template-columns:repeat(2,1fr)}
+  .scr .in{padding:14px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="pagesky" aria-hidden="true"></div>
+<main class="page">
+  <div class="mast"><span>MCCS Pulse</span><span>Design review · Oct 29, 2026</span></div>
+
+  <section class="intro">
+    <h1>Keep the dusk. Make the numbers speak sooner.</h1>
+    <p>Pulse already has a voice no other dashboard has: the evening sky, the calm serif, one big number. This review keeps all of that and works on what gets in the way: the first number on Today undersells you because two unreported days count as zeros, controls stack three rows deep on a phone, labels fade out where the sky turns mauve, and a few screens (sheet, toast, Settings, report tiles) have rough edges.</p>
+    <p>Every screen below uses made-up sample numbers and posts. Nothing here is real MCCS data.</p>
+    <div class="howto"><span class="reply">Reply with numbers, e.g. <b>&ldquo;do 1, 3, 7&rdquo;</b></span><span>Effort: <b>S</b> under an hour · <b>M</b> a session · <b>L</b> a bigger rework</span></div>
+  </section>
+
+  <div class="score" role="list">
+    <div role="listitem"><div class="l">Usability score today</div><div class="v">27 <small>/ 40</small></div><div class="s">Nielsen&rsquo;s 10 heuristics, 0&ndash;4 each</div></div>
+    <div role="listitem"><div class="l">Identity</div><div class="v">Strong</div><div class="s">Dusk sky, serif, calm motion. Keep it.</div></div>
+    <div role="listitem"><div class="l">Biggest risk</div><div class="v">Accuracy</div><div class="s">Lagging days drag the headline delta down</div></div>
+    <div role="listitem"><div class="l">Accessibility floor</div><div class="v">Not met</div><div class="s">No focus rings, no reduced motion, 2.7:1 labels</div></div>
+  </div>
+
+  <h2 class="sec">The whole idea, on one screen</h2>
+  <p class="secp">Today after changes 1, 2, 3, 4, 6 and 7 together. On a phone the first number, its meaning, the controls and all four KPIs now fit above the dock, where today the KPIs start below the fold.</p>
+  <div class="overview">
+    <div class="deskwrap"><div class="desk"><div class="bar"><i></i><i></i><i></i><span>1thomasalan.github.io/mccs-marketing-pulse</span></div><div class="scr" style="height:760px"><div class="in" id="deskToday" style="padding:22px 34px"></div></div></div></div>
+    <div><div class="phone"><div class="scr"><div class="island"></div><div class="in" id="phoneToday" style="padding:52px 16px 0"></div></div></div></div>
+  </div>
+  <div class="trio" style="margin-top:26px">
+    <figure style="margin:0"><figcaption class="note" style="margin:0 0 10px;text-align:center">Before (recreated with sample data)</figcaption><div class="phone"><div class="scr"><div class="island"></div><div class="in" id="phoneBefore" style="padding:52px 16px 0"></div></div></div></figure>
+    <figure style="margin:0"><figcaption class="note" style="margin:0 0 10px;text-align:center;color:var(--txt)">After</figcaption><div class="phone"><div class="scr"><div class="island"></div><div class="in" id="phoneAfter2" style="padding:52px 16px 0"></div></div></div></figure>
+  </div>
+
+  <h2 class="sec">The changes</h2>
+  <p class="secp">Ranked by what each one buys. 1 to 4 fix what staff and leadership misread or cannot read; 5 to 11 sharpen the craft; 12 to 14 close gaps on single screens.</p>
+  <ol class="toc" id="toc"></ol>
+
+  <div id="changes"></div>
+
+  <div class="foot">
+    <p><b style="color:var(--txt);font-weight:500">Not part of this mockup, but found during the review:</b> when someone loads Pulse by importing Meta CSVs on a device that has never been unlocked, accounts that are hidden in the synced data (collaborator Pages) are not hidden, because the hide list only arrives with the passcode sync. Worth a small code fix whichever changes you pick.</p>
+    <p>Methods: the live app was run locally at desktop (1440&times;900) and phone (390&times;844) sizes and every screen was inspected; findings were checked against the impeccable critique, better-interface (accessibility, layout, type, colour, polish), taste-skill&rsquo;s app-screen rules and the frontend-design guidance, without stripping Pulse&rsquo;s house style. Contrast figures are WCAG ratios computed from the app&rsquo;s own colour tokens.</p>
+  </div>
+</main>
+
+<script>
+/* ---------- icons (one stroke set) ---------- */
+const I={
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+ clock:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+ search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+ doc:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 13h7M9 17h5"/>',
+ cal:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+ down:'<path d="M6 9l6 6 6-6"/>',
+ chev:'<path d="M9 6l6 6-6 6"/>',
+ globe:'<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 2.6 14.6 0 17M12 3.5c-2.6 2.4-2.6 14.6 0 17"/>',
+ mail:'<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/>',
+ image:'<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9.5" r="1.6"/><path d="M20 15l-4.5-4.5L6 20"/>',
+ share:'<path d="M12 3v12"/><path d="M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>',
+ x:'<path d="M6 6l12 12M18 6L6 18"/>',
+ check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+ eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
+ palette:'<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.5-1-2.6 0-1 .8-1.7 1.8-1.7h2.2a3.7 3.7 0 0 0 3.7-3.7C20.5 6.7 16.7 3.5 12 3.5z"/><circle cx="7.8" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.8" r="1"/>',
+ book:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/>',
+ db:'<ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/>',
+ upload:'<path d="M12 16V4M7 8.5L12 4l5 4.5"/><path d="M5 15v4a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-4"/>'
+};
+const ic=(n,s)=>`<svg class="i" viewBox="0 0 24 24" ${s?`style="width:${s}px;height:${s}px"`:''} aria-hidden="true">${I[n]}</svg>`;
+
+/* ---------- sample data (made up) ---------- */
+const FB=[18,22,19,24,31,17,15,27,52,21,18,16,23,40,28,22,19,25,21,33,61,29,22,20,26,30,0,0];
+const IG=[8,10,9,12,14,7,6,12,18,11,9,8,10,16,13,10,9,11,10,15,22,12,10,9,11,12,0,0];
+
+function chartOld(w,h){
+  const max=70,n=FB.length,x=i=>i*(w/(n-1)),y=v=>h-14-(v/max)*(h-30);
+  const path=a=>a.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
+  const area=a=>path(a)+` L${w} ${h-14} L0 ${h-14} Z`;
+  return `<svg class="ch" viewBox="0 0 ${w} ${h}" aria-label="Views by day, old style"><defs><filter id="gl" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="fa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb4ff" stop-opacity=".35"/><stop offset="1" stop-color="#8fb4ff" stop-opacity="0"/></linearGradient><linearGradient id="ia" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3a6b8" stop-opacity=".35"/><stop offset="1" stop-color="#f3a6b8" stop-opacity="0"/></linearGradient></defs>
+  <text x="0" y="9" fill="rgba(238,241,246,.5)" font-size="8">61K</text>
+  <path d="${area(FB)}" fill="url(#fa)"/><path d="${area(IG)}" fill="url(#ia)"/>
+  <path d="${path(FB)}" fill="none" stroke="#8fb4ff" stroke-width="1.6" filter="url(#gl)"/><path d="${path(IG)}" fill="none" stroke="#f3a6b8" stroke-width="1.6" filter="url(#gl)"/>
+  <text x="0" y="${h-2}" fill="rgba(238,241,246,.5)" font-size="8">Sep 29</text><text x="${w}" y="${h-2}" text-anchor="end" fill="rgba(238,241,246,.5)" font-size="8">Oct 28</text></svg>`;
+}
+function chartNew(w,h,opt={}){
+  const n=FB.length-2, max=70, L=28, B=18, W=w-L, H=h-B-6;
+  const x=i=>L+i*(W/(FB.length-1)), y=v=>6+H-(v/max)*H;
+  const path=a=>a.slice(0,n).map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
+  const grid=[0,30,60].map(v=>`<line x1="${L}" x2="${w}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(255,255,255,${v?'.10':'.22'})" ${v?'stroke-dasharray="2 4"':''}/><text x="${L-6}" y="${y(v)+3}" text-anchor="end" fill="rgba(238,241,246,.74)" font-size="9.5">${v?v+'K':'0'}</text>`).join('');
+  const lagX=x(n-1)+ (W/(FB.length-1))*.5;
+  const hi=20, hx=x(hi), hy=y(FB[hi]);
+  const tip=opt.tip!==false?`<line x1="${hx}" x2="${hx}" y1="6" y2="${6+H}" stroke="rgba(255,255,255,.25)"/><circle cx="${hx}" cy="${hy}" r="4" fill="#0e1420" stroke="#8fb4ff" stroke-width="2"/><g transform="translate(${hx-118},${hy-6})"><rect width="108" height="44" rx="8" fill="rgba(14,20,32,.95)" stroke="rgba(255,255,255,.16)"/><text x="10" y="16" fill="#eef1f6" font-size="10.5">Sun, Oct 18</text><text x="10" y="32" fill="rgba(238,241,246,.8)" font-size="10"><tspan fill="#8fb4ff">●</tspan> 61K  <tspan fill="#f3a6b8">●</tspan> 22K</text></g>`:'';
+  return `<svg class="ch" viewBox="0 0 ${w} ${h}" aria-label="Views by day, proposed style">${grid}
+  <rect x="${lagX}" y="6" width="${w-lagX}" height="${H}" fill="rgba(255,255,255,.05)"/><text x="${(lagX+w)/2}" y="${6+H/2}" fill="rgba(238,241,246,.74)" font-size="9" text-anchor="middle" transform="rotate(-90 ${(lagX+w)/2} ${6+H/2})">not reported yet</text>
+  <path d="${path(FB)}" fill="none" stroke="#8fb4ff" stroke-width="1.75" stroke-linejoin="round"/><path d="${path(IG)}" fill="none" stroke="#f3a6b8" stroke-width="1.75" stroke-linejoin="round"/>
+  ${tip}
+  <text x="${L}" y="${h-3}" fill="rgba(238,241,246,.74)" font-size="9.5">Sep 29</text><text x="${x(14)}" y="${h-3}" text-anchor="middle" fill="rgba(238,241,246,.74)" font-size="9.5">Oct 13</text><text x="${w}" y="${h-3}" text-anchor="end" fill="rgba(238,241,246,.74)" font-size="9.5">Oct 28</text></svg>`;
+}
+
+/* ---------- reusable pieces ---------- */
+const topNew=()=>`<div class="top"><span>MCCS Pulse</span><span class="ibtn" aria-label="Settings">${ic('gear')}</span></div>`;
+const topOld=()=>`<div class="top"><span>MCCS Pulse</span><span class="ibtn old">${ic('gear')}</span></div>`;
+const heroNew=(ins=true)=>`<div class="nhero"><p class="big">842K</p><div class="sub">views from <b>214 posts</b> · Sep 29 – Oct 26</div><div class="dl up">▲ 3.1% vs the 28 days before</div>${ins?`<p class="insight">Fall Festival posts drove nearly a fifth of all views.</p>`:''}</div>`;
+const heroOld=()=>`<div class="ohero"><div class="g">Good afternoon</div><div class="big">842K</div><div class="sub">Views · 214 posts</div><div><span class="pill down">▼ 9.4% vs prior period</span></div></div>`;
+const cbar=()=>`<div class="cbar"><span class="chip n on">${ic('cal',14)}30 days${ic('down',14)}</span><span class="seg" role="group" aria-label="Platform"><b class="on">All</b><b>Facebook</b><b>Instagram</b></span><span class="chip n acct">All accounts${ic('down',14)}</span></div>`;
+const controlsOld=()=>`<div class="orange"><span class="chip">Last week</span><span class="chip">7 days</span><span class="chip on">30 days</span><span class="chip">This month</span><span class="chip">Last month</span><span class="chip">Year to date</span><span class="chip">Custom</span></div><div class="olabel">Sep 29 – Oct 28, 2026<small>Data through Oct 26, 2026 · Meta lags ~2 days</small></div><div class="orange"><span class="chip on">All</span><span class="chip">Facebook</span><span class="chip">Instagram</span><span class="chip">All accounts ▾</span></div>`;
+const kpiNew=(cls='')=>`<div class="strip ${cls}"><div><div class="l">Engagement</div><div class="v">9.6K</div><div class="d"><b class="up">+4.2%</b> vs prior</div></div><div><div class="l">Link clicks</div><div class="v">1,874</div><div class="d"><b class="down">−6.0%</b> vs prior</div></div><div><div class="l">Eng. per 1K views</div><div class="v">11.4</div><div class="d">no change</div></div><div><div class="l">IG follows</div><div class="v">96</div><div class="d"><b class="up">+14%</b> vs prior</div></div></div>`;
+const kpiOld=(w4)=>`<div class="okpis ${w4?'w4':''}"><div class="okpi"><div class="l">Engagement</div><div class="v">9.6K</div><div class="d down">▼ 8.1%</div><div class="s">reactions, comments, shares, saves</div></div><div class="okpi"><div class="l">Link clicks</div><div class="v">1,874</div><div class="d down">▼ 15.2%</div><div class="s">Facebook</div></div><div class="okpi"><div class="l">Eng. per 1K views</div><div class="v">11.4</div><div class="d down">▼ 1.2%</div><div class="s">how hard content works</div></div><div class="okpi"><div class="l">IG follows</div><div class="v">96</div><div class="d down">▼ 4.0%</div><div class="s">from posts</div></div></div>`;
+const webNew=()=>`<div class="pnl"><div class="ph"><h4>${ic('globe',17)}Social to website</h4><span class="hint">27 of 30 days</span></div><div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:28px;font-weight:300">2.9K</span><span style="font-size:13.5px;color:var(--mut2)">visits from social, 3.4% of all</span></div><div class="row2" style="margin-top:8px"><span>Website visitors</span><span>86K</span></div></div>`;
+const mailNew=()=>`<div class="pnl"><div class="ph"><h4>${ic('mail',17)}Newsletter</h4><span class="hint">Year to date</span></div><div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:28px;font-weight:300">48%</span><span style="font-size:13.5px;color:var(--mut2)">open rate · 112K sent</span></div><div class="row2" style="margin-top:8px"><span>Clicks per open</span><span>6.2%</span></div></div>`;
+const dockNew=(v='today')=>`<div class="dock"><b class="${v==='today'?'on':''}">${ic('clock',17)}Today</b><b class="${v==='explore'?'on':''}">${ic('search',17)}Explore</b><b class="main">${ic('doc',17)}Report</b></div>`;
+const postsNew=(n=4)=>{const P=[['Fall Festival at Camp Foster this Saturday','41K','fb','ig','24K + 17K'],['Haunted Trail tickets are on sale now','33K','fb','',''],['Sunset paddle tours are back at Ishikawa','27K','ig','',''],['New lunch menu at the Habu Pit','19K','fb','ig','12K + 7K'],['Swim lessons: fall session sign-ups open','14K','fb','','']];
+ return `<div class="colh"><span></span><span></span><span>Post</span><span>Views</span></div>`+P.slice(0,n).map((p,i)=>`<div class="npost"><span class="rk">${i+1}</span><span class="th">${ic('image')}</span><div><div class="t">${p[0]}</div><div class="m"><span class="ptag2">${p[2]==='fb'?'<i class="f"></i>':''}${p[2]==='ig'||p[3]?'<i class="g"></i>':''} ${p[3]?'Facebook + Instagram':p[2]==='ig'?'@mccsoki':'MCCS Okinawa'}</span><span>Oct ${[17,12,9,21,4][i]}</span></div></div><div class="n">${p[1]}${p[4]?`<small>${p[4]}</small>`:''}</div></div>`).join('')};
+const postsOld=()=>[['Haunted Trail tickets are on sale now','33K','fb',1],['Fall Festival at Camp Foster this Saturday','24K','fb',2],['Fall Festival at Camp Foster this Saturday','17K','ig',1]].map((p,i)=>`${i===0?'<div style="font-size:10px;letter-spacing:2px;color:var(--fb);margin-bottom:2px">FACEBOOK</div>':i===2?'<div style="font-size:10px;letter-spacing:2px;color:var(--ig);margin:10px 0 2px">INSTAGRAM</div>':''}<div class="post"><span class="rk">${p[3]}</span><div><div class="t">${p[0]}</div><div class="m"><span class="ptag ${p[2]}">${p[2].toUpperCase()}</span>${p[2]==='fb'?'MCCS Okinawa':'@mccsoki'} · Oct 17 · 412 eng</div></div><div class="n"><b>${p[1]}</b><small>VIEWS</small></div></div>`).join('');
+
+/* ---------- overview frames ---------- */
+document.getElementById('deskToday').innerHTML=`${topNew()}<div style="margin-top:6px">${heroNew()}</div>${cbar()}<div style="margin-top:20px">${kpiNew()}</div>
+<div style="display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-top:12px"><div class="pnl"><div class="ph"><h4>Views over time</h4><span class="hint">By day</span></div>${chartNew(380,170)}<div class="legend"><span><i style="background:var(--fb)"></i>Facebook 598K</span><span><i style="background:var(--ig)"></i>Instagram 244K</span></div></div><div style="display:grid;gap:12px">${webNew()}${mailNew()}</div></div>${dockNew()}`;
+const phoneAfter=`${topNew()}<div style="margin-top:14px">${heroNew(false)}</div>${cbar()}<div style="margin-top:16px">${kpiNew('c2')}</div><div style="margin-top:12px">${webNew()}</div>${dockNew()}`;
+document.getElementById('phoneToday').innerHTML=phoneAfter;
+document.getElementById('phoneAfter2').innerHTML=phoneAfter;
+document.getElementById('phoneBefore').innerHTML=`${topOld()}<div style="margin-top:10px">${heroOld()}</div>${controlsOld()}<div style="margin-top:14px">${kpiOld()}</div><div class="dock"><b class="on">${ic('clock',17)}Today</b><b>${ic('search',17)}Explore</b><b class="main">${ic('doc',17)}Report</b></div>`;
+
+/* ---------- change list ---------- */
+const C=[
+{t:'An honest headline number',s:'Today',e:'M',why:`The 30-day range runs to today, but Meta data stops two days earlier, so <b>those two days count as zeros</b> and the comparison with the full prior period comes out lower than it really is. Measure both periods only through the last reported day, say the comparison window in words, and add one plain sentence about what moved the number. Lose the glow and the "Good afternoon" greeting, which push the number down without telling anyone anything.`,
+ before:`<div class="scr"><div class="in">${heroOld()}<div class="olabel">Sep 29 – Oct 28, 2026<small>Data through Oct 26, 2026</small></div></div></div><p class="note"><b>▼ 9.4%</b> compares 28 reported days with 30 full days.</p>`,
+ after:`<div class="scr"><div class="in">${heroNew()}<div style="text-align:center"><span class="nhero"><span class="lag"><i></i>Oct 27–28 not reported by Meta yet</span></span></div></div></div><p class="note ok"><b>▲ 3.1%</b> compares Sep 29–Oct 26 with the 28 days before it.</p>`},
+{t:'One row of controls instead of three',s:'Today · Explore',e:'M',why:`Seven preset chips, a range label, a data-through line, three platform chips and an account menu take three rows (four on a phone, where the presets also scroll off-screen with no cue). Fold the presets into one "30 days" button that opens the existing range sheet, make platform a single segmented control, and put the exact dates in the hero line where people already look. KPIs move up by about 150px on a phone.`,
+ before:`<div class="scr"><div class="in">${controlsOld()}</div></div>`,
+ after:`<div class="scr"><div class="in">${cbar()}<div class="nhero" style="margin-top:12px"><div class="sub">views from <b>214 posts</b> · Sep 29 – Oct 26</div></div></div></div><p class="note">On a 390px phone the account menu moves inside the "30 days" sheet so the row never wraps.</p>`},
+{t:'KPIs as one calm strip, colour that means good or bad',s:'Today · Explore',e:'S',why:`Four separate glass cards with tracked capitals and a red arrow on every number read as an alarm panel. One glass strip split by hairlines is quieter and easier to scan. Deltas name their window, a change under 1% is grey ("no change"), and green or red follows whether the change is good, not just up or down. Explore's eight cards become two strips of four.`,
+ before:`<div class="scr"><div class="in">${kpiOld(true)}</div></div>`,
+ after:`<div class="scr"><div class="in">${kpiNew()}</div></div>`},
+{t:'Labels you can read where the sky turns mauve',s:'All screens',e:'S',why:`Muted text is 58% white. Over the navy top it passes (6:1), but cards drift into the mauve band of the sunset as you scroll, and there the KPI labels and hints drop to <b>2.7:1</b>, under the 4.5:1 minimum. Raise muted text to 74% white and give cards a slightly darker glass (navy at 45%) so the sky still shows through: <b>about 6:1</b> in the same spot.`,
+ before:`<div class="band"><div class="okpi" style="max-width:260px"><div class="l">Eng. per 1K views</div><div class="v">11.4</div><div class="s">how hard content works <span class="cr">2.7:1</span></div></div></div>`,
+ after:`<div class="band"><div class="strip" style="grid-template-columns:1fr;max-width:260px"><div><div class="l">Eng. per 1K views <span class="cr">6.0:1</span></div><div class="v">11.4</div><div class="d">no change vs prior</div></div></div></div>`},
+{t:'A real serif everywhere, fewer shouting labels',s:'All screens',e:'S',why:`The serif is "Iowan Old Style", which only Apple devices have. On Windows PCs Pulse falls back to Palatino and on Android to a plain default serif, so it looks different on every screen staff use. Ship one open-licence serif with the app (Newsreader, shown on this page) so the look is the same everywhere. Also cut the tracked capitals from about a dozen per screen to one, the wordmark; hints like "TAP FOR DETAIL" become a small sentence-case hint with a chevron.`,
+ before:`<div class="scr flat"><div class="in typo"><div class="ph old" style="margin:0"><h4>Top posts</h4><span class="hint">Tap for detail</span></div><div class="ph old" style="margin:0"><h4>Views over time</h4><span class="hint">By day · tap the line</span></div><div class="a" style="font-family:serif">Marketing metrics, at a glance.</div><div class="b">What an Android phone shows today (default serif)</div></div></div>`,
+ after:`<div class="scr flat"><div class="in typo"><div class="ph" style="margin:0"><h4>Top posts</h4><span class="hint">Details${ic('chev',14)}</span></div><div class="ph" style="margin:0"><h4>Views over time</h4><span class="hint">By day</span></div><div class="a" style="font-family:var(--serif)">Marketing metrics, at a glance.</div><div class="b">Same on iPhone, Android and Windows</div></div></div>`},
+{t:'Drawn icons, one border',s:'Today',e:'S',why:`The website and newsletter cards use a text arrow (↗) and an envelope character inside tinted squares, and each card gets its own tinted border (green, purple). Characters render differently on every device and the tinted boxes are the most "template dashboard" thing in Pulse. Use small line icons from the same set as the gear and the dock, next to the title, and one neutral border for every card.`,
+ before:`<div class="scr"><div class="in"><div class="opnl" style="border-color:rgba(158,230,180,.45)"><div class="ph old"><h4>Social → Website</h4><span class="hint">27 of 30 days</span></div><div style="display:flex;gap:12px;align-items:center"><span class="tile" style="background:rgba(158,230,180,.14);color:#9ee6b4">↗</span><div><div style="font-size:26px;font-weight:300">2.9K visits</div><div style="font-size:11.5px;color:var(--mut)">came to the website from social media</div></div></div></div><div class="opnl" style="margin-top:10px;border-color:rgba(190,160,255,.4)"><div style="display:flex;gap:12px;align-items:center"><span class="tile" style="background:rgba(243,217,164,.14)">✉</span><div style="font-size:26px;font-weight:300">48% open rate</div></div></div></div></div>`,
+ after:`<div class="scr"><div class="in" style="display:grid;gap:10px">${webNew()}${mailNew()}</div></div>`},
+{t:'A chart that tells the truth about the last two days',s:'Today · Explore · sheets',e:'M',why:`Today's chart has a glow on both lines, a filled area under each, one label on the vertical axis, and lines that crash to zero for the two days Meta has not reported yet, which looks like a collapse. Draw clean lines, three faint gridlines with values, shade the unreported days and label them, and show a small readout when you touch a day.`,
+ before:`<div class="scr flat"><div class="in">${chartOld(420,170)}<div class="legend"><span><i style="background:var(--fb)"></i>Facebook 598K</span><span><i style="background:var(--ig)"></i>Instagram 244K</span></div></div></div>`,
+ after:`<div class="scr flat"><div class="in">${chartNew(420,170)}<div class="legend"><span><i style="background:var(--fb)"></i>Facebook 598K</span><span><i style="background:var(--ig)"></i>Instagram 244K</span></div></div></div>`},
+{t:'Top posts with pictures, and cross-posts counted once',s:'Today · Explore',e:'M',why:`Many posts go out on Facebook and Instagram together, so Today's two top-5 lists often show the same event twice, and "VIEWS" repeats under every number. Show each post's thumbnail (Pulse already stores them), one "Views" column header, and merge a cross-post into one row with both platforms and the split, so one list holds more different posts. Keep the per-platform lists one tap away in Explore.`,
+ before:`<div class="scr flat"><div class="in">${postsOld()}</div></div><p class="note">The same Fall Festival post fills a spot in both lists.</p>`,
+ after:`<div class="scr flat"><div class="in">${postsNew(4)}</div></div><p class="note">Grey picture squares stand in for real post thumbnails.</p>`},
+{t:'A short import message, and no toast peeking at the top',s:'All screens',e:'S',why:`After an import the message lists every file in one pill, six lines long on a phone, sitting on top of the wordmark and the big number. Say it in one line with a Details button that opens Data status. Separately, the hidden toast's bottom edge peeks in at the top centre of every screen (visible on the lock screen); hide it fully.`,
+ before:`<div class="scr"><div class="in" style="min-height:180px">${topOld()}<div class="otoast" style="margin-top:-30px">Facebook: 1,212 new, 0 updated · Instagram: 188 new, 0 updated · Website: Jan 1 – Oct 26 added · Website pages by day: Jan 1 – Oct 26 added · clickthrough_report.csv: Link clicks need a campaign to attach to. Add the campaign first. · Email: year-to-date report added</div></div></div>`,
+ after:`<div class="scr"><div class="in" style="min-height:180px">${topNew()}<div class="ntoast" style="margin-top:14px"><span class="ok">${ic('check')}</span>5 files imported · 1 needs a campaign<button>Details</button></div></div></div>`},
+{t:'Drill-down: a proper panel on desktop, cleaner on phone',s:'Post · account · campaign sheets',e:'M',why:`On a computer the detail sheet is a 640px strip glued to the bottom of the screen with its end below the fold. Open it as a centred panel there and keep the bottom sheet on phones. Inside: Close and Share at 44px with the post info on its own line (on a phone the date wraps around the buttons today), the five stats in one divided row instead of a 3 + 2 grid with a hole, and the caption in the body font so it reads as a quote, not a headline.`,
+ before:`<div class="scr flat"><div class="in" style="padding-bottom:0"><div class="osheet"><div style="display:flex;justify-content:flex-end;gap:8px;float:right"><span class="chip" style="padding:6px 10px">${ic('share',14)}</span><span class="ibtn old" style="width:34px;height:34px">${ic('x',16)}</span></div><div class="meta"><span class="ptag fb">FACEBOOK</span>MCCS Okinawa · Fri, Oct 17, 2026 · 6:30 PM JST · Photos</div><h5>Fall Festival at Camp Foster this Saturday</h5><div style="font-size:44px;font-weight:250">24K <small style="font-size:11px;letter-spacing:2px;color:var(--mut)">VIEWS</small></div><div class="otiles"><div><b>812</b><small>Reactions</small></div><div><b>46</b><small>Comments</small></div><div><b>91</b><small>Shares</small></div><div><b>203</b><small>Link clicks</small></div><div><b>40.1</b><small>Eng / 1K</small></div></div></div></div></div>`,
+ after:`<div class="scr flat"><div class="in"><div class="nsheet"><div class="acts"><span class="ptag2"><i class="f"></i><i class="g"></i>&nbsp;Facebook + Instagram</span><span style="display:flex;gap:8px"><span class="btn q" style="padding:0 14px">${ic('share',16)}Share</span><span class="ibtn" aria-label="Close">${ic('x',18)}</span></span></div><div class="meta">MCCS Okinawa · Fri, Oct 17 · 6:30 PM JST · Photos</div><h5>Fall Festival at Camp Foster this Saturday</h5><div class="bigv"><b>41K</b><span>views · <span class="up">6.8×</span> a typical post that month</span></div><div class="nstats"><div><b>1,240</b><small>Reactions</small></div><div><b>63</b><small>Comments</small></div><div><b>118</b><small>Shares</small></div><div><b>203</b><small>Link clicks</small></div><div><b>34.7</b><small>Eng. per 1K</small></div></div><p class="capt">Join us Saturday from 10 AM for rides, food trucks and live music on the Camp Foster field. Free entry for all ID card holders…</p><span class="btn">Open the post</span></div></div></div>`},
+{t:'Settings in four clear groups',s:'Settings',e:'M',why:`Settings is one long scroll of tracked capital headings (App theme, Compare against, PDF report style, PDF report text, Staff guide, Data status, Import, Backup) with "Save and return home" in the middle. Group it the way people think: <b>Data</b> first (is it current?), then <b>Report</b>, <b>Appearance</b> and <b>Help</b>, as inset lists with a value on the right, theme swatches that show the real sky, and the Staff guide always one tap away.`,
+ before:`<div class="scr flat"><div class="in oset"><h5>Settings</h5><div class="s">App theme</div><div class="sw"><i style="background:#6d5a7a"></i><i style="background:#f2a7a0"></i><i style="background:#2b7a9e"></i><i style="background:#55806a"></i><i style="background:#1b2131"></i></div><div class="s">Compare against</div><span class="chip on">Previous period</span> <span class="chip">Same period last year</span><div class="s">PDF report style</div><span class="chip on">Navy</span> <span class="chip">Clean</span> <span class="chip">Dusk</span><div class="s">PDF report text</div><div style="font-size:13px;color:var(--mut)">Title · Header · Organization …</div><div class="s">Staff guide</div><div class="s">Data status</div></div></div>`,
+ after:`<div class="scr flat"><div class="in nset"><h5>Settings</h5>
+ <div class="grp"><div class="gh">Data</div><div class="gb"><div class="gr"><span class="dot g"></span>Social<span class="v">Current · through Oct 26</span></div><div class="gr"><span class="dot g"></span>Website<span class="v">Current · through Oct 26</span></div><div class="gr"><span class="dot a"></span>Email<span class="v">Due Monday</span></div><div class="gr">${ic('upload',17)}Import files<span class="v">${ic('chev',14)}</span></div></div></div>
+ <div class="grp"><div class="gh">Report</div><div class="gb"><div class="gr">${ic('doc',17)}Style<span class="v">Navy ${ic('chev',14)}</span></div><div class="gr">${ic('cal',17)}Compare against<span class="v">Previous period ${ic('chev',14)}</span></div></div></div>
+ <div class="grp"><div class="gh">Appearance</div><div class="gb"><div class="gr" style="flex-wrap:wrap"><div class="swn"><span class="on"><i style="background:radial-gradient(120% 90% at 50% 120%,#c98f6b,#6d5a7a 35%,#2b3352 65%,#0e1420)"></i>Dusk</span><span><i style="background:radial-gradient(120% 90% at 50% 120%,#ffd3a5,#f2a7a0 30%,#8f8bc6 60%,#34416e)"></i>Dawn</span><span><i style="background:radial-gradient(120% 90% at 50% 120%,#6fd6d6,#2b7a9e 32%,#173a5e 62%,#07142a)"></i>Ocean</span><span><i style="background:radial-gradient(120% 90% at 50% 120%,#b9cc8c,#55806a 32%,#1f3b33 62%,#0a1613)"></i>Forest</span><span><i style="background:radial-gradient(120% 90% at 50% 120%,#1b2131,#090b11 55%,#000)"></i>Midnight</span></div></div></div></div>
+ <div class="grp"><div class="gh">Help</div><div class="gb"><div class="gr">${ic('book',17)}Staff guide (SOP)<span class="v">${ic('chev',14)}</span></div></div></div></div></div>`},
+{t:'The accessibility floor',s:'All screens',e:'S',why:`Three things every screen is missing. <b>Keyboard focus</b>: no visible focus ring anywhere, so someone tabbing through on a PC cannot see where they are. <b>Reduced motion</b>: the lock-screen orb breathes forever and sheets slide even when the device asks for less motion. <b>Tap targets</b>: chips, the sheet's Close and Share are 34 to 38px; make them 44px. Also give Close a real name for screen readers instead of "×".`,
+ before:`<div class="scr flat"><div class="in"><div class="fr"><span class="chip">7 days</span><span class="chip on">30 days</span><span class="ibtn old measure" data-h="38px">${ic('x',16)}</span></div><p class="note" style="margin-top:16px">Tab key: nothing visible moves. Orb keeps breathing with Reduce Motion on.</p></div></div>`,
+ after:`<div class="scr flat"><div class="in"><div class="fr"><span class="chip n">7 days</span><span class="chip n on ring">30 days</span><span class="ibtn measure" data-h="44px" aria-label="Close">${ic('x',18)}</span></div><p class="note" style="margin-top:16px">A warm 2px ring follows the keyboard. Reduce Motion stops the orb and makes sheets fade instead of slide.</p></div></div>`},
+{t:'A lock screen with a sunrise, not a smudge',s:'Lock',e:'S',why:`The orb was meant to glow, but on the navy top of the sky it renders as a dim brown disc. Make it a dusk sun sitting on a thin horizon line that rises slowly once (and not at all with Reduce Motion), add a show/hide eye to the passcode field, and a "What is Pulse?" link to the Staff guide for new staff who land here first.`,
+ before:`<div class="scr flat"><div class="lockv"><div class="orb-old"></div><h4 class="old">Marketing metrics,<br>at a glance.</h4><p>Enter your MCCS Pulse passcode to load the latest MCCS Okinawa metrics. You only do this once on each device.</p><div class="passf"><span class="f">Passcode</span><span class="btn" style="min-height:46px">Unlock</span></div></div></div>`,
+ after:`<div class="scr"><div class="lockv"><div class="sun" aria-hidden="true"></div><h4>Marketing metrics,<br>at a glance.</h4><p>Enter your MCCS Pulse passcode to load the latest MCCS Okinawa metrics. You only do this once on each device.</p><div class="passf"><span class="f">Passcode<span class="eye" aria-label="Show passcode">${ic('eye',18)}</span></span><span class="btn" style="min-height:46px">Unlock</span></div><a class="help" href="#" onclick="return false">${ic('book',15)}What is Pulse? Staff guide</a></div></div>`},
+{t:'Report post tiles that never cut words off',s:'PDF report',e:'S',why:`When a top post has no picture yet, its tile prints the caption in a large serif that runs under the view count and gets cut off mid-word. Use a calm placeholder that shows the platform and a three-line caption, and put the view count under the tile instead of on top of it. It also looks finished if nobody adds a picture before printing.`,
+ before:`<div class="rp"><div class="h"><span>Top Performing Posts</span></div><div class="rpt">${['Fall Festival at Camp Foster this Saturday','Haunted Trail tickets are on sale now','Sunset paddle tours are back'].map((t,i)=>`<div class="rt"><div class="im">${t}<span class="nm">${['41K','33K','27K'][i]}</span></div><div class="ft"><b>MCCS Okinawa</b><br>203 link clicks</div></div>`).join('')}</div></div>`,
+ after:`<div class="rp"><div class="h"><span>Top Performing Posts</span></div><div class="rpt">${[['Fall Festival at Camp Foster this Saturday','41K','FACEBOOK + INSTAGRAM','#8fb4ff'],['Haunted Trail tickets are on sale now','33K','FACEBOOK','#8fb4ff'],['Sunset paddle tours are back at Ishikawa','27K','INSTAGRAM','#f3a6b8']].map(p=>`<div class="rt rt2"><div class="im"><span class="pt"><i style="background:${p[3]}"></i>${p[2]}</span><span class="tx">${p[0]}</span></div><div class="nm2">${p[1]}</div><div class="ft2">views · MCCS Okinawa</div></div>`).join('')}</div></div>`}
+];
+document.getElementById('toc').innerHTML=C.map((c,i)=>`<li><a href="#c${i+1}"><span class="n">${i+1}</span><span>${c.t}</span><span class="e">${c.e}</span></a></li>`).join('');
+document.getElementById('changes').innerHTML=C.map((c,i)=>`<article class="chg" id="c${i+1}"><header><span class="num">${i+1}</span><h3>${c.t}</h3><div class="tags"><span class="tag">${c.s}</span><span class="tag eff">Effort ${c.e}</span></div></header><p class="why">${c.why}</p><div class="ba"><div class="pane"><div class="cap"><i></i>Before</div>${c.before}</div><div class="pane after"><div class="cap"><i></i>After</div>${c.after}</div></div></article>`).join('');
+</script>
+</body>
+</html>
