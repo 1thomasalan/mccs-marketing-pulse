@@ -214,6 +214,82 @@ button.card.ecamp{display:block;width:100%;text-align:left;margin-top:0;cursor:p
 .tsec{font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:16px 0 2px;display:flex;align-items:center;gap:8px}.tsec:first-of-type{margin-top:4px}.tsec.fb{color:var(--fb)}.tsec.ig{color:var(--ig)}.tsec::after{content:"";flex:1;height:1px;background:var(--line)}
 .rtag{font-style:normal;display:inline-block;font-size:5.6pt;font-weight:800;letter-spacing:.5px;padding:.2mm 1.3mm;border-radius:999px;margin-right:1.2mm;vertical-align:1px;color:#fff;background:var(--cfb)}.rtag.ig{background:var(--cig)}
 .h2r{display:inline-flex;align-items:center;gap:10px;margin-left:auto}.h2r .chip{letter-spacing:.3px;cursor:pointer}.tag.camp{color:var(--glow);border-color:color-mix(in srgb,var(--glow) 55%,transparent)}td.path{max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
+/* ---------- viewport intelligence (v29) ----------
+   tiers: phone <700 (unchanged) · tablet 700-1099 · laptop 1100-1599 · wide 1600-2399 · wall 2400+ (zoomed)
+   intra-card layouts use container queries (.cq) so they follow the card's width, not the window's */
+.cq{container-type:inline-size}
+.cols.xa{grid-template-columns:minmax(0,1fr)!important}
+.sgx,.sgob{display:none}
+@container (min-width:640px){.tposts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));column-gap:32px}.tposts .tsec:first-of-type,.tposts .tgrp .tsec{margin-top:4px}}
+@container (min-width:860px){#plist{display:grid;grid-template-columns:1fr 1fr;column-gap:32px}#plist>.more,#plist>p{grid-column:1/-1}}
+@container (min-width:1500px){#plist{grid-template-columns:repeat(3,1fr)}}
+@container (min-width:600px){.sgoff{columns:2 280px;column-gap:32px}.sgoff .sgloc{break-inside:avoid}}
+@container (min-width:400px){body:not(.tvmode) .sgrb{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center}body:not(.tvmode) .sgrb .sgdn{margin:6px 0}}
+@media(min-width:1100px){
+ .wrap{max-width:min(1480px,94vw);padding-top:calc(env(safe-area-inset-top) + 16px)}
+ .lead{display:grid;grid-template-columns:minmax(0,4.3fr) minmax(0,7.7fr);grid-template-areas:"hero ctl" "hero kpis";column-gap:clamp(24px,3vw,64px);align-items:center;margin-top:8px}
+ .lead>.hero{grid-area:hero;margin:0;padding:clamp(18px,3vh,40px) 0}
+ .lead>.ctl{grid-area:ctl;align-self:end}
+ .lead>.ctl .range.presets{margin-top:0;flex-wrap:nowrap}
+ .lead>.ctl .range button{padding:8px 13px;white-space:nowrap}
+ .lead.sglead{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+ .lead>.grid{grid-area:kpis;grid-template-columns:repeat(2,1fr)!important;margin-top:14px;align-self:start}
+ .lead.sglead{grid-template-areas:"hero kpis";margin-top:12px}.lead.sglead>.grid{margin-top:0;align-self:center}
+ .lead .big{font-size:clamp(84px,7.4vw,150px)}
+ .kpi .v{font-size:clamp(30px,2.3vw,48px)}
+ .hero.small{margin:2vh 0 1vh}
+ .xlead{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"hero ctl" "mode ctl";column-gap:48px;align-items:center;margin-top:4px}
+ .xlead>.hero{grid-area:hero;text-align:left;margin:0}.xlead>.wswitch{grid-area:mode;justify-content:flex-start;margin:10px 0 0}.xlead>.ctl{grid-area:ctl}
+ .xlead>.ctl .range,.xlead>.ctl .rlabel{justify-content:flex-end;text-align:right}.xlead>.ctl .range.presets{margin-top:0}
+ .xlead:not(:has(.ctl)){grid-template-areas:"hero mode";}.xlead:not(:has(.ctl))>.wswitch{justify-content:flex-end;margin:0}
+ .cols.sgcols{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)!important;align-items:start}
+ .sgrot .sgx{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);text-align:center}
+ .sgx b{display:block;font-weight:250;font-size:clamp(24px,1.8vw,36px);font-variant-numeric:tabular-nums}.sgx span{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut)}
+ .sgrot .sgob{display:block;height:7px;border-radius:7px;background:rgba(255,255,255,.08);margin-top:14px;overflow:hidden}.sgob span{display:block;height:100%;border-radius:7px;background:#9ee6b4}
+ body:not(.tvmode) .sgwall{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+ /* drill-down sheets become a centered panel */
+ .sheet{top:50%;bottom:auto;left:50%;right:auto;width:min(880px,92vw);max-width:none;margin:0;border-radius:24px;border-bottom:1px solid var(--line);max-height:88vh;padding-bottom:28px;transform:translate(-50%,-46%) scale(.98);opacity:0;visibility:hidden;pointer-events:none;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .3s,visibility 0s .45s}
+ .sheet.show{transform:translate(-50%,-50%);opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
+ .sheet.wide{width:min(1120px,92vw);max-width:none}
+ .savebar{bottom:-28px;margin-bottom:-28px;padding-bottom:18px}
+}
+@media(min-width:1100px) and (max-height:820px){
+ .wrap{padding-top:12px}.lead>.hero{padding:6px 0}.lead .big{font-size:clamp(72px,13vh,120px)}.lead .hero .delta{margin-top:6px}
+ .grid{margin-top:16px}.lead>.grid{margin-top:10px}.kpi{padding:14px 16px}.kpi .v{margin:4px 0 2px}
+}
+@media(min-width:1600px){
+ .wrap{max-width:min(2240px,94vw)}
+ .lead:not(.sglead){grid-template-columns:minmax(0,4fr) minmax(0,8fr)}
+ .lead:not(.sglead)>.grid{grid-template-columns:repeat(4,1fr)!important}
+ .grid.g4:has(>:nth-child(7)){grid-template-columns:repeat(8,1fr)}
+ .cols.tpa{grid-template-columns:minmax(0,2.2fr) minmax(0,1fr)!important}
+ .cols.xa{grid-template-columns:minmax(0,1fr) minmax(0,1.45fr)!important;align-items:start}
+ .cols{grid-template-columns:2fr 1fr!important}.cols.tw,.cols.e2{grid-template-columns:1fr 1fr!important}
+ .cols.sgcols{grid-template-columns:minmax(0,2fr) minmax(0,1fr)!important}
+ h2{font-size:clamp(21px,1.15vw,26px)}
+ .post .t{font-size:15px}
+}
+@media(min-width:1600px) and (min-height:1250px){.lead>.hero{padding:2vh 0}.lead .big{font-size:clamp(120px,8vw,180px)}}
+/* Today middle band: newsletter / website cards, chart and balance share one grid */
+.mid{display:grid;gap:14px;margin-top:14px;grid-template-columns:minmax(0,1fr)}
+.mid .card.wtoday{margin-top:0}.ma>.card,.mb>.card{height:100%}
+@media(min-width:820px){
+ .mid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"ma mb" "ch bal"}
+ .mid.one{grid-template-areas:"ma ma" "ch bal"}.mid.one .mb{grid-area:ma}.mid.none{grid-template-areas:"ch bal"}
+ .mid{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+ .ma{grid-area:ma}.mb{grid-area:mb}.mchart{grid-area:ch}.mbal{grid-area:bal}
+}
+@media(min-width:1600px){
+ .mid{grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);grid-template-areas:"ch ma" "ch mb" "ch bal";grid-template-rows:auto auto 1fr}
+ .mid.one{grid-template-areas:"ch ma" "ch bal";grid-template-rows:auto 1fr}.mid.none{grid-template-areas:"ch bal";grid-template-rows:auto}
+ .cols.xa>.card:first-child{position:sticky;top:16px}
+}
+/* wall / TV-sized monitors: scale the whole interface instead of stretching it */
+@media(min-width:2400px){body:not(.tvmode) :is(.wrap,.dock,.sheet,.toast){zoom:1.3}body:not(.tvmode) .wrap{max-width:none;padding-left:56px;padding-right:56px}}
+@media(min-width:3200px){body:not(.tvmode) :is(.wrap,.dock,.sheet,.toast){zoom:1.65}}
+/* content scrolls under a soft fade so the dock never sits on hard text */
+@media screen and (min-width:700px){body:has(#dock[style*="flex"])::after{content:"";position:fixed;left:0;right:0;bottom:0;height:110px;background:linear-gradient(to top,rgba(10,14,24,.78),rgba(10,14,24,0));pointer-events:none;z-index:2}}
+@media print{body::after{display:none!important}}
 </style>
 </head>
 <body>
