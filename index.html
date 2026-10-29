@@ -280,6 +280,12 @@ button.card.ecamp{display:block;width:100%;text-align:left;margin-top:0;cursor:p
  body:not(.tvmode) .sgplay .sgwall{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}}
 @media(min-width:1600px){.cols.sgmain{grid-template-columns:minmax(0,2.6fr) minmax(360px,1fr)!important}
  body:not(.tvmode) .sgplay .sgwall{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}}
+@media(min-width:1100px){.lead.sglead:has(.sgrot){grid-template-columns:minmax(0,3.6fr) minmax(0,4.4fr) minmax(0,4fr);grid-template-areas:"hero kpis rot";align-items:stretch}
+ .lead.sglead>.sgrot{grid-area:rot;margin:0;align-self:center}.lead.sglead>.hero{align-self:center}
+ .lead.sglead .big{font-size:clamp(72px,5.6vw,140px)}
+ .lead.sglead>.sgrot .sgrb{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}.lead.sglead>.sgrot .sgdn svg{width:130px;height:130px}
+ .lead.sglead>.sgrot .sgx{margin-top:12px;padding-top:10px}.lead.sglead>.sgrot .sgob{margin-top:10px}}
+@media(max-width:1099px){.lead.sglead>.sgrot{margin-top:14px}}
 /* Today middle band: newsletter / website cards, chart and balance share one grid */
 .mid{display:grid;gap:14px;margin-top:14px;grid-template-columns:minmax(0,1fr)}
 .mid .card.wtoday{margin-top:0}.ma>.card,.mb>.card{height:100%}
