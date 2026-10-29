@@ -280,8 +280,10 @@ button.card.ecamp{display:block;width:100%;text-align:left;margin-top:0;cursor:p
  body:not(.tvmode) .sgplay .sgwall{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}}
 @media(min-width:1600px){.cols.sgmain{grid-template-columns:minmax(0,2.6fr) minmax(360px,1fr)!important}
  body:not(.tvmode) .sgplay .sgwall{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}}
-@media(min-width:1100px){.lead.sglead:has(.sgrot){grid-template-columns:minmax(0,3.6fr) minmax(0,4.4fr) minmax(0,4fr);grid-template-areas:"hero kpis rot";align-items:stretch}
- .lead.sglead>.sgrot{grid-area:rot;margin:0;align-self:center}.lead.sglead>.hero{align-self:center}
+@media(min-width:1100px){.lead.sglead:has(.sgrot){grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.12fr);grid-template-areas:"kpis hero rot";align-items:stretch;column-gap:clamp(16px,1.6vw,32px)}
+ .lead.sglead>.sgrot{grid-area:rot;margin:0;align-self:stretch;display:flex;flex-direction:column;justify-content:space-between}.lead.sglead>.hero{align-self:center;text-align:center}
+ .lead.sglead:has(.sgrot)>.grid{align-self:stretch;grid-auto-rows:1fr;gap:clamp(10px,1vw,18px)}
+ .lead.sglead:has(.sgrot)>.grid .kpi{display:flex;flex-direction:column;justify-content:center}
  .lead.sglead .big{font-size:clamp(72px,5.6vw,140px)}
  .lead.sglead>.sgrot .sgrb{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}.lead.sglead>.sgrot .sgdn svg{width:130px;height:130px}
  .lead.sglead>.sgrot .sgx{margin-top:12px;padding-top:10px}.lead.sglead>.sgrot .sgob{margin-top:10px}}
