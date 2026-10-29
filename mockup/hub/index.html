@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0e1420">
+<title>MCCS Pulse · Hub + Strategic Events mockup (sample data)</title>
+<style>
+@font-face{font-family:"Newsreader";src:url(../newsreader.woff2) format("woff2");font-weight:300 700;font-style:normal;font-display:swap}
+@font-face{font-family:"Newsreader";src:url(../newsreader-italic.woff2) format("woff2");font-weight:300 700;font-style:italic;font-display:swap}
+:root{
+ --txt:#eef1f6;--mut:rgba(238,241,246,.62);--mut2:rgba(238,241,246,.76);--line:rgba(255,255,255,.12);--line2:rgba(255,255,255,.2);--glow:#f3d9a4;
+ --card:rgba(255,255,255,.055);--card2:rgba(14,20,32,.5);--good:#9ee6b4;--bad:#ffb0a8;--warn:#f3c860;
+ --so:#f3a6b8;--we:#8fb4ff;--em:#c7b3ff;--sg:#9ee6b4;
+ --sky:radial-gradient(120% 80% at 50% 110%,#c98f6b 0%,#6d5a7a 28%,#2b3352 55%,#0e1420 85%);
+ --serif:"Newsreader","Iowan Old Style","Palatino Linotype",Georgia,serif;
+ --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;color:var(--txt);font-family:var(--sans);background:#0e1420;min-height:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;padding:0}
+a{color:var(--glow);text-decoration:none}
+:focus-visible{outline:2px solid var(--glow);outline-offset:3px;border-radius:8px}
+.sky{position:fixed;inset:0;background:var(--sky);z-index:0}
+.sky::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 20% 15%,rgba(255,255,255,.06) 0 1px,transparent 2px) 0 0/90px 90px,radial-gradient(circle at 70% 40%,rgba(255,255,255,.05) 0 1px,transparent 2px) 0 0/130px 130px}
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 18px) clamp(16px,4vw,36px) calc(env(safe-area-inset-bottom) + 120px)}
+@media(min-width:1100px){.wrap{max-width:min(1480px,94vw)}}
+@media(min-width:1600px){.wrap{max-width:min(1800px,92vw)}}
+svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* top bar */
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:var(--mut)}
+.top .r{display:flex;gap:10px;align-items:center}
+.mk{letter-spacing:.3px;text-transform:none;font-size:12.5px;padding:6px 12px;border-radius:999px;border:1px dashed color-mix(in srgb,var(--glow) 55%,transparent);color:var(--glow);white-space:nowrap}
+.ibtn{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;background:var(--card);backdrop-filter:blur(8px);color:var(--txt)}
+
+/* headings + atoms */
+.ph{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:22px 0 4px}
+.ph h1{font-family:var(--serif);font-weight:400;font-size:clamp(32px,4vw,46px);letter-spacing:-.015em;margin:0;line-height:1.05}
+.ph p{margin:6px 0 0;color:var(--mut2);font-size:15px;max-width:68ch;line-height:1.5}
+h2{font-family:var(--serif);font-weight:400;font-size:clamp(20px,1.3vw,24px);margin:0 0 12px;display:flex;justify-content:space-between;align-items:baseline;gap:10px;line-height:1.2}
+h2 small,.hint{font-family:var(--sans);font-size:12.5px;color:var(--mut);font-weight:400;letter-spacing:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px 20px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);min-width:0}
+a.card,button.card{display:block;color:inherit;text-align:left;width:100%;transition:border-color .2s,transform .2s}
+a.card:hover,button.card:hover{border-color:color-mix(in srgb,var(--glow) 45%,transparent)}
+.up{color:var(--good)}.down{color:var(--bad)}.warn{color:var(--warn)}.mut{color:var(--mut)}.mut2{color:var(--mut2)}
+.num{font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);font-size:13.5px;color:var(--mut2);background:rgba(255,255,255,.03);white-space:nowrap}
+.chip.on{border-color:var(--glow);color:var(--txt);background:color-mix(in srgb,var(--glow) 13%,transparent)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:9px;padding:11px 18px;border-radius:999px;border:1px solid color-mix(in srgb,var(--glow) 60%,transparent);background:color-mix(in srgb,var(--glow) 12%,transparent);color:var(--txt);font-size:14px;white-space:nowrap}
+.btn.ghost{border-color:var(--line);background:rgba(255,255,255,.04)}
+.btn.sm{padding:7px 13px;font-size:13px}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid;white-space:nowrap;line-height:1.5}
+.badge.so{color:var(--so);border-color:color-mix(in srgb,var(--so) 50%,transparent)}
+.badge.we{color:var(--we);border-color:color-mix(in srgb,var(--we) 50%,transparent)}
+.badge.em{color:var(--em);border-color:color-mix(in srgb,var(--em) 50%,transparent)}
+.badge.sg{color:var(--sg);border-color:color-mix(in srgb,var(--sg) 50%,transparent)}
+.badge.n{color:var(--mut2);border-color:var(--line2)}
+.st{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.st.up_{background:rgba(255,255,255,.08);color:var(--mut2)}
+.st.pr{background:rgba(243,217,164,.15);color:var(--glow)}
+.st.lv{background:rgba(158,230,180,.16);color:var(--good)}
+.st.lv::before{box-shadow:0 0 0 3px rgba(158,230,180,.25);animation:pulse 2s ease-in-out infinite}
+.st.wr{background:rgba(143,180,255,.14);color:#b7cdff}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(158,230,180,0)}}
+.dots{display:inline-flex;gap:5px;align-items:center}
+.dots i{width:10px;height:10px;border-radius:50%;border:1.5px solid}
+.dots i.so{border-color:var(--so)}.dots i.we{border-color:var(--we)}.dots i.em{border-color:var(--em)}.dots i.sg{border-color:var(--sg)}
+.dots i.f.so{background:var(--so)}.dots i.f.we{background:var(--we)}.dots i.f.em{background:var(--em)}.dots i.f.sg{background:var(--sg)}
+.dots i:not(.f){opacity:.7}
+.lbl{font-size:13px;color:var(--mut2)}
+.rule{height:1px;background:var(--line);margin:14px 0}
+
+/* dock */
+.dock{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 18px);display:flex;gap:4px;padding:7px;border-radius:999px;background:rgba(14,20,32,.78);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);z-index:5}
+.dock a{padding:11px 16px;border-radius:999px;font-size:14px;display:flex;gap:8px;align-items:center;color:var(--mut2);white-space:nowrap}
+.dock a.on{color:var(--txt);background:rgba(255,255,255,.09)}
+.dock a.main{color:var(--txt);background:color-mix(in srgb,var(--glow) 16%,transparent);border:1px solid color-mix(in srgb,var(--glow) 55%,transparent);margin-left:6px}
+.dock .sep{width:1px;background:var(--line);margin:6px 4px}
+.dock .ph-only{display:none}
+.fade{position:fixed;left:0;right:0;bottom:0;height:120px;background:linear-gradient(to top,rgba(10,14,24,.8),rgba(10,14,24,0));pointer-events:none;z-index:4}
+@media(max-width:699px){
+ .dock .dk-only{display:none}.dock .ph-only{display:flex}
+ .dock{gap:2px;padding:6px;width:calc(100% - 28px);max-width:380px;justify-content:space-between}
+ .dock a{flex-direction:column;gap:3px;padding:8px 10px;font-size:11px;flex:1;justify-content:center}
+ .dock a.main{margin-left:0}.dock .sep{display:none}
+}
+
+/* channel picker sheet (phone) */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:.3s;z-index:6}
+.scrim.show{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:rgba(14,20,32,.96);backdrop-filter:blur(18px);border:1px solid var(--line);border-bottom:0;border-radius:24px 24px 0 0;padding:20px 20px calc(env(safe-area-inset-bottom) + 26px);transform:translateY(105%);transition:transform .4s cubic-bezier(.2,.8,.2,1);z-index:7}
+.sheet.show{transform:none}
+.sheet h3{font-family:var(--serif);font-weight:400;font-size:22px;margin:0 0 4px}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.pick a{display:block;padding:14px;border-radius:18px;border:1px solid var(--line);background:var(--card);color:var(--txt)}
+.pick a b{display:block;font-weight:250;font-size:26px;margin-top:6px}
+.pick a small{font-size:12px;color:var(--mut)}
+
+/* ---------- TODAY ---------- */
+.live{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:16px 0 0;padding:11px 16px;border-radius:16px;border:1px solid rgba(158,230,180,.3);background:rgba(158,230,180,.07);color:var(--txt);font-size:14px}
+.live b{font-weight:500}.live .go{margin-left:auto;color:var(--good);font-size:13.5px;white-space:nowrap}
+.lead{display:grid;gap:14px;margin-top:14px}
+.hero{text-align:center;padding:14px 0 6px}
+.hero .eyebrow{font-family:var(--serif);font-style:italic;font-size:clamp(17px,1.4vw,21px);color:var(--mut2)}
+.big{font-weight:200;font-size:clamp(68px,16vw,118px);letter-spacing:-1px;line-height:1.02;margin:6px 0 4px;text-shadow:0 0 60px color-mix(in srgb,var(--glow) 40%,transparent);font-variant-numeric:tabular-nums}
+.hero .what{font-size:14px;color:var(--mut2)}
+.delta{display:inline-block;margin-top:10px;padding:5px 12px;border-radius:999px;font-size:13px;border:1px solid var(--line)}
+.blend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 12px;margin-top:14px;font-size:12.5px;color:var(--mut2)}
+.blend span{white-space:nowrap}.blend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0}
+.blend .eq{color:var(--mut)}
+.blendnote{font-size:12px;color:var(--mut);margin-top:8px;line-height:1.45}
+.range{display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tile{position:relative;overflow:hidden}
+.tile .h{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--mut2)}
+.tile .h .ci{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;border:1px solid}
+.tile .h .ci svg{width:14px;height:14px}
+.tile .h .go{margin-left:auto;color:var(--mut);font-size:16px}
+.tile .v{font-weight:250;font-size:clamp(30px,2.4vw,44px);margin:10px 0 2px;font-variant-numeric:tabular-nums;line-height:1.05}
+.tile .l{font-size:12.5px;color:var(--mut2)}
+.tile .d{font-size:12.5px;margin-top:4px}
+.tile svg.sp{display:block;width:100%;height:42px;margin-top:10px}
+.tile .x{font-size:12px;color:var(--mut);margin-top:6px;line-height:1.4}
+.c-so .ci{color:var(--so);border-color:color-mix(in srgb,var(--so) 45%,transparent)}
+.c-we .ci{color:var(--we);border-color:color-mix(in srgb,var(--we) 45%,transparent)}
+.c-em .ci{color:var(--em);border-color:color-mix(in srgb,var(--em) 45%,transparent)}
+.c-sg .ci{color:var(--sg);border-color:color-mix(in srgb,var(--sg) 45%,transparent)}
+@media(min-width:1100px){
+ .lead{grid-template-columns:minmax(0,4.2fr) minmax(0,7.8fr);align-items:center;column-gap:clamp(24px,3vw,56px)}
+ .hero{text-align:left}.blend,.range{justify-content:flex-start}
+ .big{font-size:clamp(84px,7vw,140px)}
+}
+@media(min-width:1600px){.tiles{grid-template-columns:repeat(4,minmax(0,1fr))}.lead{grid-template-columns:minmax(0,3.6fr) minmax(0,8.4fr)}}
+
+.evrow{display:grid;gap:14px;margin-top:16px}
+@media(min-width:900px){.evrow{grid-template-columns:1fr 1fr}}
+.ev .top2{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.ev .kind{font-size:13px;color:var(--mut2)}
+.ev h3{font-family:var(--serif);font-weight:400;font-size:clamp(24px,1.9vw,32px);margin:8px 0 2px;letter-spacing:-.01em;line-height:1.1}
+.ev .meta{font-size:13px;color:var(--mut)}
+.ev .res{display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap;margin:14px 0 6px}
+.ev .res .bv{font-weight:200;font-size:clamp(46px,4vw,64px);line-height:1;font-variant-numeric:tabular-nums}
+.ev .res .bl{font-size:13px;color:var(--mut2);margin-top:4px}
+.ev .cmp{display:flex;flex-direction:column;gap:6px;font-size:13.5px;padding-bottom:4px}
+.ev .cmp b{font-weight:500}
+.goalbar{height:8px;border-radius:8px;background:rgba(255,255,255,.08);position:relative;margin:12px 0 4px;overflow:visible}
+.goalbar span{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,color-mix(in srgb,var(--glow) 70%,transparent),var(--glow))}
+.goalbar em{position:absolute;top:-5px;width:2px;height:18px;background:var(--txt);border-radius:2px}
+.goalbar em::after{content:attr(data-l);position:absolute;top:20px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--mut2);font-style:normal;white-space:nowrap}
+.chs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:22px}
+.chs>div{padding:10px 11px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line);min-width:0}
+.chs .t{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut2)}
+.chs .t i{width:8px;height:8px;border-radius:50%;flex:none}
+.chs b{display:block;font-weight:300;font-size:20px;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chs small{display:block;font-size:11.5px;color:var(--mut);margin-top:2px;line-height:1.35}
+.chs .miss{border-style:dashed;border-color:rgba(243,200,96,.5);background:rgba(243,200,96,.06)}
+.chs .miss b{color:var(--warn);font-size:15px;margin-top:7px;white-space:normal}
+.count{display:flex;align-items:baseline;gap:8px}
+.count b{font-weight:200;font-size:clamp(46px,4vw,64px);line-height:1}
+.pace{margin-top:14px}
+.pace .row{display:flex;justify-content:space-between;font-size:13px;color:var(--mut2);margin-bottom:6px;gap:10px}
+.pace .trk{position:relative;height:10px;border-radius:10px;background:rgba(255,255,255,.08)}
+.pace .trk span{position:absolute;left:0;top:0;bottom:0;border-radius:10px;background:var(--glow)}
+.pace .trk em{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--txt)}
+.ev .foot{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:10px;flex-wrap:wrap}
+
+.bot{display:grid;gap:14px;margin-top:16px}
+@media(min-width:1100px){.bot{grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:start}}
+.topc{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.tc{border-radius:18px;overflow:hidden;border:1px solid var(--line);background:rgba(255,255,255,.04);display:flex;flex-direction:column}
+.thumb{aspect-ratio:16/10;position:relative;display:flex;align-items:flex-end;padding:10px;overflow:hidden}
+.thumb .ttl{font-family:var(--serif);font-size:17px;line-height:1.15;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.5);position:relative}
+.thumb .badge{position:absolute;top:9px;left:9px;background:rgba(14,20,32,.72);backdrop-filter:blur(6px)}
+.thumb .evt{position:absolute;top:9px;right:9px;font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(243,217,164,.9);color:#1b1a22}
+.tc .b{padding:11px 12px 13px}
+.tc .t{font-size:14px;line-height:1.35}
+.tc .m{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;gap:8px}
+.tc .m b{font-weight:300;font-size:22px;font-variant-numeric:tabular-nums}
+.tc .m span{font-size:12px;color:var(--mut)}
+.att{display:flex;flex-direction:column}
+.att a{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line);color:var(--txt)}
+.att a:last-child{border:0}
+.att .ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line2)}
+.att .ic svg{width:15px;height:15px}
+.att .t{font-size:14px;line-height:1.35}
+.att .s{font-size:12.5px;color:var(--mut);margin-top:3px;line-height:1.4}
+.att .go{font-size:12.5px;color:var(--glow);white-space:nowrap;padding-top:2px}
+
+/* ---------- EVENTS LIST ---------- */
+.evlayout{display:grid;gap:16px;margin-top:18px}
+@media(min-width:1200px){.evlayout{grid-template-columns:minmax(0,1fr) 360px;align-items:start}}
+.tl{position:relative;overflow-x:auto}
+.tl .inner{min-width:820px;position:relative}
+.tl .months{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line);font-size:12.5px;color:var(--mut2)}
+.tl .months div{padding:0 0 8px 8px;border-left:1px solid var(--line)}
+.tl .lane{position:relative;height:34px;margin:6px 0}
+.tl .lane .win{position:absolute;top:8px;height:18px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid var(--line)}
+.tl .lane .win.pr{background:rgba(243,217,164,.14);border-color:rgba(243,217,164,.45)}
+.tl .lane .win.wr{background:rgba(143,180,255,.12);border-color:rgba(143,180,255,.35)}
+.tl .lane .win.lv{background:rgba(158,230,180,.14);border-color:rgba(158,230,180,.5)}
+.tl .lane .day{position:absolute;top:4px;width:12px;height:26px;border-radius:5px;background:var(--txt);transform:translateX(-50%);box-shadow:0 0 14px rgba(255,255,255,.4)}
+.tl .lane .nm{position:absolute;top:7px;font-size:13px;white-space:nowrap;padding-left:10px;color:var(--txt)}
+.tl .today{position:absolute;top:0;bottom:0;width:0;border-left:1.5px dashed var(--glow);z-index:2}
+.tl .today span{position:absolute;top:-2px;left:6px;font-size:11.5px;color:var(--glow);white-space:nowrap}
+.tl .key{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--mut2);margin-top:10px}
+.tl .key i{display:inline-block;width:18px;height:10px;border-radius:5px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line2)}
+.evtable{width:100%;border-collapse:collapse;font-size:14px}
+.evtable th{font-weight:400;font-size:12.5px;color:var(--mut);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.evtable td{padding:13px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.evtable tr:last-child td{border-bottom:0}
+.evtable tr.tap{cursor:pointer}.evtable tr.tap:hover td{background:rgba(255,255,255,.035)}
+.evtable .nm{font-family:var(--serif);font-size:18px;line-height:1.2}
+.evtable .sub{font-size:12.5px;color:var(--mut);margin-top:2px}
+.evtable .r{text-align:right;font-variant-numeric:tabular-nums}
+.evtable .big2{font-weight:300;font-size:19px}
+.mini{height:6px;width:90px;border-radius:6px;background:rgba(255,255,255,.08);display:inline-block;vertical-align:middle;margin-right:8px;overflow:hidden}
+.mini span{display:block;height:100%;background:var(--glow);border-radius:6px}
+.scroll{overflow-x:auto}
+.side{display:flex;flex-direction:column;gap:14px}
+.src{display:flex;gap:12px;align-items:flex-start}
+.src .gs{width:40px;height:40px;border-radius:10px;background:#1e8e5a;display:grid;place-items:center;flex:none}
+.src .gs svg{width:22px;height:22px;stroke:#fff}
+.flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--mut2);margin-top:12px}
+.flow span{padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04)}
+.ideas ol{margin:0;padding:0;list-style:none;counter-reset:i}
+.ideas li{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.45;color:var(--mut2)}
+.ideas li:last-child{border:0}
+.ideas li::before{counter-increment:i;content:counter(i);font-family:var(--serif);font-size:18px;color:var(--glow);line-height:1.1}
+.ideas li b{color:var(--txt);font-weight:500}
+
+/* ---------- EVENT DETAIL ---------- */
+.back{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--mut2);margin-top:16px}
+.dh{display:grid;gap:16px;margin-top:10px}
+@media(min-width:1100px){.dh{grid-template-columns:minmax(0,1fr) auto;align-items:end}}
+.dh h1{font-family:var(--serif);font-weight:400;font-size:clamp(36px,4.2vw,56px);letter-spacing:-.02em;margin:8px 0 6px;line-height:1.02}
+.dh .meta{display:flex;gap:10px 16px;flex-wrap:wrap;font-size:14px;color:var(--mut2);align-items:center}
+.dh .acts{display:flex;gap:10px;flex-wrap:wrap}
+.win2{margin-top:18px}
+.win2 .bar{position:relative;height:30px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--line);overflow:hidden}
+.win2 .pre{position:absolute;top:0;bottom:0;left:0;background:linear-gradient(90deg,rgba(243,217,164,.05),rgba(243,217,164,.22))}
+.win2 .ed{position:absolute;top:0;bottom:0;background:rgba(255,255,255,.85)}
+.win2 .post{position:absolute;top:0;bottom:0;right:0;background:rgba(143,180,255,.16)}
+.win2 .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--mut2);margin-top:6px;gap:10px}
+.win2 .bar span{position:absolute;top:6px;font-size:12px;color:var(--txt);white-space:nowrap}
+.hl{display:grid;gap:14px;margin-top:16px}
+@media(min-width:1000px){.hl{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.hl .card .l{font-size:13px;color:var(--mut2)}
+.hl .card .v{font-weight:200;font-size:clamp(40px,3.4vw,58px);margin:6px 0 2px;line-height:1.02;font-variant-numeric:tabular-nums}
+.hl .card .s{font-size:12.5px;color:var(--mut)}
+.hl .card.lead2{border-color:color-mix(in srgb,var(--glow) 40%,transparent);background:color-mix(in srgb,var(--glow) 6%,var(--card))}
+.pc{display:grid;gap:14px;margin-top:14px}
+@media(min-width:900px){.pc{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1400px){.pc{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.pc .card{border-top:3px solid}
+.pc .so{border-top-color:var(--so)}.pc .we{border-top-color:var(--we)}.pc .em{border-top-color:var(--em)}.pc .sg{border-top-color:var(--sg)}
+.pc h3{font-family:var(--serif);font-weight:400;font-size:20px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:baseline}
+.pc h3 small{font-family:var(--sans);font-size:12.5px;color:var(--mut)}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kv b{display:block;font-weight:300;font-size:24px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kv span{font-size:12px;color:var(--mut)}
+.srcbars{margin-top:12px}
+.srcbars .r{display:grid;grid-template-columns:96px 1fr 40px;gap:8px;align-items:center;font-size:12.5px;padding:3px 0;color:var(--mut2)}
+.srcbars .r i{display:block;height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
+.srcbars .r i span{display:block;height:100%;background:var(--we);border-radius:6px}
+.srcbars .r b{font-weight:400;text-align:right;color:var(--txt)}
+.pc .note{font-size:12px;color:var(--mut);margin-top:10px;line-height:1.45}
+.chartwrap{margin-top:14px}
+.chart{width:100%;display:block}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--mut2);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.dgrid{display:grid;gap:14px;margin-top:14px}
+@media(min-width:1200px){.dgrid{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);align-items:start}}
+.items .it{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.items .it:last-child{border:0}
+.items .th{width:64px;height:44px;border-radius:9px;overflow:hidden;position:relative}
+.items .t{font-size:14px;line-height:1.3}
+.items .s{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:5px;font-size:12px;color:var(--mut)}
+.why{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:2px 8px;border-radius:7px;background:rgba(255,255,255,.07);color:var(--mut2);white-space:nowrap}
+.why.man{background:rgba(243,217,164,.14);color:var(--glow)}
+.items .n{text-align:right;white-space:nowrap}
+.items .n b{display:block;font-weight:300;font-size:20px;font-variant-numeric:tabular-nums}
+.items .n span{font-size:11.5px;color:var(--mut)}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.filters .chip{padding:6px 11px;font-size:12.5px}
+.rules .r{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px;align-items:start}
+.rules .r:last-child{border:0}
+.rules .k{color:var(--mut)}
+.tok{display:inline-block;padding:2px 9px;border-radius:999px;border:1px solid var(--line2);font-size:12.5px;margin:0 4px 4px 0;background:rgba(255,255,255,.04)}
+.conf{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--mut2)}
+
+/* ---------- SETUP / REVIEW ---------- */
+.sgrid{display:grid;gap:16px;margin-top:18px}
+@media(min-width:1200px){.sgrid{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);align-items:start}}
+.fld{display:block;margin:0 0 12px}
+.fld>span{display:block;font-size:13px;color:var(--mut2);margin-bottom:6px}
+.inp{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-height:44px;width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:12px;padding:7px 10px;font-size:14.5px}
+.inp .tok{margin:0}
+.inp .add{color:var(--mut);font-size:13px;padding-left:4px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.help{font-size:12px;color:var(--mut);margin-top:5px;line-height:1.4}
+.q .qi{display:grid;grid-template-columns:72px minmax(0,1fr);gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.q .qi:last-child{border:0}
+.q .th{width:72px;height:52px;border-radius:10px;overflow:hidden;position:relative}
+.q .t{font-size:14.5px;line-height:1.35}
+.q .s{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;font-size:12.5px;color:var(--mut)}
+.q .sug{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.q .sug .to{font-size:13.5px}
+.q .sug .to b{font-family:var(--serif);font-weight:400;font-size:16px}
+.cbar{display:inline-block;width:54px;height:6px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden;vertical-align:middle;margin-right:6px}
+.cbar span{display:block;height:100%;border-radius:6px}
+.q .acts{display:flex;gap:6px;margin-left:auto}
+.q .acts button{padding:7px 12px;border-radius:999px;font-size:13px;border:1px solid var(--line)}
+.q .acts .ok{border-color:rgba(158,230,180,.5);color:var(--good);background:rgba(158,230,180,.08)}
+.q .acts .no{color:var(--mut2)}
+.tabs{display:flex;gap:4px;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--card2);width:max-content;max-width:100%;overflow-x:auto}
+.tabs b{font-weight:400;font-size:13.5px;padding:8px 14px;border-radius:999px;color:var(--mut2);white-space:nowrap}
+.tabs b.on{background:color-mix(in srgb,var(--glow) 16%,rgba(255,255,255,.04));color:var(--txt);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--glow) 55%,transparent)}
+.sheetprev{width:100%;border-collapse:collapse;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:rgba(255,255,255,.95);color:#1d2433;border-radius:10px;overflow:hidden}
+.sheetprev th{background:#e8eaef;font-weight:600;text-align:left;padding:6px 8px;border:1px solid #d3d7df;white-space:nowrap}
+.sheetprev td{padding:6px 8px;border:1px solid #e0e3ea;white-space:nowrap}
+.rulelist li{margin:0 0 8px;font-size:13.5px;line-height:1.5;color:var(--mut2)}
+.rulelist li b{color:var(--txt);font-weight:500}
+.rulelist{padding-left:18px;margin:0}
+
+/* ---------- channel tabs ---------- */
+.seg{display:none}
+@media(max-width:699px){.seg{display:flex;gap:4px;overflow-x:auto;margin-top:14px;scrollbar-width:none}.seg a{padding:7px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--mut2);white-space:nowrap}.seg a.on{border-color:var(--glow);color:var(--txt);background:color-mix(in srgb,var(--glow) 12%,transparent)}}
+.kg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+@media(min-width:900px){.kg{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.kg .card .l{font-size:13px;color:var(--mut2)}
+.kg .card .v{font-weight:250;font-size:clamp(28px,2.4vw,40px);margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.kg .card .d{font-size:12.5px}
+.evfilter{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;font-size:13.5px;color:var(--mut2)}
+.cgrid{display:grid;gap:14px;margin-top:14px}
+@media(min-width:1100px){.cgrid{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}}
+.plist .p{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.plist .p:last-child{border:0}
+.plist .th{width:56px;height:56px;border-radius:10px;overflow:hidden;position:relative}
+.plist .t{font-size:14px;line-height:1.3}
+.plist .s{font-size:12px;color:var(--mut);margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.plist .n{text-align:right}.plist .n b{display:block;font-weight:300;font-size:20px}.plist .n span{font-size:11.5px;color:var(--mut)}
+.pnote{margin-top:14px;padding:12px 14px;border-radius:14px;border:1px dashed var(--line2);font-size:13px;color:var(--mut2);line-height:1.5}
+.sgw{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.sgw .s1{border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.sgw .s1 .thumb{aspect-ratio:16/9}
+.sgw .s1 .b{padding:8px 10px;font-size:12.5px;color:var(--mut2);background:rgba(255,255,255,.04)}
+.sgw .s1 .b b{display:block;color:var(--txt);font-weight:400;font-size:13.5px;margin-bottom:2px}
+
+/* events as cards on phone */
+.evcards{display:none}
+@media(max-width:699px){.evtable{display:none}.evcards{display:block}
+ .evc{display:block;padding:13px 0;border-bottom:1px solid var(--line);color:var(--txt)}.evc:last-child{border:0}
+ .evc .r1{display:flex;justify-content:space-between;gap:10px;align-items:center}.evc .nm{font-family:var(--serif);font-size:19px;line-height:1.2}
+ .evc .sub{font-size:12.5px;color:var(--mut);margin-top:3px}
+ .evc .r2{display:flex;align-items:center;gap:14px;margin-top:8px;font-size:13px}.evc .r2 .v{font-weight:300;font-size:18px;margin-left:auto}.evc .r2 .v small{font-size:12px;color:var(--mut)}}
+/* phone tweaks */
+@media(max-width:520px){
+ .top .brand{display:none}
+ .ph h1{font-size:32px}
+ .chs{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .ev .res{gap:14px}
+ .kv b{font-size:20px}
+ .f3{grid-template-columns:1fr 1fr}
+ .items .it{grid-template-columns:52px minmax(0,1fr) auto}.items .th{width:52px;height:38px}
+ .topc{grid-template-columns:1fr 1fr}.thumb .ttl{font-size:14px}.tc .t{font-size:13px}.tc .m b{font-size:19px}
+ .card{padding:16px}
+ .tiles{gap:10px}.tile{padding:14px}.tile .x{display:none}.tile .v{font-size:28px;margin-top:8px}.tile .l,.tile .d{font-size:12px}.tile svg.sp{height:30px;margin-top:8px}
+ .thumb .evt{top:auto;bottom:9px;right:auto;left:9px}
+ .tc .m{flex-direction:column;align-items:flex-start;gap:0}
+ .hl .card .v{font-size:40px}
+ .win2 .bar span{display:none}
+ .hl{grid-template-columns:1fr 1fr;gap:10px}.hl .card .v{font-size:34px}.hl .card .s{font-size:11.5px}
+ .chartscroll{overflow-x:auto}.chartscroll>div{min-width:680px}
+ .live .go{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div class="sky"></div>
+<div class="wrap" id="app"></div>
+<div class="fade"></div>
+<nav class="dock" id="dock"></nav>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet"></div>
+<script>
+/* =================== SAMPLE DATA ONLY =================== */
+const ic=(n,s)=>{const P={
+clock:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+social:'<path d="M7 10h10M7 14h6"/><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6l-5 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>',
+web:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+screen:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+flag:'<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',
+doc:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 13h7M9 17h5"/>',
+grid:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+gear:'<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>',
+alert:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>',
+link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+share:'<path d="M12 3v12"/><path d="M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>',
+plus:'<path d="M12 5v14M5 12h14"/>',
+back:'<path d="M15 5l-7 7 7 7"/>',
+check:'<path d="M5 12l5 5 9-10"/>',
+edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+sheet:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>',
+spark:'<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>'
+};return `<svg class="i" viewBox="0 0 24 24" ${s?`style="width:${s}px;height:${s}px"`:''}>${P[n]}</svg>`};
+
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function series(seed,n,base,vol,trend){const r=rng(seed);let a=[];for(let i=0;i<n;i++){a.push(Math.max(0,base*(1+trend*i/n)+(r()-.5)*vol*base))}return a}
+function spark(arr,color){const w=200,h=42,mx=Math.max(...arr),mn=Math.min(...arr);const pts=arr.map((v,i)=>[i/(arr.length-1)*w,h-4-(v-mn)/(mx-mn||1)*(h-10)]);const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+ const id='g'+Math.random().toString(36).slice(2,7);
+ return `<svg class="sp" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".35"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><path d="${d} L${w} ${h} L0 ${h} Z" fill="url(#${id})"/><path d="${d}" fill="none" stroke="${color}" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>`}
+const C={so:'#f3a6b8',we:'#8fb4ff',em:'#c7b3ff',sg:'#9ee6b4'};
+const CH={so:'Social',we:'Web',em:'Email',sg:'Signage'};
+const CHI={so:'social',we:'web',em:'mail',sg:'screen'};
+
+/* placeholder thumbnails: gradients only, no real imagery */
+const TH={
+ cc1:'linear-gradient(135deg,#3b2a6e,#c2477a 60%,#f2a65a)',cc2:'linear-gradient(160deg,#141e48,#3d5bd9 55%,#7ee0ff)',cc3:'linear-gradient(135deg,#40164f,#8b2fc9 50%,#ffcf5c)',
+ web:'linear-gradient(160deg,#1c2b4a,#2f5b8f 60%,#8fb4ff)',mail:'linear-gradient(160deg,#2a2347,#5b4a9e 60%,#c7b3ff)',
+ hw:'linear-gradient(140deg,#1a0f12,#7a2e12 50%,#ff8a2a)',bb:'linear-gradient(150deg,#0b1430,#8a1020 55%,#d9b25a)',tt:'linear-gradient(150deg,#3a2210,#a8621f 55%,#f3c27a)',
+ tree:'linear-gradient(150deg,#0c2418,#1f6b45 55%,#e9d48a)',park:'linear-gradient(150deg,#1d2433,#465473 60%,#9aa6c2)'
+};
+const thumb=(k,ttl,badge,evt)=>`<div class="thumb" style="background:${TH[k]}">${badge?`<span class="badge ${badge}">${ic(CHI[badge],11)}${CH[badge]}</span>`:''}${evt?`<span class="evt">${evt}</span>`:''}${ttl?`<span class="ttl">${ttl}</span>`:''}</div>`;
+const sq=(k)=>`<div style="position:absolute;inset:0;background:${TH[k]}"></div>`;
+
+const EVENTS=[
+ {id:'fallfest',name:'Fall Fest',prog:'Recreation',d:'Sat–Sun, Oct 10–11',s:'2026-10-10',e:'2026-10-11',ws:'2026-09-10',we:'2026-10-18',st:'wr',stl:'Wrapped',cov:[1,1,1,1],reach:'188K',goal:'160K',pct:118,note:'vs 2025 +11%'},
+ {id:'comic-con',name:'Okinawa Comic Con',prog:'Recreation · Special Events',d:'Sat–Sun, Oct 24–25',s:'2026-10-24',e:'2026-10-25',ws:'2026-09-24',we:'2026-11-01',st:'wr',stl:'Wrapped',cov:[1,1,1,1],reach:'245K',goal:'220K',pct:111,note:'still counting to Nov 1'},
+ {id:'halloween',name:'Halloween Weekend',prog:'Recreation · Youth & Teen',d:'Fri–Sat, Oct 30–31',s:'2026-10-30',e:'2026-10-31',ws:'2026-10-01',we:'2026-11-07',st:'lv',stl:'Live',cov:[1,1,1,1],reach:'131K',goal:'150K',pct:87,note:'day 1 of 2'},
+ {id:'ball',name:'Marine Corps Birthday Ball',prog:'Food & Hospitality',d:'Tue, Nov 10',s:'2026-11-10',e:'2026-11-10',ws:'2026-10-11',we:'2026-11-17',st:'pr',stl:'Promoting',cov:[1,1,1,0],reach:'96K',goal:'175K',pct:81,pace:true,note:'81% of pace'},
+ {id:'turkey',name:'Thanksgiving Turkey Trot 5K',prog:'Semper Fit',d:'Sat, Nov 21',s:'2026-11-21',e:'2026-11-21',ws:'2026-10-22',we:'2026-11-28',st:'pr',stl:'Promoting',cov:[1,0,1,1],reach:'22K',goal:'60K',pct:104,pace:true,note:'104% of pace'},
+ {id:'tree',name:'Christmas Tree Lighting',prog:'Recreation · Special Events',d:'Fri, Dec 4',s:'2026-12-04',e:'2026-12-04',ws:'2026-11-04',we:'2026-12-11',st:'up_',stl:'Upcoming',cov:[0,0,0,0],reach:'—',goal:'200K',pct:0,note:'promo starts Nov 4'},
+ {id:'nye',name:"New Year's Eve Countdown",prog:'Food & Hospitality',d:'Thu, Dec 31',s:'2026-12-31',e:'2026-12-31',ws:'2026-12-01',we:'2027-01-07',st:'up_',stl:'Upcoming',cov:[0,0,0,0],reach:'—',goal:'120K',pct:0,note:'promo starts Dec 1'},
+ {id:'camp',name:"Kids' Winter Break Camp",prog:'Youth & Teen',d:'Mon–Fri, Jan 4–8',s:'2027-01-04',e:'2027-01-08',ws:'2026-12-05',we:'2027-01-15',st:'up_',stl:'Upcoming',cov:[0,0,0,0],reach:'—',goal:'45K',pct:0,note:'promo starts Dec 5'},
+ {id:'mlk',name:'MLK Day 5K',prog:'Semper Fit',d:'Mon, Jan 18',s:'2027-01-18',e:'2027-01-18',ws:'2026-12-19',we:'2027-01-25',st:'up_',stl:'Upcoming',cov:[0,0,0,0],reach:'—',goal:'40K',pct:0,note:'promo starts Dec 19'}
+];
+const dots=c=>`<span class="dots" title="Social · Web · Email · Signage">${['so','we','em','sg'].map((k,i)=>`<i class="${k} ${c[i]?'f':''}"></i>`).join('')}</span>`;
+
+/* =================== NAV =================== */
+const DESK=[['today','clock','Today'],['social','social','Social'],['web','web','Web'],['email','mail','Email'],['signage','screen','Signage'],['events','flag','Events']];
+function dock(v){const chan=['social','web','email','signage'].includes(v);const ev=v.startsWith('event')||v==='events'||v==='setup';
+ return DESK.map(([k,i,l])=>`<a href="#${k}" class="dk-only ${(v===k||(k==='events'&&ev))?'on':''}">${ic(i,18)}${l}</a>`).join('')+
+ `<a href="#today" class="ph-only ${v==='today'?'on':''}">${ic('clock',18)}Today</a><a href="#" class="ph-only ${chan?'on':''}" onclick="openPick();return false">${ic('grid',18)}Channels</a><a href="#events" class="ph-only ${ev?'on':''}">${ic('flag',18)}Events</a>`+
+ `<span class="sep"></span><a href="#report" class="main" onclick="toast();return false">${ic('doc',18)}Report</a>`}
+function openPick(){const s=document.getElementById('sheet');s.innerHTML=`<h3>Channels</h3><div class="mut" style="font-size:13px">Last 30 days · tap to open</div><div class="pick">
+ <a href="#social" onclick="closePick()"><span class="badge so">${ic('social',11)}Social</span><b>842K</b><small>views · <span class="up">+9%</span></small></a>
+ <a href="#web" onclick="closePick()"><span class="badge we">${ic('web',11)}Web</span><b>61.4K</b><small>users · <span class="up">+14%</span></small></a>
+ <a href="#email" onclick="closePick()"><span class="badge em">${ic('mail',11)}Email</span><b>38.2K</b><small>opens · <span class="down">−6%</span></small></a>
+ <a href="#signage" onclick="closePick()"><span class="badge sg">${ic('screen',11)}Signage</span><b>52/56</b><small>screens live</small></a></div>`;
+ s.classList.add('show');document.getElementById('scrim').classList.add('show')}
+function closePick(){document.getElementById('sheet').classList.remove('show');document.getElementById('scrim').classList.remove('show')}
+document.getElementById('scrim').onclick=closePick;
+function toast(){alert('Mockup: Report opens the existing report builder, now with an "Event one-pager" style.')}
+
+const topbar=()=>`<div class="top"><span class="brand">MCCS Pulse · Okinawa</span><div class="r"><span class="mk">Mockup · sample data</span><span class="ibtn">${ic('gear')}</span></div></div>`;
+
+/* =================== TODAY =================== */
+function today(){
+ const t=(k,lab,val,unit,delta,cls,x,seed,trend)=>`<a class="card tile c-${k}" href="#${{so:'social',we:'web',em:'email',sg:'signage'}[k]}"><div class="h"><span class="ci">${ic(CHI[k])}</span>${lab}<span class="go">›</span></div><div class="v">${val}</div><div class="l">${unit}</div><div class="d ${cls}">${delta}</div>${spark(series(seed,30,100,.5,trend),C[k])}<div class="x">${x}</div></a>`;
+ return `${topbar()}
+ <a class="live" href="#event/halloween"><span class="st lv">Live now</span><span><b>Halloween Weekend</b> · day 1 of 2 · 131K touchpoints so far, 87% of goal</span><span class="go">Open event ›</span></a>
+ <section class="lead">
+  <div class="hero">
+   <div class="eyebrow">Last 30 days, every channel</div>
+   <div class="big">944K</div>
+   <div class="what">total digital reach</div>
+   <span class="delta up">▲ 8.6% vs the 30 days before</span>
+   <div class="blend"><span><i style="background:var(--so)"></i>842K social views</span><span class="eq">+</span><span><i style="background:var(--we)"></i>61.4K web users</span><span class="eq">+</span><span><i style="background:var(--em)"></i>38.2K email opens</span><span class="eq">+</span><span><i style="background:var(--sg)"></i>2,110 screen-days</span></div>
+   <div class="blendnote">A blend of four different measures, added as-is. Good for trend, not a count of people.</div>
+   <div class="range"><span class="chip">7 days</span><span class="chip on">30 days</span><span class="chip">90 days</span><span class="chip">FY27</span></div>
+  </div>
+  <div class="tiles">
+   ${t('so','Social','842K','views · FB + IG','▲ 9% · 31.7K engagements','up','Best: Comic Con cosplay reel',11,.3)}
+   ${t('we','Web','61.4K','users · website','▲ 14% · 188K page views','up','Top page: /comic-con',12,.25)}
+   ${t('em','Email','38.2K','opens · 4 newsletters','▼ 6% · open rate 34.1%','down','Oct 28 issue opened less (31%)',13,-.15)}
+   ${t('sg','Signage','2,110','screen-days · 31 slides','52 of 56 screens live','warn','4 screens offline at 2 locations',14,0)}
+  </div>
+ </section>
+
+ <section class="evrow">
+  <a class="card ev" href="#event/comic-con">
+   <div class="top2"><span class="kind">Last event</span><span class="st wr">Wrapped · counting to Nov 1</span></div>
+   <h3>Okinawa Comic Con</h3>
+   <div class="meta">Sat–Sun, Oct 24–25 · Recreation · campaign Sep 24 → Nov 1</div>
+   <div class="res"><div><div class="bv">245K</div><div class="bl">touchpoints across 4 channels</div></div>
+    <div class="cmp"><span><b class="up">111%</b> of 220K goal</span><span><b class="up">▲ 24%</b> vs Comic Con 2025</span><span><b>24.6K</b> engagements</span></div></div>
+   <div class="goalbar"><span style="width:100%"></span><em style="left:90%" data-l="Goal 220K"></em></div>
+   <div class="chs">
+    <div><div class="t"><i style="background:var(--so)"></i>Social</div><b>214K</b><small>views · 24 posts</small></div>
+    <div><div class="t"><i style="background:var(--we)"></i>Web</div><b>18.4K</b><small>users · /comic-con</small></div>
+    <div><div class="t"><i style="background:var(--em)"></i>Email</div><b>2,310</b><small>story clicks · 3 issues</small></div>
+    <div><div class="t"><i style="background:var(--sg)"></i>Signage</div><b>412</b><small>screen-days · 2 slides</small></div>
+   </div>
+   <div class="foot"><span class="lbl">38 items linked · 2 waiting for review</span><span class="btn sm">${ic('share',15)}CMO one-pager</span></div>
+  </a>
+  <a class="card ev" href="#event/ball">
+   <div class="top2"><span class="kind">Next event</span><span class="st pr">Promoting · day 20 of 30</span></div>
+   <h3>Marine Corps Birthday Ball</h3>
+   <div class="meta">Tue, Nov 10 · Food &amp; Hospitality · campaign Oct 11 → Nov 17</div>
+   <div class="res"><div class="count"><b>11</b><span class="lbl">days to go</span></div>
+    <div class="cmp"><span><b>96K</b> touchpoints so far</span><span><b class="warn">81%</b> of where we planned to be</span><span>Goal 175K by Nov 17</span></div></div>
+   <div class="pace"><div class="row"><span>Buzz so far vs pace</span><span>96K of 118K expected today</span></div><div class="trk"><span style="width:54.9%"></span><em style="left:67.4%"></em></div></div>
+   <div class="chs">
+    <div><div class="t"><i style="background:var(--so)"></i>Social</div><b>9 live</b><small>4 scheduled · 71K views</small></div>
+    <div><div class="t"><i style="background:var(--we)"></i>Web</div><b>4.2K</b><small>users · /birthday-ball</small></div>
+    <div><div class="t"><i style="background:var(--em)"></i>Email</div><b>1 sent</b><small>1 planned · Nov 5 issue</small></div>
+    <div class="miss"><div class="t"><i style="background:var(--sg)"></i>Signage</div><b>No slide yet</b><small>nothing in rotation</small></div>
+   </div>
+   <div class="foot"><span class="lbl">Then: Turkey Trot 5K, Sat Nov 21</span><span class="btn sm ghost">Plan touchpoints</span></div>
+  </a>
+ </section>
+
+ <section class="bot">
+  <div class="card">
+   <h2>Top content, every channel <small>last 30 days · ranked by reach</small></h2>
+   <div class="topc">
+    ${[['cc1','Cosplay contest highlights','so','Comic Con','48.2K','views · IG reel'],
+       ['web','/comic-con','we','Comic Con','14.9K','users · 31K views'],
+       ['hw','Trunk-or-treat locations','so','Halloween','31.0K','views · FB'],
+       ['mail','Comic Con is back','em','Comic Con','1,140','clicks · Oct 16 story'],
+       ['tt','Turkey Trot: register now','sg','Turkey Trot','126','screen-days · 14 screens'],
+       ['bb','Ball gown rental deals','so','Birthday Ball','19.6K','views · IG']]
+      .map(([k,tt,b,e,v,s])=>`<div class="tc">${thumb(k,'',b,e)}<div class="b"><div class="t">${tt}</div><div class="m"><b>${v}</b><span>${s}</span></div></div></div>`).join('')}
+   </div>
+  </div>
+  <div class="card">
+   <h2>Needs attention <small>5</small></h2>
+   <div class="att">
+    <a href="#event/ball"><span class="ic warn">${ic('screen')}</span><div><div class="t">Birthday Ball has no signage slide</div><div class="s">11 days out. Last year's slide ran 3 weeks.</div></div><span class="go">Event ›</span></a>
+    <a href="#signage"><span class="ic down">${ic('alert')}</span><div><div class="t">4 screens offline</div><div class="s">Kinser food court (2) · Hansen gym (2), since Oct 27</div></div><span class="go">Signage ›</span></a>
+    <a href="#email"><span class="ic down">${ic('mail')}</span><div><div class="t">Open rate dipped to 31%</div><div class="s">Oct 28 newsletter, vs 38% average. Subject line was long.</div></div><span class="go">Email ›</span></a>
+    <a href="#setup"><span class="ic">${ic('link')}</span><div><div class="t">7 matches to review</div><div class="s">Posts and slides that might belong to an event</div></div><span class="go">Review ›</span></a>
+    <a href="#event/tree"><span class="ic">${ic('flag')}</span><div><div class="t">Tree Lighting promo starts in 5 days</div><div class="s">No web page found at /tree-lighting yet</div></div><span class="go">Event ›</span></a>
+   </div>
+  </div>
+ </section>`}
+
+/* =================== EVENTS LIST =================== */
+const D0=new Date('2026-10-01'),D1=new Date('2027-02-01');const span=D1-D0;
+const pos=s=>Math.max(0,Math.min(100,(new Date(s)-D0)/span*100));
+function events(){
+ const tlEvents=EVENTS;
+ return `${topbar()}
+ <div class="ph"><div><h1>Strategic events</h1><p>Every post, page, newsletter story and slide tied to the event it promotes. One list, read from your Google Sheet.</p></div>
+  <div class="chips"><a class="btn ghost" href="#setup">${ic('link',16)}Review matches · 7</a><a class="btn" href="#setup">${ic('plus',16)}Add event</a></div></div>
+ <div class="evlayout">
+  <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+   <div class="card">
+    <h2>Oct 2026 → Jan 2027 <small>bar = campaign window · block = event day</small></h2>
+    <div class="tl"><div class="inner">
+     <div class="months"><div>October</div><div>November</div><div>December</div><div>January</div></div>
+     <div style="position:relative;padding-top:4px">
+      <div class="today" style="left:${pos('2026-10-30')}%"><span>Today</span></div>
+      ${tlEvents.map(e=>{const l=pos(e.ws),r=pos(e.we);return `<div class="lane"><div class="win ${e.st}" style="left:${l}%;width:${r-l}%"></div><div class="day" style="left:${pos(e.s)+(e.s!==e.e?(pos(e.e)-pos(e.s))/2:0)}%"></div>${r>74?`<div class="nm" style="right:${100-l+.6}%;padding:0 10px 0 0">${e.name}</div>`:`<div class="nm" style="left:${r+.6}%">${e.name}</div>`}</div>`}).join('')}
+     </div>
+    </div></div>
+    <div class="tl"><div class="key"><span><i style="background:rgba(143,180,255,.12)"></i>Wrapped</span><span><i style="background:rgba(158,230,180,.14)"></i>Live</span><span><i style="background:rgba(243,217,164,.14)"></i>Promoting</span><span><i style="background:rgba(255,255,255,.08)"></i>Upcoming</span><span><i style="background:#eef1f6;width:8px"></i>Event day</span></div></div>
+   </div>
+   <div class="card">
+    <h2>All events <small>FY27 · 9 events · sorted by date</small></h2>
+    <div class="scroll"><table class="evtable">
+     <thead><tr><th>Event</th><th>Status</th><th>Program</th><th>Channels linked</th><th class="r">Touchpoints</th><th>vs goal</th></tr></thead>
+     <tbody>${EVENTS.map(e=>`<tr class="tap" onclick="location.hash='event/${e.id}'"><td><div class="nm">${e.name}</div><div class="sub">${e.d}</div></td><td><span class="st ${e.st}">${e.stl}</span></td><td class="mut2" style="font-size:13px">${e.prog}</td><td>${dots(e.cov)}${e.cov.includes(0)&&e.cov.includes(1)?`<div class="sub warn" style="color:var(--warn)">missing ${['Social','Web','Email','Signage'].filter((x,i)=>!e.cov[i]).join(', ')}</div>`:''}</td><td class="r"><span class="big2">${e.reach}</span><div class="sub">goal ${e.goal}</div></td><td style="white-space:nowrap">${e.pct?`<span class="mini"><span style="width:${Math.min(100,e.pct)}%;${e.pct>=100?'background:var(--good)':''}"></span></span><span class="${e.pct>=100?'up':e.pct<85?'warn':''}" style="font-size:13px">${e.pct}%</span><div class="sub">${e.note}</div>`:`<span class="sub">${e.note}</span>`}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <div class="evcards">${EVENTS.map(e=>`<a class="evc" href="#event/${e.id}"><div class="r1"><span class="nm">${e.name}</span><span class="st ${e.st}">${e.stl}</span></div><div class="sub">${e.d} · ${e.prog}</div><div class="r2">${dots(e.cov)}<span class="v">${e.reach}<small> / ${e.goal}</small></span><span class="${e.pct>=100?'up':e.pct&&e.pct<85?'warn':'mut'}">${e.pct?e.pct+'%':e.note}</span></div></a>`).join('')}</div>
+   </div>
+  </div>
+  <aside class="side">
+   <div class="card">
+    <h2>Where this list lives</h2>
+    <div class="src"><span class="gs">${ic('sheet')}</span><div><div style="font-size:15px">Pulse · Strategic Events</div><div class="mut" style="font-size:13px;margin-top:3px;line-height:1.45">A Google Sheet you edit. One row per event: name, dates, keywords, web paths, goals.</div></div></div>
+    <div class="flow"><span>Google Sheet</span>→<span>nightly update</span>→<span>encrypted with your data</span>→<span>Pulse</span></div>
+    <div class="help" style="margin-top:10px">Same password-locked file as the social, web and email data. Nothing about events is public.</div>
+   </div>
+   <div class="card">
+    <h2>This year so far <small>FY27</small></h2>
+    <div class="kv"><div><b>3</b><span>wrapped or live</span></div><div><b>564K</b><span>event touchpoints</span></div><div><b class="up">108%</b><span>avg of goal</span></div></div>
+    <div class="rule"></div>
+    <div class="lbl" style="margin-bottom:8px">By program</div>
+    <div class="srcbars">
+     <div class="r"><span>Recreation</span><i><span style="width:100%;background:var(--glow)"></span></i><b>433K</b></div>
+     <div class="r"><span>Food &amp; Hosp.</span><i><span style="width:22%;background:var(--glow)"></span></i><b>96K</b></div>
+     <div class="r"><span>Semper Fit</span><i><span style="width:6%;background:var(--glow)"></span></i><b>22K</b></div>
+    </div>
+   </div>
+   <div class="card ideas">
+    <h2>More ideas <small>for later phases</small></h2>
+    <ol>
+     <li><span><b>Goals per event and channel.</b> Set a touchpoint goal in the sheet; Pulse shows pace while promoting and the result after.</span></li>
+     <li><span><b>Year over year.</b> Link each event to last year's row so the CMO sees "Comic Con 2026 vs 2025" without asking.</span></li>
+     <li><span><b>Program rollups.</b> Total reach by program per quarter, for budget and staffing talks.</span></li>
+     <li><span><b>QR codes on slides.</b> A tagged link on each signage slide turns screen time into countable web visits.</span></li>
+     <li><span><b>Monday CMO email.</b> Auto-sent summary: last event result, next event pace, anything off track.</span></li>
+     <li><span><b>Promo checklist.</b> Each event shows which channels still need a touchpoint, with due dates by days-out.</span></li>
+    </ol>
+   </div>
+  </aside>
+ </div>`}
+
+/* =================== EVENT DETAIL =================== */
+function chart(){
+ // Sep 24 .. Nov 1 = 39 days, event Oct 24-25 = idx 30,31
+ const n=39,r=rng(7),W=1000,H=260,pad=58;
+ const so=[],we=[],em=[];
+ for(let i=0;i<n;i++){const ramp=i<30?Math.pow(i/30,1.6):(i<32?1.25:Math.max(.12,1-(i-31)*.16));so.push(1200+9800*ramp+r()*1500);we.push(150+1250*ramp*(i>=29&&i<=31?1.9:1)+r()*200);em.push(([8,22,29].includes(i)?2800:([9,23,30].includes(i)?1300:120))+r()*80)}
+ const tot=so.map((v,i)=>v+we[i]+em[i]);const mx=Math.ceil(Math.max(...tot)/5000)*5000;
+ const bw=(W-pad)/n;let bars='';
+ for(let i=0;i<n;i++){let y=H-24;const x=pad+i*bw+1.5;[[em[i],C.em],[we[i],C.we],[so[i],C.so]].forEach(([v,c])=>{const h=v/mx*(H-40);y-=h;bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bw-3).toFixed(1)}" height="${h.toFixed(1)}" fill="${c}" opacity=".85" rx="1.5"/>`})}
+ let grid='';for(let g=0;g<=mx;g+=5000){const y=H-24-g/mx*(H-40);grid+=`<line x1="${pad}" x2="${W}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,.08)"/><text x="${pad-6}" y="${y+4}" text-anchor="end" font-size="11" fill="rgba(238,241,246,.6)">${g/1000}K</text>`}
+ const ex=pad+30*bw;
+ const lab=[[0,'Sep 24'],[7,'Oct 1'],[14,'Oct 8'],[21,'Oct 15'],[28,'Oct 22'],[35,'Oct 29']].map(([i,t])=>`<text x="${pad+i*bw+bw/2}" y="${H-6}" font-size="11" fill="rgba(238,241,246,.6)" text-anchor="middle">${t}</text>`).join('');
+ // signage lane
+ const sgx1=pad+7*bw,sgx2=pad+32*bw,sgx3=pad+18*bw,sgx4=pad+30*bw;
+ const lane=`<svg class="chart" viewBox="0 0 ${W} 54" style="margin-top:2px">
+  <text x="${pad-6}" y="18" text-anchor="end" font-size="11" fill="rgba(238,241,246,.6)">Slide 1</text><rect x="${sgx1}" y="8" width="${sgx2-sgx1}" height="14" rx="7" fill="${C.sg}" opacity=".75"/><text x="${sgx1+8}" y="19" font-size="11" fill="#0e1420">18 screens · Oct 1–25</text>
+  <text x="${pad-6}" y="42" text-anchor="end" font-size="11" fill="rgba(238,241,246,.6)">Slide 2</text><rect x="${sgx3}" y="32" width="${sgx4-sgx3}" height="14" rx="7" fill="${C.sg}" opacity=".5"/><text x="${sgx3+8}" y="43" font-size="11" fill="#0e1420">9 screens · Oct 12–23</text>
+  <line x1="${ex}" x2="${ex}" y1="0" y2="54" stroke="#eef1f6" stroke-dasharray="3 3"/></svg>`;
+ return `<svg class="chart" viewBox="0 0 ${W} ${H}">${grid}<rect x="${ex}" y="10" width="${bw*2}" height="${H-34}" fill="rgba(255,255,255,.07)"/>${bars}<line x1="${ex}" x2="${ex}" y1="6" y2="${H-24}" stroke="#eef1f6" stroke-dasharray="3 3"/><text x="${ex+bw*2+6}" y="20" font-size="12" fill="#eef1f6">Event weekend</text>${lab}</svg>${lane}`}
+
+const ITEMS=[
+ ['cc1','so','Cosplay contest highlights','IG reel · Oct 25','48.2K','views',[['#OkiComicCon','hash'],['98%','c']]],
+ ['cc2','so','Comic Con weekend schedule','FB post · Oct 21','31.4K','views',[['"comic con"','kw'],['96%','c']]],
+ ['cc3','so','Artist alley lineup','IG carousel · Oct 14','22.9K','views',[['#OkiComicCon','hash'],['97%','c']]],
+ ['web','we','/comic-con','Web page · whole window','14.9K','users',[['URL /comic-con','url']]],
+ ['web','we','/comic-con/schedule','Web page · from Oct 12','6.2K','users',[['URL /comic-con/*','url']]],
+ ['cc1','so','Tickets & wristbands on sale','FB post · Oct 2','18.7K','views',[['"comic con"','kw'],['links /comic-con','url'],['99%','c']]],
+ ['mail','em','Story: Comic Con is back','Oct 16 newsletter','1,140','clicks',[['"comic con" in title','kw'],['95%','c']]],
+ ['mail','em','Story: Your weekend guide','Oct 23 newsletter','812','clicks',[['links /comic-con','url'],['88%','c']]],
+ ['cc2','sg','Slide: Comic Con · Oct 24–25','18 screens · 7 locations','25','days',[['"comic con" in slide name','kw'],['97%','c']]],
+ ['cc3','sg','Slide: Cosplay contest sign-ups','9 screens · 3 locations','12','days',[['added by Alan','man']]],
+ ['park','so','Parking & shuttle info','FB post · Oct 23','9.8K','views',[['added by Alan','man']]]
+];
+function itemRow([k,ch,t,s,v,u,why]){return `<div class="it"><div class="th">${sq(k)}</div><div><div class="t">${t}</div><div class="s"><span class="badge ${ch}">${CH[ch]}</span>${s} ${why.map(([w,ty])=>ty==='c'?`<span class="conf">match ${w}</span>`:`<span class="why ${ty==='man'?'man':''}">${ty==='hash'?'#':ty==='url'?ic('link',11):ty==='man'?ic('check',11):''}${ty==='hash'?w.slice(1):w}</span>`).join('')}</div></div><div class="n"><b>${v}</b><span>${u}</span></div></div>`}
+
+function detail(id){
+ if(id!=='comic-con'){const e=EVENTS.find(x=>x.id===id)||EVENTS[3];return `${topbar()}<a class="back" href="#events">${ic('back',15)}Strategic events</a><div class="dh"><div><span class="st ${e.st}">${e.stl}</span><h1>${e.name}</h1><div class="meta"><span>${e.d}</span><span>${e.prog}</span>${dots(e.cov)}</div></div></div><div class="card" style="margin-top:18px"><h2>Mockup note</h2><p class="mut2" style="margin:0;line-height:1.6">Every event gets the same detail page. The fully drawn example is <a href="#event/comic-con">Okinawa Comic Con</a>. While an event is promoting, the headline swaps from "result vs goal" to "pace vs plan", and empty channels show as a to-do.</p></div>`}
+ return `${topbar()}
+ <a class="back" href="#events">${ic('back',15)}Strategic events</a>
+ <div class="dh">
+  <div><span class="st wr">Wrapped · counting until Nov 1</span><h1>Okinawa Comic Con 2026</h1>
+   <div class="meta"><span>Sat–Sun, Oct 24–25</span><span>Recreation · Special Events</span><span>Campaign Sep 24 → Nov 1</span>${dots([1,1,1,1])}</div></div>
+  <div class="acts"><a class="btn ghost" href="#setup">${ic('edit',16)}Event setup</a><span class="btn">${ic('share',16)}Share · CMO one-pager</span></div>
+ </div>
+ <div class="win2"><div class="bar"><div class="pre" style="width:76.9%"></div><div class="ed" style="left:76.9%;width:5.1%"></div><div class="post" style="width:18%"></div><span style="left:12px">Promotion · 30 days</span><span style="right:10px">After · 7 days</span></div>
+  <div class="lab"><span>Sep 24</span><span>Event · Oct 24–25</span><span>Nov 1</span></div></div>
+ <div class="hl">
+  <div class="card lead2"><div class="l">Combined reach</div><div class="v">245K</div><div class="s">touchpoints, all channels (blend)</div></div>
+  <div class="card"><div class="l">Engagement</div><div class="v">24.6K</div><div class="s">social engagements + email clicks + engaged web sessions</div></div>
+  <div class="card"><div class="l">vs goal</div><div class="v up">111%</div><div class="s">goal 220K, set in the sheet</div></div>
+  <div class="card"><div class="l">vs Comic Con 2025</div><div class="v up">+24%</div><div class="s">198K last year, same window</div></div>
+ </div>
+ <div class="pc">
+  <div class="card so"><h3>Social <small>24 posts · FB 11 · IG 13</small></h3><div class="kv"><div><b>214K</b><span>views</span></div><div><b>12.6K</b><span>engagements</span></div><div><b>1,840</b><span>link clicks</span></div></div><div class="note">Reels did 2.3× the views of photo posts. Best: cosplay highlights, 48.2K.</div></div>
+  <div class="card we"><h3>Web <small>/comic-con + 2 subpages</small></h3><div class="kv"><div><b>18.4K</b><span>users</span></div><div><b>41.2K</b><span>page views</span></div><div><b>9.7K</b><span>engaged</span></div></div>
+   <div class="srcbars">${[['Social',46],['Organic search',15],['Direct',21],['Email',14],['QR / signage',4]].map(([n,p])=>`<div class="r"><span>${n}</span><i><span style="width:${p*2}%"></span></i><b>${p}%</b></div>`).join('')}</div></div>
+  <div class="card em"><h3>Email <small>3 stories · 3 issues</small></h3><div class="kv"><div><b>11.9K</b><span>issue opens</span></div><div><b>2,310</b><span>story clicks</span></div><div><b>19%</b><span>click share</span></div></div><div class="note">The Oct 16 story was the most-clicked item in that issue. Click share = story clicks ÷ all clicks in those issues.</div></div>
+  <div class="card sg"><h3>Signage <small>2 slides</small></h3><div class="kv"><div><b>18</b><span>screens</span></div><div><b>25</b><span>days in rotation</span></div><div><b>412</b><span>screen-days</span></div></div><div class="note">Screen-days = days in rotation × screens showing it. ScreenCloud gives no play or viewer counts, so this is exposure, not audience.</div></div>
+ </div>
+ <div class="card chartwrap">
+  <h2>Daily touchpoints by channel <small>Sep 24 → Nov 1</small></h2>
+  <div class="chartscroll"><div>${chart()}</div></div>
+  <div class="legend"><span><i style="background:var(--so)"></i>Social views</span><span><i style="background:var(--we)"></i>Web users</span><span><i style="background:var(--em)"></i>Email opens</span><span><i style="background:var(--sg)"></i>Signage, shown as time in rotation (not stacked: different unit)</span></div>
+ </div>
+ <div class="dgrid">
+  <div class="card items">
+   <h2>Everything linked to Comic Con <small>38 items · 2 added by hand</small></h2>
+   <div class="filters"><span class="chip on">All 38</span><span class="chip">Social 24</span><span class="chip">Web 3</span><span class="chip">Email 3</span><span class="chip">Signage 2</span><span class="chip">Added by hand 2</span></div>
+   ${ITEMS.map(itemRow).join('')}
+   <button class="btn ghost" style="width:100%;justify-content:center;margin-top:12px">Show all 38</button>
+  </div>
+  <div class="side">
+   <div class="card rules">
+    <h2>How these got linked</h2>
+    <div class="r"><span class="k">Dates</span><span>Campaign window Sep 24 → Nov 1<div class="help">30 days before, 7 after (sheet default)</div></span></div>
+    <div class="r"><span class="k">Keywords</span><span><span class="tok">comic con</span><span class="tok">comiccon</span><span class="tok">cosplay</span><span class="tok">artist alley</span></span></div>
+    <div class="r"><span class="k">Hashtags</span><span><span class="tok">#OkiComicCon</span><span class="tok">#ComicConOkinawa</span></span></div>
+    <div class="r"><span class="k">Web paths</span><span><span class="tok">/comic-con</span><span class="tok">/comic-con/*</span></span></div>
+    <div class="r"><span class="k">Signage</span><span>Slide name contains a keyword, or playlist <span class="tok">Foster Fall Events</span></span></div>
+    <div class="r"><span class="k">By hand</span><span>2 items · always kept, even with no keyword</span></div>
+    <a class="btn ghost sm" href="#setup" style="margin-top:10px">${ic('edit',14)}Edit rules</a>
+   </div>
+   <div class="card">
+    <h2>Waiting for review <small>2</small></h2>
+    <div class="items">
+     ${itemRow(['hw','so','Costume contest winners!','IG post · Oct 26','6.1K','views',[['"costume"','kw'],['Comic Con 41% · Halloween 64%','c']]])}
+     ${itemRow(['park','so','Fieldhouse closed Saturday','FB post · Oct 22','4.4K','views',[['date window','kw'],['58%','c']]])}
+    </div>
+    <a class="btn sm" href="#setup" style="margin-top:8px">Review matches</a>
+   </div>
+  </div>
+ </div>`}
+
+/* =================== SETUP + REVIEW =================== */
+function setup(){
+ const q=(k,ch,t,s,why,ev,conf,col)=>`<div class="qi"><div class="th">${sq(k)}</div><div><div class="t">${t}</div><div class="s"><span class="badge ${ch}">${CH[ch]}</span>${s}${why.map(w=>`<span class="why">${w}</span>`).join('')}</div>
+  <div class="sug"><span class="to">→ <b>${ev}</b></span><span class="conf"><span class="cbar"><span style="width:${conf}%;background:${col}"></span></span>${conf}% match</span><div class="acts"><button class="ok">${ic('check',13)} Link</button><button class="no">Not this</button><button class="no">Other event…</button></div></div></div></div>`;
+ return `${topbar()}
+ <a class="back" href="#events">${ic('back',15)}Strategic events</a>
+ <div class="ph"><div><h1>Event setup &amp; matching</h1><p>Each event carries a few rules. Pulse proposes links every night; you confirm the unsure ones once and they stay linked.</p></div>
+ <div class="tabs"><b class="on">Review matches · 7</b><b>Event setup</b><b>Sheet</b></div></div>
+ <div class="sgrid">
+  <div class="card q">
+   <h2>Review matches <small>7 waiting · 12 linked automatically today</small></h2>
+   ${q('hw','so','Costume contest winners!','IG post · Oct 26',['“costume”','date window'],'Halloween Weekend',64,'var(--warn)')}
+   ${q('park','so','Fieldhouse closed Saturday for special event','FB post · Oct 22',['date window','“Fieldhouse”'],'Okinawa Comic Con',58,'var(--warn)')}
+   ${q('mail','em','Story: Ball gown &amp; tux rental deals','Oct 28 newsletter',['alias “ball gown”'],'Marine Corps Birthday Ball',82,'var(--glow)')}
+   ${q('tt','so','Gobble wobble fun run photos','FB album · Oct 29',['alias “gobble”'],'Thanksgiving Turkey Trot 5K',61,'var(--warn)')}
+   ${q('web','we','/events/fall-weekend','Web page · 1.2K users',['date window only'],'Halloween Weekend',47,'var(--bad)')}
+   ${q('cc2','so','Superhero 5K recap','IG post · Oct 27',['alias “superhero”'],'Okinawa Comic Con',52,'var(--warn)')}
+   ${q('tree','sg','Slide: Holiday lights on Foster','2 screens · from Oct 29',['“holiday lights”'],'Christmas Tree Lighting',55,'var(--warn)')}
+   <div class="pnote"><b style="color:var(--txt);font-weight:500">How sure is sure?</b> 90% and up links automatically (you can still unlink). 50–89% waits here. Below 50% is only shown when nothing better exists. Your answers are remembered: "Not this" never comes back.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+   <div class="card">
+    <h2>Christmas Tree Lighting <small>new · from the sheet</small></h2>
+    <div class="f2"><label class="fld"><span>Event name</span><div class="inp">Christmas Tree Lighting</div></label><label class="fld"><span>Program</span><div class="inp">Recreation · Special Events</div></label></div>
+    <div class="f3"><label class="fld"><span>Event date(s)</span><div class="inp">Fri, Dec 4</div></label><label class="fld"><span>Promote from</span><div class="inp">30 days before</div><div class="help">Nov 4</div></label><label class="fld"><span>Keep counting</span><div class="inp">7 days after</div><div class="help">Dec 11</div></label></div>
+    <label class="fld"><span>Keywords &amp; aliases</span><div class="inp"><span class="tok">tree lighting</span><span class="tok">christmas tree</span><span class="tok">holiday lights</span><span class="tok">santa</span><span class="add">+ add</span></div><div class="help">Matched in post text, newsletter story titles and slide names. Not case-sensitive.</div></label>
+    <div class="f2"><label class="fld"><span>Hashtags</span><div class="inp"><span class="tok">#FosterTreeLighting</span><span class="add">+ add</span></div></label><label class="fld"><span>Web paths</span><div class="inp"><span class="tok">/tree-lighting</span><span class="tok">/holiday/*</span></div></label></div>
+    <div class="f2"><label class="fld"><span>Signage playlist (optional)</span><div class="inp"><span class="tok">Holiday 2026</span></div></label><label class="fld"><span>Compare with</span><div class="inp">Christmas Tree Lighting 2025</div></label></div>
+    <div class="f3"><label class="fld"><span>Goal · touchpoints</span><div class="inp">200,000</div></label><label class="fld"><span>Goal · web users</span><div class="inp">12,000</div></label><label class="fld"><span>Goal · story clicks</span><div class="inp">1,500</div></label></div>
+    <div class="help">Only name and date are required. Everything else makes matching sharper.</div>
+   </div>
+   <div class="card">
+    <h2>Matching rules <small>applied in this order</small></h2>
+    <ol class="rulelist">
+     <li><b>Inside the campaign window</b> (promo start → after-days). Anything outside is never matched.</li>
+     <li><b>Exact signals</b>: a web page under the event's path, a post or story linking to that path, a listed hashtag. Score 95–99%.</li>
+     <li><b>Keywords and aliases</b> in post text, story title or slide name. Score 80–97%, lower for short or common words.</li>
+     <li><b>Weak signals</b>: date window only, or a venue name. Score under 60%, always sent to review.</li>
+     <li><b>Two events fit?</b> The higher score wins the suggestion; both are shown in review.</li>
+     <li><b>By hand</b> always wins, and survives every nightly rebuild.</li>
+    </ol>
+   </div>
+   <div class="card">
+    <h2>The sheet <small>Google Sheets · you edit, Pulse reads</small></h2>
+    <div class="scroll"><table class="sheetprev"><thead><tr><th>id</th><th>name</th><th>start</th><th>end</th><th>promo_days</th><th>after_days</th><th>keywords</th><th>hashtags</th><th>url_paths</th><th>goal</th><th>prior_year</th></tr></thead>
+     <tbody><tr><td>comic-con-26</td><td>Okinawa Comic Con</td><td>2026-10-24</td><td>2026-10-25</td><td>30</td><td>7</td><td>comic con; cosplay</td><td>#OkiComicCon</td><td>/comic-con</td><td>220000</td><td>comic-con-25</td></tr>
+     <tr><td>ball-26</td><td>Marine Corps Birthday Ball</td><td>2026-11-10</td><td>2026-11-10</td><td>30</td><td>7</td><td>birthday ball; ball gown</td><td></td><td>/birthday-ball</td><td>175000</td><td>ball-25</td></tr>
+     <tr><td>tree-26</td><td>Christmas Tree Lighting</td><td>2026-12-04</td><td>2026-12-04</td><td>30</td><td>7</td><td>tree lighting; santa</td><td>#FosterTreeLighting</td><td>/tree-lighting</td><td>200000</td><td>tree-25</td></tr></tbody></table></div>
+    <div class="help" style="margin-top:8px">Confirmed and unlinked matches are saved in a second tab ("links") so your decisions travel with the sheet.</div>
+   </div>
+  </div>
+ </div>`}
+
+/* =================== CHANNEL TABS =================== */
+function chan(v){
+ const seg=`<div class="seg">${[['social','Social'],['web','Web'],['email','Email'],['signage','Signage']].map(([k,l])=>`<a href="#${k}" class="${v===k?'on':''}">${l}</a>`).join('')}</div>`;
+ const K={
+  social:{t:'Social',p:'Facebook and Instagram, every account. Today\u2019s Explore → Social, promoted to its own tab.',k:[['Views','842K','▲ 9%'],['Reach','391K','▲ 6%'],['Engagements','31.7K','▲ 12%'],['Link clicks','4,980','▲ 3%']],
+   list:[['cc1','Cosplay contest highlights','IG reel · Oct 25','48.2K','Comic Con'],['hw','Trunk-or-treat locations','FB · Oct 27','31.0K','Halloween'],['cc2','Comic Con weekend schedule','FB · Oct 21','31.4K','Comic Con'],['bb','Ball gown rental deals','IG · Oct 19','19.6K','Birthday Ball'],['park','Gym hours change','FB · Oct 12','8.9K','']]},
+  web:{t:'Web',p:'mccsokinawa.com from GA4. Today\u2019s Explore → Web, promoted to its own tab.',k:[['Users','61.4K','▲ 14%'],['Sessions','92.8K','▲ 11%'],['Page views','188K','▲ 9%'],['Engaged rate','58%','▲ 2 pts']],
+   list:[['web','/comic-con','14.9K users','31.0K','Comic Con'],['web','/halloween','9.1K users','17.2K','Halloween'],['web','/birthday-ball','4.2K users','8.8K','Birthday Ball'],['web','/dining','3.8K users','7.1K',''],['web','/comic-con/schedule','6.2K users','10.2K','Comic Con']]},
+  email:{t:'Email',p:'Newsletters, with clicks per story. Today\u2019s Explore → Email, promoted to its own tab.',k:[['Delivered','112K','▲ 2%'],['Opens','38.2K','▼ 6%'],['Open rate','34.1%','▼ 2.6 pts'],['Clicks','5,640','▲ 4%']],
+   list:[['mail','Story: Comic Con is back','Oct 16 issue','1,140','Comic Con'],['mail','Story: Your weekend guide','Oct 23 issue','812','Comic Con'],['mail','Story: Haunted trail tickets','Oct 23 issue','706','Halloween'],['mail','Story: Ball gown & tux deals','Oct 28 issue','388','Birthday Ball'],['mail','Story: New gym hours','Oct 9 issue','214','']]},
+  signage:{t:'Signage',p:'ScreenCloud: screens and what is in rotation. The current Signage tab, plus event tags on every slide.',k:[['Screens live','52 / 56','4 offline'],['Slides in rotation','31','▲ 3'],['Screen-days','2,110','last 30 days'],['Event slides','9 of 31','29%']],
+   list:[['tt','Turkey Trot: register now','14 screens · 9 days','126','Turkey Trot'],['hw','Haunted trail this weekend','22 screens · 18 days','396','Halloween'],['cc2','Comic Con · Oct 24–25','18 screens · 25 days','412','Comic Con'],['tree','Holiday lights on Foster','2 screens · 2 days','4','?'],['park','Gate hours reminder','40 screens · 30 days','1,200','']]}
+ }[v];
+ const unit={social:'views',web:'views',email:'clicks',signage:'screen-days'}[v];
+ const ch={social:'so',web:'we',email:'em',signage:'sg'}[v];
+ return `${topbar()}${seg}
+ <div class="ph"><div><h1>${K.t}</h1><p>${K.p}</p></div><div class="chips"><span class="chip">7 days</span><span class="chip on">30 days</span><span class="chip">90 days</span></div></div>
+ <div class="kg">${K.k.map(([l,v,d])=>`<div class="card"><div class="l">${l}</div><div class="v">${v}</div><div class="d ${d.startsWith('▲')?'up':d.startsWith('▼')||d.includes('offline')?'down':'mut'}">${d}</div></div>`).join('')}</div>
+ <div class="evfilter">Filter by event: <span class="chip on">All</span><span class="chip">Comic Con</span><span class="chip">Halloween</span><span class="chip">Birthday Ball</span><span class="chip">Turkey Trot</span><span class="chip">Not linked</span></div>
+ <div class="cgrid">
+  <div class="card plist"><h2>${v==='signage'?'In rotation':'Top'} ${v==='signage'?'slides':v==='web'?'pages':v==='email'?'stories':'posts'} <small>with their event</small></h2>
+   ${K.list.map(([k,t,s,n,e])=>`<div class="p"><div class="th">${sq(k)}</div><div><div class="t">${t}</div><div class="s"><span class="badge ${ch}">${K.t}</span>${s}${e?(e==='?'?`<span class="why" style="color:var(--warn)">possible match · review</span>`:`<span class="why">${ic('flag',11)}${e}</span>`):`<span class="why">no event</span>`}</div></div><div class="n"><b>${n}</b><span>${unit}</span></div></div>`).join('')}
+  </div>
+  <div class="card"><h2>What changes on this tab</h2>
+   <ol class="rulelist">
+    <li><b>Own tab, own dock button</b> on desktop. On phone it sits under Channels.</li>
+    <li><b>Event tag on every item</b>, so a post or slide shows which campaign it served. Tap the tag to open the event.</li>
+    <li><b>Filter by event</b> above, or "Not linked" to spot content that promotes nothing strategic.</li>
+    <li>Everything else on this tab is the current Explore content for ${K.t.toLowerCase()}, unchanged.</li>
+   </ol>
+   ${v==='signage'?`<div class="pnote">Signage has no play or viewer counts. Exposure here is screen-days: days in rotation × screens showing the slide.</div>`:''}
+  </div>
+ </div>`}
+
+/* =================== ROUTER =================== */
+function render(){let h=(location.hash||'#today').slice(1);let html;
+ if(h==='today')html=today();else if(h==='events')html=events();else if(h.startsWith('event/'))html=detail(h.split('/')[1]);else if(h==='setup')html=setup();
+ else if(['social','web','email','signage'].includes(h))html=chan(h);else{h='today';html=today()}
+ document.getElementById('app').innerHTML=html;document.getElementById('dock').innerHTML=dock(h);window.scrollTo(0,0)}
+addEventListener('hashchange',render);render();
+</script>
+</body>
+</html>
