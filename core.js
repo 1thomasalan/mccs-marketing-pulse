@@ -321,5 +321,160 @@ P.search=function(ix,query,opts){opts=opts||{};const S=Object.assign({},P.SEARCH
 // wrap the matched words of text in <mark>; esc is the caller's HTML escaper
 P.hl=function(text,hit,esc){if(!hit||!hit.size)return esc(text);return String(text).split(/(\s+)/).map(w=>{if(!toks(P.sNorm(w,1)).some(x=>hit.has(x)))return esc(w);
   const m=w.match(/^([^\p{L}\p{N}#]*)(.*?)([^\p{L}\p{N}]*)$/u);return esc(m[1])+'<mark>'+esc(m[2])+'</mark>'+esc(m[3])}).join('')};
+// ---- strategic events + program coverage (v36). Pure logic, no DOM. Data comes from the encrypted events payload
+// {v, updated, events:[...], links:[...], programs:[...]} built by the publisher from the "MCCS Pulse Strategic Events" sheet.
+// Matching reuses the search normalization (P.sNorm) for phrase checks and P.search for the looser all-words tier.
+P.EV={promo:30,after:7,auto:90,review:50};
+const MONS={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,sept:9,oct:10,nov:11,dec:12};
+const pad2=n=>String(n).padStart(2,'0');
+// 'Sun 8 Feb 2026', '8 Feb 2026', 'Feb 8, 2026', '2026-02-08', '2/8/2026' -> '2026-02-08' ('' when not a date)
+P.evDate=function(v){v=String(v||'').trim();if(!v)return '';let m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return `${m[1]}-${pad2(m[2])}-${pad2(m[3])}`;
+  m=v.match(/(\d{1,2})\s+([A-Za-z]{3,})\.?,?\s+(\d{4})/);if(m&&MONS[m[2].slice(0,3).toLowerCase()])return `${m[3]}-${pad2(MONS[m[2].slice(0,3).toLowerCase()])}-${pad2(m[1])}`;
+  m=v.match(/([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})/);if(m&&MONS[m[1].slice(0,3).toLowerCase()])return `${m[3]}-${pad2(MONS[m[1].slice(0,3).toLowerCase()])}-${pad2(m[2])}`;
+  m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return `${m[3]}-${pad2(m[1])}-${pad2(m[2])}`;return ''};
+const splitList=v=>String(v||'').split(/[;\n]/).map(x=>x.trim()).filter(Boolean);
+// header row -> column index by loose name ("Ent. Sat" == "ent sat", "Goal (total reach)" starts with "goal")
+function cols(hdr){const n=hdr.map(h=>P.sNorm(h));return (...names)=>{for(const nm of names){const k=P.sNorm(nm);const i=n.findIndex(h=>h===k);if(i>=0)return i}for(const nm of names){const k=P.sNorm(nm);const i=n.findIndex(h=>h.startsWith(k));if(i>=0)return i}return -1}}
+P.evParseSheet=function(values){if(!values||values.length<2)return [];const c=cols(values[0]),g=(r,...n)=>{const i=c(...n);return i<0?'':String(r[i]==null?'':r[i]).trim()};
+  return values.slice(1).filter(r=>g(r,'Event ID')&&g(r,'Event')).map(r=>{const s=P.evDate(g(r,'Start date')),e=P.evDate(g(r,'End date'))||s;
+    const goal=+String(g(r,'Goal')).replace(/[^\d.]/g,'')||null;
+    return {id:g(r,'Event ID'),year:+g(r,'Year')||(s?+s.slice(0,4):null),name:g(r,'Event'),type:g(r,'Type'),status:g(r,'Status'),s,e:e<s?s:e,listed:g(r,'Date as listed'),prev:g(r,'Previous dates'),
+      loc:g(r,'Location'),hours:g(r,'Hours'),lead:g(r,'Lead section'),ps:P.evDate(g(r,'Promo start')),pe:P.evDate(g(r,'Promo end')),aka:splitList(g(r,'Also known as')),
+      tags:splitList(g(r,'Hashtags')).map(t=>t.replace(/^#/,'')),paths:splitList(g(r,'Web pages')).map(p=>p.replace(/^https?:\/\/[^/]+/,'')),goal,notes:g(r,'Notes')}})};
+P.evLinksParse=function(values){if(!values||values.length<2)return [];const c=cols(values[0]),g=(r,n)=>{const i=c(n);return i<0?'':String(r[i]==null?'':r[i]).trim()};
+  return values.slice(1).map(r=>({ev:g(r,'Event ID'),ch:g(r,'Channel').toLowerCase(),item:g(r,'Item'),act:/not/i.test(g(r,'Action'))?'no':'link',note:g(r,'Notes')}))
+    .filter(x=>x.ev&&x.item&&!/^\(example\)/i.test(x.item))};
+P.progParse=function(values){if(!values||values.length<2)return [];const c=cols(values[0]),g=(r,...n)=>{const i=c(...n);return i<0?'':String(r[i]==null?'':r[i]).trim()};
+  return values.slice(1).filter(r=>g(r,'Program')).map(r=>{const ex=g(r,'Expected');return {branch:g(r,'Branch'),program:g(r,'Program'),facility:g(r,'Facility'),id:g(r,'Program ID')||P.sNorm(g(r,'Facility')||g(r,'Program')).replace(/ /g,'-'),
+    fb:splitList(g(r,'FB pages')),ig:splitList(g(r,'IG accounts')).map(x=>x.replace(/^@/,'')),kw:splitList(g(r,'Keywords')),exp:ex===''?null:+ex,notes:g(r,'Notes')}})};
+P.evWindow=e=>({ws:e.ps||(e.s?P.addDays(e.s,-P.EV.promo):''),we:e.pe||(e.e?P.addDays(e.e,P.EV.after):'')});
+// status from dates (today = JST date key)
+P.evStatus=function(e,today){today=today||P.todayKey();if(/cancel/i.test(e.status))return {k:'cancelled',label:'Cancelled'};if(!e.s)return {k:'undated',label:e.status||'Date needed'};
+  const {ws,we}=P.evWindow(e),d=(a,b)=>P.daysBetween(a,b)-1;
+  if(today<ws)return {k:'upcoming',label:'Upcoming',to:d(today,e.s),promoIn:d(today,ws)};
+  if(today<e.s){const of=d(ws,e.s);return {k:'promoting',label:'Promoting',day:d(ws,today)+1,of,to:d(today,e.s)}}
+  if(today<=e.e)return {k:'live',label:'Live',day:d(e.s,today)+1,of:d(e.s,e.e)+1};
+  if(today<=we)return {k:'counting',label:'Wrapped',until:we,ago:d(e.e,today)};
+  return {k:'wrapped',label:'Wrapped',ago:d(e.e,today)}};
+// ---- phrases: name (parenthetical and " - " parts as weaker variants), aliases, hashtags, paths
+const EVGEN=new Set('festival fest run race party night day days tournament classic fair expo event events camp lighting ceremony parade parades market show concert games competition challenge exclusive week weekend open house fun annual holiday sale'.split(' '));
+const words=t=>t.split(' ').filter(w=>w&&!P.STOP.has(w));
+const EVHOL=/^(independence day|fourth of july|4th of july|july 4th|christmas|halloween|thanksgiving|new years?( eve| day)?|memorial day|labor day|veterans day|valentines? day|easter|holidays?)$/;
+P.evBase=function(t,kind){const w=words(t);let s;if(!w.length)return 0;if(EVHOL.test(t))return 70;
+  if(w.length>=3)s=96;else if(w.length===2)s=w.every(x=>EVGEN.has(x)||/^\d+k?$/.test(x))?72:94;else{const x=w[0];s=EVGEN.has(x)||/^\d/.test(x)?0:x.length<=3?72:x.length<=5?86:91}
+  return kind==='part'?Math.max(0,s-6):s};
+P.evPhrases=function(e){const out=new Map(),add=(raw,kind)=>{const t=P.sNorm(raw);if(!t||t.length<3)return;const b=P.evBase(t,kind);if(b&&(!out.has(t)||out.get(t).b<b))out.set(t,{t,raw,kind,b})};
+  const nm=String(e.name||'').replace(/\b(19|20)\d{2}\b/g,' ').replace(/\b\d+(st|nd|rd|th)\s+annual\b/ig,' ');add(nm.replace(/\([^)]*\)/g,' '),'name');
+  (nm.match(/\(([^)]*)\)/g)||[]).forEach(x=>{const inner=x.slice(1,-1);if(!/^(name )?tbd$|stage \d/i.test(inner))add(inner,'part')});
+  nm.replace(/\([^)]*\)/g,' ').split(/\s+-\s+|\s+–\s+/).forEach((p,i,a)=>{if(a.length>1)add(p,'part')});
+  const base=P.sNorm(nm.replace(/\([^)]*\)/g,' ')),bw=base.split(' ');
+  if(bw[0]==='camp'&&bw.length>=3)add(bw.slice(1).join(' '),'name');
+  [base,bw[0]==='camp'?bw.slice(1).join(' '):''].forEach(t=>{if(t&&/\bfestival\b/.test(t))add(t.replace(/\bfestival\b/,'fest'),'name')});
+  const core=bw.filter(w=>!P.STOP.has(w));if(core.length===2&&EVGEN.has(core[1])&&core[0].length>5&&!EVGEN.has(core[0]))add(core[0],'part');
+  (e.aka||[]).forEach(a=>add(a,'aka'));return [...out.values()].sort((a,b)=>b.b-a.b)};
+const NORM=new WeakMap();// post -> {t:' normalized text ', tags:Set, paths:[]}
+function postNorm(r){let n=NORM.get(r);if(n)return n;const cap=String(r.cap||'');
+  n={t:' '+P.sNorm(cap,1)+' ',tags:new Set((cap.match(/#\w+/g)||[]).map(x=>x.slice(1).toLowerCase())),paths:(cap.match(/usmc-mccs\.org(\/[^\s)"'<>]*)/gi)||[]).map(x=>x.replace(/^usmc-mccs\.org/i,'').split(/[?#]/)[0].replace(/[.,;:!]+$/,'').toLowerCase())};NORM.set(r,n);return n}
+P.postNorm=postNorm;
+const pathHit=(path,pats)=>{path=String(path).toLowerCase().replace(/\/$/,'')||'/';for(let p of pats){p=String(p).toLowerCase().trim();if(!p)continue;const star=/\/\*$/.test(p);p=p.replace(/\/\*$/,'').replace(/\/$/,'')||'/';if(path===p||(star||p.length>4)&&path.startsWith(p+'/'))return p}return null};
+P.pathHit=pathHit;
+const EVF={cap:[1,r=>r.cap,{sub:1}]};
+const CAMPS=['foster','kinser','hansen','courtney','schwab','futenma','lester','mctureous','kadena','fuji','gonsalves','mujuk','blaz','tengan','zukeran'];
+const campsIn=t=>new Set(CAMPS.filter(c=>t.includes(' '+c+' ')));
+// text names a different camp than the event's (and not the event's own) -> it is probably the same-named event elsewhere
+const campOff=(evC,t)=>{if(!evC.size)return 0;const c=campsIn(t);if(!c.size)return 0;for(const x of c)if(evC.has(x))return 0;return 25};
+const lowerSorted=a=>{let lo=0,hi=a.length;return (k)=>{lo=0;hi=a.length;while(lo<hi){const m=(lo+hi)>>1;if(a[m].d<k)lo=m+1;else hi=m}return lo}};
+// item keys: so:<post id> · we:<path> · em:<campaign id> · sg:<slide name>
+// returns {byEvent: Map(evId -> [{key,ch,score,why,state}]), byItem: Map(key -> [{ev,score,why,state}]), review:[...], manual:n}
+P.evMatch=function(o){const evs=(o.events||[]).filter(e=>e.s),posts=o.posts||[],today=o.today||P.todayKey(),links=o.links||[],titles=o.titles||{};
+  const byItem=new Map(),put=(key,ch,ev,score,why)=>{let a=byItem.get(key);if(!a)byItem.set(key,a=[]);const x=a.find(y=>y.ev===ev.id);if(x){if(score>x.score){x.score=score;x.why=why}}else a.push({ev:ev.id,ch,score,why})};
+  const sorted=posts.slice().sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0),lb=lowerSorted(sorted);
+  const dataMin=sorted.length?sorted[0].d:'9',dataMax=sorted.length?sorted[sorted.length-1].d:'0';let ix=null;
+  const D=o.web&&o.web.length?P.webDaily(o.web):null;const pathsIn=(ws,we)=>{const s=new Set();if(!D)return s;for(let k=ws;k<=we;k=P.addDays(k,1)){const a=D.pg.get(k);if(a)for(const r of a)s.add(r[0])}return s};
+  for(const ev of evs){const {ws,we}=P.evWindow(ev);const ph=P.evPhrases(ev),tags=new Set((ev.tags||[]).map(t=>t.toLowerCase())),pats=ev.paths||[];
+    const loc=P.sNorm(String(ev.loc||'').replace(/\bcamp\b/ig,'')).split(' ').filter(w=>w.length>4),evC=campsIn(' '+P.sNorm(ev.loc+' '+ev.id.replace(/-/g,' '))+' ');
+    if(ws<=dataMax&&we>=dataMin){
+      const inWin=[];for(let i=lb(ws);i<sorted.length&&sorted[i].d<=we;i++)inWin.push(sorted[i]);const winSet=new Set(inWin);
+      for(const r of inWin){const n=postNorm(r);let best=0,why='';
+        for(const t of n.tags)if(tags.has(t)&&97>best){best=97;why='#'+t}
+        if(pats.length)for(const p of n.paths){const h=pathHit(p,pats);if(h&&96>best){best=96;why='links '+h}}
+        for(const x of ph){if(x.b<=best)break;if(n.t.includes(' '+x.t+' ')){let s=x.b;if(loc.some(w=>n.t.includes(' '+w+' ')))s=Math.min(97,s+2);if(s>best){best=s;why='“'+x.raw.trim()+'”'}}}
+        if(best){const off=campOff(evC,n.t);if(off){best-=off;why+=' · other camp'}put('so:'+r.id,'so',ev,best,why)}}
+      // looser tier: every word of a multi-word phrase somewhere in the caption (any order, typo-tolerant) -> review
+      ix=ix||P.searchIndex(posts,EVF);
+      for(const x of ph){if(words(x.t).filter(w=>!EVGEN.has(w)).length<2||x.b<80)continue;for(const h of P.search(ix,x.t,{all:true,cap:2e4})){const r=h.item;if(!winSet.has(r))continue;const k='so:'+r.id,cur=byItem.get(k);if(cur&&cur.some(y=>y.ev===ev.id))continue;
+        put(k,'so',ev,h.strong?72:58,(h.strong?'words of “':'close to “')+x.raw.trim()+'”')}}
+      // web pages seen in the window: sheet paths, pages linked from the event's posts, newsletter link titles, or the phrase in the path
+      if(D){const linkedPaths=new Map();for(const [k,a] of byItem){if(k.slice(0,3)!=='so:')continue;const it=a.find(y=>y.ev===ev.id&&y.score>=P.EV.auto);if(!it)continue;const r=o.postById&&o.postById.get(k.slice(3));if(r)postNorm(r).paths.forEach(p=>linkedPaths.set(p.replace(/\/$/,''),1))}
+        for(const path of pathsIn(ws,we)){const lp=path.toLowerCase().replace(/\/$/,'');let best=0,why='';const h=pats.length&&pathHit(lp,pats);if(h){best=96;why='page '+h}
+          const tt=titles[lp];if(tt){const tn=' '+P.sNorm(tt)+' ';for(const x of ph)if(x.b>best&&tn.includes(' '+x.t+' ')){best=Math.min(97,x.b+1);why='titled “'+tt+'”'}}
+          if(linkedPaths.has(lp)&&lp.length>1&&91>best){best=91;why='linked from an event post'}
+          const pn=' '+P.sNorm(lp.replace(/[-_/]+/g,' '))+' ';for(const x of ph)if(x.b>best&&!(x.kind==='part'&&words(x.t).length<2)&&pn.includes(' '+x.t+' ')){best=x.b;why='“'+x.raw.trim()+'” in the address'}
+          if(best){const off=campOff(evC,pn+(tt?' '+P.sNorm(tt)+' ':''));if(off){best-=off;why+=' · other camp'}put('we:'+path,'we',ev,best,why)}}}}
+    for(const c of o.email||[]){if(c.kind!=='camp'||!c.date||c.date<ws||c.date>we)continue;let best=0,why='';const nm=' '+P.sNorm(c.name+' '+(c.subject||''))+' ';
+      for(const x of ph)if(x.b>best&&nm.includes(' '+x.t+' ')){best=Math.min(97,x.b+1);why='“'+x.raw.trim()+'” in the issue name'}
+      for(const tt of Object.values(c.titles||{})){const tn=' '+P.sNorm(tt)+' ';for(const x of ph)if(x.b>best&&tn.includes(' '+x.t+' ')){best=x.b;why='story “'+tt+'”'}}
+      if(best)put('em:'+c.id,'em',ev,best,why)}
+    if(o.signage&&today>=ws&&today<=we)for(const it of o.signage){const nm=' '+P.sNorm(it.name,1)+' ';let best=0,why='';for(const x of ph)if(x.b>best&&nm.includes(' '+x.t+' ')){best=x.b;why='“'+x.raw.trim()+'” in the slide name'}if(best)put('sg:'+it.name,'sg',ev,best,why)}}
+  // manual rows from the sheet's Links tab (and local decisions) always win
+  let manual=0;const resolve=l=>{const ch=(l.ch||'').slice(0,2),it=String(l.item).trim();if(/^(so|we|em|sg):/.test(it))return it;
+    if(ch==='so'||!ch){const id=(it.match(/(\d{8,})/)||[])[1];const r=o.postById&&(o.postById.get(it)||id&&o.postById.get(id)||[...o.postById.values()].find(p=>p.link&&p.link===it));if(r)return 'so:'+r.id}
+    if(ch==='we')return 'we:'+it.replace(/^https?:\/\/[^/]+/,'');if(ch==='em'){const c=(o.email||[]).find(c=>c.id===it||c.name===it||c.full===it);return c?'em:'+c.id:null}if(ch==='si'||ch==='sg')return 'sg:'+it;return null};
+  for(const l of links){const k=resolve(l);if(!k||!evs.some(e=>e.id===l.ev))continue;let a=byItem.get(k);if(!a)byItem.set(k,a=[]);let x=a.find(y=>y.ev===l.ev);
+    if(l.act==='no'){if(x)x.state='no'}else{manual++;if(!x)a.push(x={ev:l.ev,ch:k.slice(0,2),score:100,why:''});x.state='manual';x.score=100;x.why=l.local?'confirmed in Pulse':'added in the sheet'}}
+  const byEvent=new Map(),review=[];
+  for(const [k,a] of byItem){const live=a.filter(x=>x.state!=='no').sort((p,q)=>q.score-p.score);if(!live.length)continue;const top=live[0].score;
+    for(const x of live){if(!x.state)x.state=x.score>=P.EV.auto&&x.score>=top-3?'auto':x.score>=P.EV.review?'review':'weak';x.key=k;
+      if(x.state==='auto'||x.state==='manual')(byEvent.get(x.ev)||byEvent.set(x.ev,[]).get(x.ev)).push(x)}
+    const rv=live.filter(x=>x.state==='review');if(rv.length&&!live.some(x=>x.state==='manual'||x.state==='auto'))review.push({key:k,ch:k.slice(0,2),best:rv[0],alts:live.filter(x=>x!==rv[0]).slice(0,3)})}
+  review.sort((a,b)=>b.best.score-a.best.score);return {byItem,byEvent,review,manual}};
+// per-event totals. ctx: {posts by id, web, email, signage}. Touchpoints = social views + web users (linked pages) + email opens; signage is exposure, kept apart.
+P.evRoll=function(ev,items,c){const {ws,we}=P.evWindow(ev),R={so:{n:0,v:0,e:0,lc:0,fb:0,ig:0,list:[]},we:{users:0,views:0,pages:[]},em:{opens:0,clicks:0,camps:[]},sg:{slides:[]},daily:new Map(),items:items||[]};
+  const day=(d,k,v)=>{if(!d||d<ws||d>we)return;const o=R.daily.get(d)||{so:0,we:0,em:0};o[k]+=v;R.daily.set(d,o)};const paths=new Set();
+  for(const x of items||[]){const id=x.key.slice(3);
+    if(x.ch==='so'){const r=c.postById.get(id);if(!r)continue;R.so.n++;R.so.v+=r.v;R.so.e+=P.eng(r);R.so.lc+=r.lc||0;R.so[r.plat]++;R.so.list.push(r);day(r.d,'so',r.v)}
+    else if(x.ch==='we')paths.add(id);
+    else if(x.ch==='em'){const cm=(c.email||[]).find(e=>e.id===id);if(cm){R.em.camps.push(cm);R.em.opens+=cm.opens||0;R.em.clicks+=cm.clicks||0;day(cm.date,'em',cm.opens||0)}}
+    else if(x.ch==='sg')R.sg.slides.push(id)}
+  if(paths.size&&c.web&&c.web.length){const D=P.webDaily(c.web),pg=new Map();for(let k=ws;k<=we;k=P.addDays(k,1)){const a=D.pg.get(k);if(!a)continue;for(const r of a)if(paths.has(r[0])){R.we.views+=r[1];R.we.users+=r[2];day(k,'we',r[2]);const o=pg.get(r[0])||[r[0],0,0];o[1]+=r[1];o[2]+=r[2];pg.set(r[0],o)}}R.we.pages=[...pg.values()].sort((a,b)=>b[2]-a[2])}
+  R.touch=R.so.v+R.we.users+R.em.opens;R.eng=R.so.e+R.em.clicks;R.ws=ws;R.we_=we;return R};
+// same event a year earlier: a row with the same name in the prior year, else the dates moved back 364 days (same weekday)
+P.evPrior=function(ev,events){const nm=P.sNorm(ev.name),y=(ev.year||+String(ev.s).slice(0,4))-1;const row=(events||[]).find(e=>e!==ev&&e.s&&P.sNorm(e.name)===nm&&+String(e.s).slice(0,4)===y);
+  if(row)return Object.assign({},row,{approx:false});if(!ev.s)return null;const sh=k=>k?P.addDays(k,-364):'';return Object.assign({},ev,{id:ev.id+'~prior',s:sh(ev.s),e:sh(ev.e),ps:sh(ev.ps),pe:sh(ev.pe),approx:true})};
+// ---- program coverage ("weak spots")
+const isShared=p=>/^\(/.test(p.branch||'');
+P.progPages=function(programs){const own=new Map(),shared=new Set();for(const p of programs||[]){const keys=[...p.fb.map(x=>'fb|'+x.toLowerCase()),...p.ig.map(x=>'ig|'+x.toLowerCase())];
+  for(const k of keys){if(isShared(p)){shared.add(k);continue}(own.get(k)||own.set(k,[]).get(k)).push(p)}}return {own,shared}};
+// o: {programs, posts (already account-filtered as needed), s, e, cs, ce, ref (date key for "days since"), days (N for 'no posts in N days')}
+P.progCoverage=function(o){const progs=(o.programs||[]).filter(p=>!isShared(p)),{own,shared}=P.progPages(o.programs),N=o.days||45;let ref=o.ref;if(!ref){ref='';for(const r of o.posts||[])if(r.d>ref)ref=r.d}ref=ref||P.todayKey();const today=o.today||P.todayKey();
+  const kw=new Map(progs.map(p=>[p.id,p.kw.map(k=>P.sNorm(k,1)).filter(k=>k.length>=3)]));
+  const st=new Map(progs.map(p=>[p.id,{p,own:[],men:[],last:'',lastAll:'',prev:0,prevV:0}]));const general=new Map(),unmapped=new Map();
+  const hit=(n,p)=>kw.get(p.id).some(k=>n.t.includes(' '+k+' '));
+  for(const r of o.posts||[]){const pk=r.plat+'|'+String(r.page).toLowerCase(),owners=own.get(pk)||[],n=postNorm(r);const inR=r.d>=o.s&&r.d<=o.e,inC=o.cs&&r.d>=o.cs&&r.d<=o.ce;
+    if(!owners.length&&!shared.has(pk)){const u=unmapped.get(pk)||{plat:r.plat,page:r.page,n:0,v:0};if(inR){u.n++;u.v+=r.v}unmapped.set(pk,u)}
+    let ownBy=owners.length===1?owners:owners.filter(p=>hit(n,p));
+    if(!ownBy.length&&owners.length>1){const pn=' '+P.sNorm(r.page)+' ',nm=owners.filter(p=>pn.includes(' '+P.sNorm(p.facility||p.program)+' '));if(nm.length===1)ownBy=nm;else{const g=general.get(pk)||{plat:r.plat,page:r.page,n:0,v:0,list:[],branches:new Set(owners.map(p=>p.branch))};if(inR){g.n++;g.v+=r.v;g.list.push(r)}general.set(pk,g)}}
+    const tagged=new Set(ownBy.map(p=>p.id));
+    for(const p of progs){const isOwn=tagged.has(p.id),isMen=!isOwn&&hit(n,p);if(!isOwn&&!isMen)continue;const s=st.get(p.id);if(r.d>s.lastAll)s.lastAll=r.d;
+      if(inR)(isOwn?s.own:s.men).push(r);if(inC){s.prev++;s.prevV+=r.v}}}
+  // festival-type programs ("Strategic Event" in the Programs tab's Notes) are judged by their event (keyword inside the event's name / other names), not by silence
+  const evPh=(o.events||[]).filter(e=>e.s).map(e=>({e,t:' '+P.sNorm([e.name,...(e.aka||[])].join(' | ').replace(/[|]/g,' '))+' ',ph:new Set(P.evPhrases(e).map(x=>x.t))}));
+  const seasonOf=p=>{const ks=p.kw.map(k=>P.sNorm(k)).filter(k=>k.split(' ').length>=2||k.length>=8);if(!/strategic event/i.test(p.notes||''))return [];return evPh.filter(x=>ks.some(k=>x.ph.has(k)||x.t.includes(' '+k+' '))).map(x=>x.e)};
+  const isSeason=(p,evs)=>evs.length>0||/strategic event/i.test(p.notes||'');
+  const days=P.daysBetween(o.s,o.e),rows=[],r30=P.addDays(ref,-29);
+  for(const s of st.values()){const all=[...s.own,...s.men],n=all.length,v=all.reduce((a,r)=>a+r.v,0);const last=s.lastAll,since=last?Math.max(0,P.daysBetween(last,ref)-1):null;
+    const evs=seasonOf(s.p),next=evs.filter(e=>e.s>=today).sort((a,b)=>a.s<b.s?-1:1)[0],recent=[...s.own,...s.men].filter(r=>r.d>=r30).length;
+    rows.push({seasonal:isSeason(s.p,evs),next,recent,id:s.p.id,p:s.p,name:s.p.facility||s.p.program,branch:s.p.branch,program:s.p.program,facility:s.p.facility,own:s.own,men:s.men,n,v,last,since,prev:s.prev,prevV:s.prevV,trend:s.prev?(n/s.prev-1)*100:null,
+      exp:s.p.exp,perMonth:n/days*30.4,flags:[]})}
+  const byBr=new Map();rows.forEach(r=>(byBr.get(r.branch)||byBr.set(r.branch,[]).get(r.branch)).push(r));
+  for(const [b,l] of byBr){const med=P.median(l.map(r=>r.n));for(const r of l){r.peer=med;if(r.exp===0)continue;
+    if(r.seasonal){const to=r.next?P.daysBetween(today,r.next.s)-1:null;if(r.next&&to<=45&&!r.recent)r.flags.push(['event',`${r.next.name} in ${to} days, no posts in the last 30`]);continue}
+    if(!r.last)r.flags.push(['never','No posts found']);else if(r.since>N)r.flags.push(['quiet',`No posts in ${r.since} days`]);
+    if(r.exp>0&&r.perMonth<r.exp*.5)r.flags.push(['exp',`${r.perMonth.toFixed(1)}/mo vs ${r.exp} expected`]);
+    if(med>=4&&r.n<=med*.25&&r.last)r.flags.push(['peer',`${r.n} posts vs ${med} branch median`])}}
+  rows.forEach(r=>{r.weak=r.flags.length>0;r.sev=!r.weak?0:(r.flags.some(f=>f[0]==='never')?1000:0)+(r.flags.some(f=>f[0]==='event')?300:0)+(r.since||0)+(r.flags.some(f=>f[0]==='exp')?40:0)+(r.flags.some(f=>f[0]==='peer')?20:0)-r.n});
+  const branches=[...byBr].map(([b,l])=>{const ids=new Set(),gen=[...general.values()].filter(g=>g.branches.has(b));let n=0,v=0;for(const r of l)for(const x of [...r.own,...r.men])if(!ids.has(x.id)){ids.add(x.id);n++;v+=x.v}
+    return {branch:b,programs:l.length,n,v,weak:l.filter(r=>r.weak).length,posted:l.filter(r=>r.n).length,general:gen}}).sort((a,b)=>b.n-a.n);
+  return {rows,branches,general:[...general.values()],unmapped:[...unmapped.values()].filter(u=>u.n||true),N,days}};
 G.Pulse=P;
 })(typeof window!=='undefined'?window:globalThis);
