@@ -53,7 +53,11 @@ h2 small{font-family:var(--sans);font-size:11px;letter-spacing:1.5px;text-transf
 .bar{height:9px;border-radius:9px;background:color-mix(in srgb,var(--fb) 55%,transparent);overflow:hidden}.bar span{display:block;height:100%;border-radius:9px;background:var(--ig);box-shadow:0 0 14px var(--ig)}
 .post{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);align-items:flex-start}.post:last-child{border:0}
 .rank{font-family:var(--serif);font-size:24px;width:26px;color:var(--glow);flex:none;line-height:1}
-.post .t{font-size:14.5px;line-height:1.35}.post .m{font-size:12px;color:var(--mut);margin-top:4px}
+.post .t{font-size:14.5px;line-height:1.35}
+.post .t mark,.wprow mark{color:inherit;background:color-mix(in srgb,var(--glow,#f3d9a4) 30%,transparent);border-radius:3px;padding:0 1px}
+.qhint{margin:2px 0 6px}.qhint b{font-weight:600;color:var(--txt)}
+.post .m mark{color:inherit;background:color-mix(in srgb,var(--glow,#f3d9a4) 30%,transparent);border-radius:3px;padding:0 1px}
+@media(max-width:560px){.filters #q{flex-basis:100%}}.post .m{font-size:12px;color:var(--mut);margin-top:4px}
 .post .n{margin-left:auto;text-align:right;flex:none}.post .n b{font-weight:300;font-size:22px;display:block}.post .n a{font-size:11px;color:var(--glow);text-decoration:none;letter-spacing:1px;text-transform:uppercase}
 .tag{display:inline-block;font-size:10px;letter-spacing:1px;padding:2px 7px;border-radius:999px;margin-right:6px;border:1px solid}
 .tag.fb{color:var(--fb);border-color:color-mix(in srgb,var(--fb) 50%,transparent)}.tag.ig{color:var(--ig);border-color:color-mix(in srgb,var(--ig) 50%,transparent)}
@@ -483,6 +487,53 @@ button.card.ecamp{display:block;width:100%;text-align:left;margin-top:0;cursor:p
 }
 @media(min-width:2400px){body:not(.tvmode) #setp{zoom:1.3}}
 @media(min-width:3200px){body:not(.tvmode) #setp{zoom:1.65}}
+
+/* ---- global search (v35) ---- */
+.top .tbtns{display:flex;gap:8px}
+.top .icon{width:44px;height:44px}
+#gs.sheet{padding-top:18px;z-index:7}
+#gscrim{z-index:6}
+.gsin{position:sticky;top:-18px;z-index:2;margin:-18px -24px 0;padding:18px 24px 12px;background:rgba(14,20,32,.97);display:flex;gap:10px;align-items:center;border-bottom:1px solid transparent}
+.gsin.lined{border-bottom-color:var(--line)}
+.gsin .fld{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:14px;padding:0 6px 0 12px}
+.gsin .fld:focus-within{border-color:color-mix(in srgb,var(--glow) 60%,transparent)}
+.gsin svg{width:18px;height:18px;fill:none;stroke:var(--mut);stroke-width:1.8;stroke-linecap:round;flex:none}
+.gsin input{flex:1;min-width:0;background:none;border:0;outline:0;padding:13px 0;font-size:16px;color:var(--txt);caret-color:var(--glow)}
+.gsin input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.gsin .gclr{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--mut);font-size:19px;flex:none}
+.gsin .gclr[hidden]{display:none}
+.gsin .done{color:var(--mut);font-size:14px;min-height:44px;padding:0 4px}
+.gsum{font-size:12px;color:var(--mut);margin:12px 0 0}.gsum b{color:var(--txt);font-weight:500}
+.ggrp{margin-top:16px}
+.ggrp .gh{display:flex;align-items:center;justify-content:space-between;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin:0}
+.ggrp .gh b{font-weight:500;color:var(--txt);letter-spacing:1px;margin-left:6px}
+.ggrp .gh button{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--glow);min-height:40px;padding:0 0 0 12px}
+.gres{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;padding:11px 0;border-top:1px solid var(--line);color:var(--txt)}
+.gres:focus-visible{outline:2px solid color-mix(in srgb,var(--glow) 70%,transparent);outline-offset:2px;border-radius:8px}
+.gres .gi{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--mut)}
+.gres .gi svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.gres .gb{flex:1;min-width:0}
+.gres .gt{display:-webkit-box;font-size:14.5px;line-height:1.35;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.gres .gm{display:block;font-size:12px;color:var(--mut);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gres .gn{flex:none;text-align:right;font-weight:300;font-size:17px;font-variant-numeric:tabular-nums}
+.gres .gn small{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--mut)}
+.gres mark{color:inherit;background:color-mix(in srgb,var(--glow,#f3d9a4) 30%,transparent);border-radius:3px;padding:0 1px}
+.gres .gm mark{color:var(--txt)}
+.gempty{color:var(--mut);font-size:13.5px;margin:18px 0 4px}
+.gnone{color:var(--mut);font-size:12px;margin-top:16px}
+.gtry{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.gkeys{display:none;font-size:11.5px;color:var(--mut);margin-top:16px}
+.gkeys kbd{font:inherit;border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin:0 2px}
+.gflash{animation:gflash 2.2s ease-out}
+@keyframes gflash{0%,30%{box-shadow:0 0 0 2px color-mix(in srgb,var(--glow) 75%,transparent)}100%{box-shadow:0 0 0 2px transparent}}
+@media(max-width:819px){#gs.sheet{top:calc(env(safe-area-inset-top) + 36px);max-height:none;border-radius:22px 22px 0 0}}
+@media(min-width:820px){
+ .gkeys{display:block}.gsin .done{display:none}
+ #gs.sheet{top:12vh;bottom:auto;left:50%;right:auto;margin:0;width:min(720px,92vw);max-width:none;max-height:76vh;border-radius:24px;border-bottom:1px solid var(--line);padding-bottom:24px;transform:translate(-50%,10px) scale(.98);opacity:0;visibility:hidden;pointer-events:none;transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .2s,visibility 0s .3s}
+ #gs.sheet.show{transform:translate(-50%,0);opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
+}
+@media(prefers-reduced-motion:reduce){#gs.sheet{transition:none}.gflash{animation:none}}
+@media print{#gs,#gscrim{display:none!important}}
 </style>
 </head>
 <body>
@@ -498,6 +549,11 @@ button.card.ecamp{display:block;width:100%;text-align:left;margin-top:0;cursor:p
 <input type="file" id="bfile" accept=".json,application/json" hidden>
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet"><button class="close" id="closeSheet" aria-label="Close">×</button><button class="shbtn" id="shareSheet" hidden aria-label="Share"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span>Share</span></button><div id="sheetBody"></div></div>
+<div class="scrim" id="gscrim"></div>
+<div class="sheet" id="gs" role="dialog" aria-modal="true" aria-label="Search everything">
+ <div class="gsin"><label class="fld"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="gq" type="search" placeholder="Search everything" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="Search everything"><button class="gclr" id="gclr" aria-label="Clear search" hidden>×</button></label><button class="done" id="gdone">Done</button></div>
+ <div id="gbody" aria-live="polite"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div id="report"><div class="rbar"><button id="rBack">← Back</button><div id="rStyleBar"></div><button class="main" id="rPrint">Save as PDF</button><span>Tap text to edit · tap a post tile to add its image · more options in Settings</span></div><div id="pages"></div></div>
 <script src="core.js"></script>

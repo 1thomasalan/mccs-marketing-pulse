@@ -59,7 +59,7 @@ function header(accts,web){const end=dataEnd();const wEnd=S.web.reduce((m,x)=>x.
   return `<div class="ctl"><div class="range presets">${PRESETS.map(([k,l])=>`<button data-p="${k}" class="${S.preset===k?'on':''}">${l}</button>`).join('')}</div>
   <div class="rlabel">${P.rangeLabel(S.s,S.e)}<small>${stale}</small></div>
   ${web?'':`<div class="range plats">`}${web?'':[['all','All'],['fb','Facebook'],['ig','Instagram']].map(([k,l])=>`<button data-f="${k}" class="chip ${S.plat===k?'on':''}">${l}</button>`).join('')}${accts?`<label class="chip acctpick ${S.acct!=='all'?'on':''}"><select id="hAcct" aria-label="Account"><option value="all">All accounts</option>${accts.map(g=>`<option value="${g.plat}|${esc(g.page)}" ${S.acct===g.plat+'|'+g.page?'selected':''}>${g.plat.toUpperCase()} · ${esc(acctName(g.plat,g.page))}</option>`).join('')}</select></label>`:''}${web?'':'</div>'}</div>`}
-function topbar(){return `<div class="top"><span>MCCS Pulse</span><button class="icon" id="gear" aria-label="Settings">${ICON.gear}</button></div>`}
+function topbar(){return `<div class="top"><span>MCCS Pulse</span><span class="tbtns">${gsAvail()?`<button class="icon" id="gbtn" aria-label="Search everything" title="Search everything (/ or ${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl+'}K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>`:''}<button class="icon" id="gear" aria-label="Settings">${ICON.gear}</button></span></div>`}
 // ---- render ----
 function render(){const app=$('#app');if(TV.on)return TV.render();
   if(S.locked&&SYNC.meta){$('#dock').style.display='none';app.innerHTML=topbar()+lockScreen();bindTop();bindLock();return;}
@@ -81,10 +81,10 @@ function render(){const app=$('#app');if(TV.on)return TV.render();
   $$('[data-post]').forEach(b=>b.onclick=e=>{if(e.target.closest('a'))return;postSheet(b.dataset.post)});
   $$('[data-acct]').forEach(b=>b.onclick=()=>accountSheet(b.dataset.acct));
   const cb=$('.chartbox');if(cb)bindChart(cb,P.series(L,S.s,S.e,S.metric),S.metric);
-  if(S.view==='explore'&&!WEBV&&!EMV){const q=$('#q');q.oninput=()=>{S.q=q.value;S.limit=40;renderList(L)};$('#acctSel').onchange=e=>{S.acct=e.target.value;S.limit=40;render()};$('#sortSel').onchange=e=>{S.sort=e.target.value;S.dir='desc';$('#dirBtn').textContent=S.sort==='d'?'↓ Newest first':'↓ High to low';renderList(L)};$('#dirBtn').onclick=e=>{S.dir=S.dir==='asc'?'desc':'asc';e.target.textContent=S.dir==='asc'?(S.sort==='d'?'↑ Oldest first':'↑ Low to high'):(S.sort==='d'?'↓ Newest first':'↓ High to low');renderList(L)};renderList(L);
+  if(S.view==='explore'&&!WEBV&&!EMV){(window.requestIdleCallback||setTimeout)(()=>P.searchIndex(S.posts,PF));const q=$('#q');q.oninput=()=>{const was=S.q.trim();S.q=q.value;S.limit=40;const sel=$('#sortSel');if(!was&&S.q.trim()&&S.sort==='v'){S.sort='r';S.dir='desc'}else if(was&&!S.q.trim()&&S.sort==='r')S.sort='v';sel.value=S.sort;renderList(L)};$('#acctSel').onchange=e=>{S.acct=e.target.value;S.limit=40;render()};$('#sortSel').onchange=e=>{S.sort=e.target.value;S.dir='desc';$('#dirBtn').textContent=S.sort==='d'?'↓ Newest first':'↓ High to low';renderList(L)};$('#dirBtn').onclick=e=>{S.dir=S.dir==='asc'?'desc':'asc';e.target.textContent=S.dir==='asc'?(S.sort==='d'?'↑ Oldest first':'↑ Low to high'):(S.sort==='d'?'↓ Newest first':'↓ High to low');renderList(L)};renderList(L);
     $$('.hm td[data-h]').forEach(td=>td.onclick=()=>{const [w,h]=td.dataset.h.split(',').map(Number);const list=L.filter(r=>{const d=new Date(r.t+9*3600e3);return (d.getUTCDay()+6)%7===w&&Math.floor(d.getUTCHours()/3)===h});listSheet(`${WD[w]} ${hb(h)}`,list)})}
 }
-function bindTop(){$('#gear').onclick=settings}
+function bindTop(){$('#gear').onclick=settings;const gb=$('#gbtn');if(gb){gb.onclick=()=>gsOpen('');gb.onpointerenter=gb.onfocus=gsWarm;gb.addEventListener('touchstart',gsWarm,{passive:true})}}
 // ---- viewport intelligence: tier changes re-render so charts get the right aspect ----
 const vpTier=()=>{const w=innerWidth;return w<700?'phone':w<1100?'tablet':w<1600?'laptop':w<2400?'wide':'wall'};
 const chartW=()=>({laptop:820,wide:1000,wall:1000}[vpTier()]||640);
@@ -101,7 +101,9 @@ function overview(L,C,t,c,accts){const has=c.n>0;const top=[...L].sort((a,b)=>b.
    <div class="card"><h2>Accounts<small>tap to explore</small></h2>${pages.slice(0,8).map(g=>`<button class="arow" data-acct="${g.plat}|${esc(g.page)}"><span><span class="tag ${g.plat}">${g.plat.toUpperCase()}</span>${esc(acctName(g.plat,g.page))}</span><span class="mut">${g.n} posts</span><b>${P.fmt(g.v)}</b></button>`).join('')}${pages.length>8?`<button class="more" id="allAccts" onclick="S.view='explore';render();scrollTo(0,0)">All ${pages.length} accounts in Explore</button>`:''}</div></div>
   <p class="note">${nf(S.posts.length)} posts stored on this device · metrics are lifetime to date, so recent posts are still growing</p>`}
 function balance(t){return [['Posts',t.ig.n,t.n],['Views',t.ig.v,t.v],['Engagement',t.ig.e,t.e]].map(([l,a,b])=>`<div class="share"><div class="row"><span>${l}</span><b>${b?Math.round(a/b*100):0}%</b></div><div class="bar"><span style="width:${b?a/b*100:0}%"></span></div></div>`).join('')}
-function postRow(r,rank,show){return `<div class="post" data-post="${esc(r.id)}">${rank?`<div class="rank">${rank}</div>`:''}<div class="pb"><div class="t">${esc(P.label(r))}</div><div class="m"><span class="tag ${r.plat}">${r.plat==='fb'?'FB':'IG'}</span>${esc(acctName(r.plat,r.page))} · ${P.fmtDate(r.d)} · ${P.fmt(P.eng(r))} eng${r.lc&&show!=='lc'?` · ${r.lc} clicks`:''}</div></div>${postNum(r,show)}</div>`}
+// search: when the matched words aren't in the visible first line, say where they matched (hashtag, caption, or account/date)
+const qWhy=(r,hit)=>{const has=x=>P.sNorm(x,1).split(' ').some(w=>hit.has(w));if(has(P.label(r)))return '';const tg=(String(r.cap).match(/#\w+/g)||[]).filter(has);return tg.length?' · '+tg.slice(0,2).map(t=>'<mark>'+esc(t)+'</mark>').join(' '):has(r.cap)?' · in caption':' · account / date'};
+function postRow(r,rank,show,hit){return `<div class="post" data-post="${esc(r.id)}">${rank?`<div class="rank">${rank}</div>`:''}<div class="pb"><div class="t">${hit?P.hl(P.label(r),hit,esc):esc(P.label(r))}</div><div class="m"><span class="tag ${r.plat}">${r.plat==='fb'?'FB':'IG'}</span>${esc(acctName(r.plat,r.page))} · ${P.fmtDate(r.d)} · ${P.fmt(P.eng(r))} eng${r.lc&&show!=='lc'?` · ${r.lc} clicks`:''}${hit&&hit.size?qWhy(r,hit):''}</div></div>${postNum(r,show)}</div>`}
 function postNum(r,k){const x={e:[P.fmt(P.eng(r)),'engagement'],lc:r.plat==='ig'?['—','no link clicks']:[P.fmt(r.lc),'clicks'],epk:[r.v>=200?(P.eng(r)/r.v*100).toFixed(1)+'%':'—','eng. rate']}[k]||[P.fmt(r.v),'views'];return `<div class="n"><b>${x[0]}</b><span>${x[1]}</span></div>`}
 const WD=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];const hb=h=>['12–3a','3–6a','6–9a','9a–12','12–3p','3–6p','6–9p','9p–12'][h];
 function explore(L,C,t,c,accts){const has=c.n>0;const days=P.daysBetween(S.s,S.e);const pages=P.byPage(L),types=P.byType(L),heat=P.heat(L);
@@ -115,10 +117,12 @@ function explore(L,C,t,c,accts){const has=c.n>0;const days=P.daysBetween(S.s,S.e
    <div class="scroll"><table class="hm"><tr><th></th>${[0,1,2,3,4,5,6,7].map(h=>`<th>${hb(h)}</th>`).join('')}</tr>${heat.map((row,w)=>`<tr><th>${WD[w]}</th>${row.map((x,h)=>`<td data-h="${w},${h}" style="--a:${x.n?Math.min(1,x.med/hmMax):0}" title="${x.n} posts">${x.n?P.fmt(x.med):''}</td>`).join('')}</tr>`).join('')}</table></div><p class="mut sm">Tap a cell to see its posts. Cells with one post can mislead.</p></div>
    <div class="card"><h2>What works<small>by format</small></h2><table><tr><th>Format</th><th>Posts</th><th>Median</th><th>Eng/1K</th></tr>${types.map(x=>`<tr><td><span class="tag ${x.plat}">${x.plat.toUpperCase()}</span>${esc(x.type.replace(/^IG /,''))}</td><td>${x.n}</td><td>${P.fmt(x.med)}</td><td>${x.epk.toFixed(1)}</td></tr>`).join('')}</table></div></div>
   <div class="cols xa"><div class="card"><h2>Every account<small>${pages.length} active · tap a row</small></h2><div class="scroll"><table><tr><th>Account</th><th>Posts</th><th>Views</th><th>Median</th><th>Eng.</th><th>Eng/1K</th><th>Clicks</th></tr>${pages.map(g=>`<tr class="tap" data-acct="${g.plat}|${esc(g.page)}"><td><span class="tag ${g.plat}">${g.plat.toUpperCase()}</span>${esc(acctName(g.plat,g.page))}</td><td>${g.n}</td><td>${nf(g.v)}</td><td>${P.fmt(g.med)}</td><td>${P.fmt(g.e)}</td><td>${g.epk.toFixed(1)}</td><td>${g.lc||''}</td></tr>`).join('')}</table></div></div>
-  <div class="card cq"><h2>All posts<span class="h2r"><button class="chip sm on" id="campBtn" hidden>Campaign report</button><small id="cnt"></small></span></h2><div class="filters"><input id="q" type="search" placeholder="Search posts or a campaign, e.g. Ages & Stages" value="${esc(S.q)}"><select id="acctSel"><option value="all">All accounts</option>${(accts||pages).map(g=>`<option value="${g.plat}|${esc(g.page)}" ${S.acct===g.plat+'|'+g.page?'selected':''}>${esc(acctName(g.plat,g.page))}</option>`).join('')}</select><select id="sortSel">${[['v','Most views'],['e','Most engagement'],['lc','Most clicks'],['epk','Best eng. rate'],['d','Newest']].map(([k,l])=>`<option value="${k}" ${S.sort===k?'selected':''}>${l}</option>`).join('')}</select><button class="chip sm sortDir" id="dirBtn" title="Change sort order">${S.sort==='d'?(S.dir==='asc'?'↑ Oldest first':'↓ Newest first'):(S.dir==='asc'?'↑ Low to high':'↓ High to low')}</button></div><div id="plist"></div></div></div>`}
-function renderList(L){let list=L;if(S.acct!=='all')list=list.filter(r=>r.plat+'|'+r.page===S.acct);if(S.q){const m=qMatch(S.q);list=list.filter(r=>m(r.cap))}
-  const key={v:r=>r.v,e:r=>P.eng(r),lc:r=>r.lc,epk:r=>r.v>=200?P.eng(r)/r.v:0,d:r=>r.t}[S.sort];const sg=S.dir==='asc'?1:-1,noLc=r=>S.sort==='lc'&&r.plat==='ig'?1:0;list=[...list].sort((a,b)=>noLc(a)-noLc(b)||sg*(key(a)-key(b)));
-  $('#cnt').textContent=`${list.length} posts`;const cb=$('#campBtn');if(cb){cb.hidden=!(S.q.trim()&&list.length);cb.onclick=()=>campaignSheet(S.q.trim(),L)}$('#plist').innerHTML=list.slice(0,S.limit).map(r=>postRow(r,0,S.sort)).join('')+(list.length>S.limit?`<button class="more" id="moreBtn">Show more</button>`:'')||'<p class="mut">No posts match.</p>';
+  <div class="card cq"><h2>All posts<span class="h2r"><button class="chip sm on" id="campBtn" hidden>Campaign report</button><small id="cnt"></small></span></h2><div class="filters"><input id="q" type="search" placeholder="Search posts or a campaign, e.g. Ages & Stages" value="${esc(S.q)}"><select id="acctSel"><option value="all">All accounts</option>${(accts||pages).map(g=>`<option value="${g.plat}|${esc(g.page)}" ${S.acct===g.plat+'|'+g.page?'selected':''}>${esc(acctName(g.plat,g.page))}</option>`).join('')}</select><select id="sortSel">${[['r','Best match'],['v','Most views'],['e','Most engagement'],['lc','Most clicks'],['epk','Best eng. rate'],['d','Newest']].map(([k,l])=>`<option value="${k}" ${S.sort===k?'selected':''}>${l}</option>`).join('')}</select><button class="chip sm sortDir" id="dirBtn" title="Change sort order">${S.sort==='d'?(S.dir==='asc'?'↑ Oldest first':'↓ Newest first'):(S.dir==='asc'?'↑ Low to high':'↓ High to low')}</button></div><p id="qhint" class="mut sm qhint" hidden></p><div id="plist"></div></div></div>`}
+function renderList(L){let list=L,hits=null,fz=[];if(S.acct!=='all')list=list.filter(r=>r.plat+'|'+r.page===S.acct);
+  if(S.q.trim()){const res=postSearch(S.q),inL=new Set(list);hits=new Map();res.forEach(x=>{if(inL.has(x.item))hits.set(x.item,x)});list=[...hits.keys()];fz=res.fuzzy}
+  const sort=S.sort==='r'&&!hits?'v':S.sort;const key={r:r=>hits.get(r).score,v:r=>r.v,e:r=>P.eng(r),lc:r=>r.lc,epk:r=>r.v>=200?P.eng(r)/r.v:0,d:r=>r.t}[sort];const sg=S.dir==='asc'?1:-1,noLc=r=>sort==='lc'&&r.plat==='ig'?1:0;list=[...list].sort((a,b)=>noLc(a)-noLc(b)||sg*(key(a)-key(b))||(hits&&b.t-a.t));
+  const qh=$('#qhint');if(qh){qh.hidden=!(hits&&fz.length);qh.innerHTML=fz.length?`Includes close spellings: ${fz.slice(0,3).map(([a,b])=>`<b>${esc(b)}</b> for “${esc(a)}”`).join(', ')}`:''}
+  $('#cnt').textContent=`${list.length} posts`;const cb=$('#campBtn');if(cb){cb.hidden=!(S.q.trim()&&list.length);cb.onclick=()=>campaignSheet(S.q.trim(),L)}$('#plist').innerHTML=list.slice(0,S.limit).map(r=>postRow(r,0,sort,hits&&hits.get(r).hit)).join('')+(list.length>S.limit?`<button class="more" id="moreBtn">Show more</button>`:'')||'<p class="mut">No posts match.</p>';
   $$('#plist [data-post]').forEach(b=>b.onclick=()=>postSheet(b.dataset.post));const mb=$('#moreBtn');if(mb)mb.onclick=()=>{S.limit+=40;renderList(L)}}
 // ---- drill-down sheets ----
 function postSheet(id){const r=S.posts.find(x=>x.id===id);if(!r)return;const peers=S.posts.filter(x=>x.plat===r.plat&&x.page===r.page&&x.d>=P.addDays(r.d,-60)&&x.d<=P.addDays(r.d,60));const med=P.median(peers.map(x=>x.v));const x=med?r.v/med:0;
@@ -150,18 +154,25 @@ function metricSheet(k){const {L,C:CL,t,c}=ctx();const val=r=>k==='epk'||k==='av
   bindChart($('#sheet .chartbox'),ser,mk);$$('#sheet [data-acct]').forEach(b=>b.onclick=()=>accountSheet(b.dataset.acct));$$('#sheet [data-post]').forEach(b=>b.onclick=()=>postSheet(b.dataset.post))}
 function listSheet(title,list){const sorted=[...list].sort((a,b)=>b.v-a.v);const share={kind:'list',kicker:'Post group',range:P.rangeLabel(S.s,S.e),title,big:{v:nf(list.length),l:'posts'},note:{rest:`Median ${P.fmt(P.median(list.map(r=>r.v)))} views · ${P.fmt(list.reduce((a,r)=>a+r.v,0))} total views`},stats:[],list:sorted.slice(0,10).map((r,i)=>({...shPost(r),rank:i+1})),listTitle:'Top posts'};openSheet(`<h3>${esc(title)}</h3><p class="mut sm">${list.length} posts · median ${P.fmt(P.median(list.map(r=>r.v)))} views</p>${[...list].sort((a,b)=>b.v-a.v).map(r=>postRow(r)).join('')}`,1,share);$$('#sheet [data-post]').forEach(b=>b.onclick=()=>postSheet(b.dataset.post))}
 // ---- campaign search + report ----
-const qNorm=x=>' '+String(x||'').toLowerCase().replace(/&/g,' and ').replace(/[’']/g,'').replace(/[^a-z0-9#@+]+/g,' ').trim()+' ';
-// commas or | separate alternatives; within one, every word must start a word in the caption (& = and)
-function qMatch(q){const alts=String(q).split(/[,|]/).map(a=>qNorm(a).trim().split(' ').filter(Boolean)).filter(a=>a.length);if(!alts.length)return ()=>true;return cap=>{const c=qNorm(cap);return alts.some(ws=>ws.every(w=>c.includes(' '+w)))}}
+// One shared engine (core.js P.searchIndex / P.search) behind every search box. Field weights: titles/hashtags 1, caption .75, metadata .5.
+const PF={cap:[.75,r=>r.cap,{lead:12}],tags:[1,r=>(String(r.cap).match(/#\w+/g)||[]).join(' '),{sub:1}],acct:[.5,r=>`${r.plat==='ig'?'instagram ig @'+r.page:'facebook fb '+r.page} ${r.type}`],date:[.5,r=>P.dateWords(r.d)]};
+const postSearch=(q,o)=>P.search(P.searchIndex(S.posts,PF),q,Object.assign({tie:r=>r.t,cap:1e5},o));
+// commas or | separate alternatives; within one, every word must match (& = and, typos and partial words allowed). Returns a test on a post.
+function qMatch(q){if(!String(q).trim())return ()=>true;const ids=new Set(postSearch(q).map(x=>x.item.id));return r=>ids.has(r.id)}
+const EF={name:[1,c=>c.name],links:[.75,c=>Object.values(c.titles||{}).join(' · ')],meta:[.5,c=>`email newsletter ${c.full||''} ${c.subject||''} ${P.dateWords(c.date)}`]};
+const emSearch=q=>{const cs=emCamps();return P.search(P.searchIndex(cs,EF,'em|'+cs.map(c=>c.id).join()),q,{cap:1e4}).map(x=>Object.assign(x,{item:cs[x.i]}))};
+const WF={title:[1,p=>wTitle(p[0])],path:[.8,p=>p[0],{sub:1}]};
 const QSTOP=new Set('and the of a an at in on for to with by annual mccs okinawa event events our your you we'.split(' '));
-function pageMatch(q){const alts=String(q).split(/[,|]/).map(a=>qNorm(a).trim().split(' ').filter(w=>w&&!QSTOP.has(w)&&!/^\d+(st|nd|rd|th)?$/.test(w))).filter(a=>a.length);if(!alts.length)return null;return p=>{const c=qNorm(String(p).replace(/[-_/.]+/g,' '));return alts.some(ws=>ws.every(w=>c.includes(' '+w)))}}
+// campaign-to-website matching skips generic words (annual, mccs, okinawa, event, 16th) so only the event name has to match a page
+function pageMatch(q,pages){const qq=String(q).split(/[,|]/).map(a=>P.sNorm(a).split(' ').filter(w=>w&&!QSTOP.has(w)&&!/^\d+(st|nd|rd|th)?$/.test(w)).join(' ')).filter(Boolean).join(',');if(!qq)return null;
+  const ids=new Set(P.search(P.searchIndex(pages,WF,'wc|'+pages.length+'|'+(pages[0]||[])[0]+'|'+pages.map(p=>p[1]).join()),qq,{cap:1e4}).map(x=>pages[x.i]));return p=>ids.has(p)}
 function campaignSheet(q,L){const m=qMatch(q);const af=r=>S.acct==='all'||r.plat+'|'+r.page===S.acct;
-  const inR=L.filter(r=>af(r)&&m(r.cap)),all=P.filter(S.posts,'1900-01-01','2999-12-31',S.plat).filter(r=>af(r)&&m(r.cap));
+  const inR=L.filter(r=>af(r)&&m(r)),all=P.filter(S.posts,'1900-01-01','2999-12-31',S.plat).filter(r=>af(r)&&m(r));
   const more=all.length>inR.length,useAll=(S.campAll&&more)||!inR.length;const list=(useAll?all:inR).slice().sort((a,b)=>b.v-a.v);if(!list.length)return;
   const ds=list.map(r=>r.d).sort(),s=ds[0],e=ds[ds.length-1];const t=P.totals(list);const fb=P.totals(list.filter(r=>r.plat==='fb')),ig=P.totals(list.filter(r=>r.plat==='ig'));
   const span=P.daysBetween(s,e),pad=span<10?3:0;const ser=P.series(list,P.addDays(s,-pad),P.addDays(e,pad),'v');
   const pages=P.byPage(list).map(g=>({...g,v:g.rows.reduce((a,r)=>a+r.v,0)})).sort((a,b)=>b.v-a.v);const mx=Math.max(1,...pages.map(g=>g.v));
-  let web=null;const pm=pageMatch(q);if(pm&&S.web.length){const ws=P.addDays(s,-14),we=P.addDays(e,7);const wr=P.webRange(S.web,ws,we);if(wr&&wr.pgDays){const pg=wr.pages.filter(p=>pm(p[0]));web={s:ws,e:we,pages:pg,v:pg.reduce((a,p)=>a+p[1],0),u:pg.reduce((a,p)=>a+p[2],0)}}}
+  let web=null;if(S.web.length){const ws=P.addDays(s,-14),we=P.addDays(e,7);const wr=P.webRange(S.web,ws,we);const pm=wr&&wr.pgDays&&pageMatch(q,wr.pages);if(pm){const pg=wr.pages.filter(pm);web={s:ws,e:we,pages:pg,v:pg.reduce((a,p)=>a+p[1],0),u:pg.reduce((a,p)=>a+p[2],0)}}}
   const rangeTxt=P.rangeLabel(s,e),epk=t.v?(t.e/t.v*1000).toFixed(1):'–';
   const kp=[['Avg views / post',P.fmt(t.n?t.v/t.n:0)],['Engagement',P.fmt(t.e)],['Posts',nf(t.n)],['Eng / 1K',epk],['Shares',nf(t.sh)],['Link clicks (FB)',nf(t.lc)],['Saves (IG)',nf(t.sv)],web&&web.v?['Website page views',P.fmt(web.v)]:['Accounts',nf(pages.length)]];
   const plat=[['fb','Facebook',fb],['ig','Instagram',ig]].filter(x=>x[2].n);const pmx=Math.max(1,...plat.map(x=>x[2].v));
@@ -177,7 +188,7 @@ function campaignSheet(q,L){const m=qMatch(q);const af=r=>S.acct==='all'||r.plat
   <div class="sec">Views by posting day</div><div class="card chartbox"><div style="position:relative">${chartSVG(ser,600,150,{id:'cp',both:1})}<div class="tip"></div></div></div>
   <div class="sec">By account</div>${pages.map(g=>`<button class="hbar" data-acct="${g.plat}|${esc(g.page)}"><span class="nm"><span class="tag ${g.plat}">${g.plat.toUpperCase()}</span>${esc(acctName(g.plat,g.page))} · ${g.rows.length}</span><span class="tr"><span class="${g.plat}" style="width:${g.v/mx*100}%"></span></span><b>${P.fmt(g.v)}</b></button>`).join('')}
   ${S.web.length?`<div class="sec">Website pages</div>${web?(web.pages.length?`<p class="mut sm" style="margin-top:-4px">Pages whose address matches, ${P.rangeLabel(web.s,web.e)} (2 weeks before the first post to 1 week after the last).</p><div class="scroll"><table><tr><th>Page</th><th>Views</th><th>Users</th><th>Avg time</th></tr>${web.pages.slice(0,12).map(p=>`<tr><td class="path">${esc(p[0])}</td><td>${nf(p[1])}</td><td>${nf(p[2])}</td><td>${p[3]?Math.round(p[3])+'s':'–'}</td></tr>`).join('')}</table></div>`:'<p class="mut sm">No website page address matches this search for those dates.</p>'):`<p class="mut sm">${pm?'No daily website page data covers these dates yet.':'Search words are too general to match website pages.'}</p>`}`:''}
-  ${(()=>{const em=emCamps().filter(x=>m(x.name));return em.length?`<div class="sec">Email newsletter</div>${em.map(x=>`<button class="hbar" data-ecamp="${esc(x.id)}"><span class="nm"><span class="tag em">EMAIL</span>${esc(x.name)} · ${P.fmtDate(x.date)}</span><span class="tr"><span style="width:${x.openRate||0}%;background:${EMC}"></span></span><b>${pct1(x.openRate)}</b></button>`).join('')}`:''})()}<div class="sec">All matching posts</div>${list.slice(0,S.campLim||25).map((r,i)=>postRow(r,i+1)).join('')}${list.length>(S.campLim||25)?`<button class="more" id="campMore">Show all ${list.length}</button>`:''}`,1,share);
+  ${(()=>{const em=emSearch(q).map(x=>x.item).sort((a,b)=>a.date<b.date?1:-1);return em.length?`<div class="sec">Email newsletter</div>${em.map(x=>`<button class="hbar" data-ecamp="${esc(x.id)}"><span class="nm"><span class="tag em">EMAIL</span>${esc(x.name)} · ${P.fmtDate(x.date)}</span><span class="tr"><span style="width:${x.openRate||0}%;background:${EMC}"></span></span><b>${pct1(x.openRate)}</b></button>`).join('')}`:''})()}<div class="sec">All matching posts</div>${list.slice(0,S.campLim||25).map((r,i)=>postRow(r,i+1)).join('')}${list.length>(S.campLim||25)?`<button class="more" id="campMore">Show all ${list.length}</button>`:''}`,1,share);
   bindChart($('#sheet .chartbox'),ser,'v');$$('#sheet [data-acct]').forEach(b=>b.onclick=()=>accountSheet(b.dataset.acct));$$('#sheet [data-post]').forEach(b=>b.onclick=()=>postSheet(b.dataset.post));$$('#sheet [data-ecamp]').forEach(b=>b.onclick=()=>emailCampSheet(b.dataset.ecamp));
   $$('#sheet [data-ca]').forEach(b=>b.onclick=()=>{S.campAll=b.dataset.ca==='1';S.campLim=25;campaignSheet(q,L)});const cm=$('#campMore');if(cm)cm.onclick=()=>{S.campLim=1e4;campaignSheet(q,L);S.campLim=25}}
 // ---- import ----
@@ -466,8 +477,8 @@ function exploreWeb(){const {wr,wc,ins}=wctx();const head=`<div class="xlead"><d
   <div class="sec" style="margin-top:28px">Social × Web</div>
   <div class="cols"><div class="card nt"><h2>Social vs website<small>by ${ser.step}</small></h2>${lineSVG([{pts:soc.pts,c:'var(--fb)'},{pts:ser.pts,c:WEBC}],640,150)}<div class="legend"><span><i style="background:var(--fb)"></i>Social views</span><span><i style="background:${WEBC}"></i>Website visitors</span></div></div>
    <div class="insg">${insightCards(ins)||'<p class="mut">Insights appear once a few weeks of website data line up with your posts.</p>'}</div></div>`}
-function renderWebPages(){const box=$('#wplist');if(!box)return;const {wr}=wctx();const q=(S.wq||'').toLowerCase();const list=wr.pages.filter(p=>!P.NOISE_PAGES.includes(p[0])&&(!q||p[0].toLowerCase().includes(q)));const mx=Math.max(1,...list.slice(0,1).map(p=>p[1]));
-  box.innerHTML=list.slice(0,S.wlimit||15).map((p,i)=>`<div class="wprow"><span class="rank">${i+1}</span><span class="wt">${esc(wTitle(p[0]))}<i style="width:${p[1]/mx*100}%"></i></span><span class="mut">${wr.src==='daily'?secs(p[3])+' avg':P.fmt(p[2])+' users'}</span><b>${P.fmt(p[1])}</b></div>`).join('')||'<p class="mut">No pages match.</p>';
+function renderWebPages(){const box=$('#wplist');if(!box)return;const {wr}=wctx();const q=(S.wq||'').trim(),pg=wr.pages.filter(p=>!P.NOISE_PAGES.includes(p[0])),res=q?P.search(P.searchIndex(pg,WF,'w|'+S.s+'|'+S.e+'|'+pg.length+'|'+pg.slice(0,5).map(p=>p[1]).join()),q,{tie:p=>p[1],cap:1e4}):null,hm=res&&new Map(res.map(x=>[pg[x.i],x.hit]));const list=res?res.map(x=>pg[x.i]):pg;const mx=Math.max(1,...list.slice(0,1).map(p=>p[1]));
+  box.innerHTML=list.slice(0,S.wlimit||15).map((p,i)=>`<div class="wprow"><span class="rank">${i+1}</span><span class="wt">${hm?P.hl(wTitle(p[0]),hm.get(p),esc):esc(wTitle(p[0]))}<i style="width:${p[1]/mx*100}%"></i></span><span class="mut">${wr.src==='daily'?secs(p[3])+' avg':P.fmt(p[2])+' users'}</span><b>${P.fmt(p[1])}</b></div>`).join('')||'<p class="mut">No pages match.</p>';
   if(list.length>(S.wlimit||15))box.insertAdjacentHTML('beforeend',`<button class="more" id="wmore">Show more (${list.length-(S.wlimit||15)} left)</button>`);const m=$('#wmore');if(m)m.onclick=()=>{S.wlimit=(S.wlimit||15)+30;renderWebPages()}}
 function webTodayCard(){const {wr,ins}=wctx();if(!webHas(wr))return '';const t=wr.t;
   return `<button class="card wtoday" id="toWeb"><h2>Social → Website<small>${wr.exact?'this period':`${wr.covered} of ${wr.days} days`}</small></h2><div class="wbr"><div class="wic">↗</div><div><div class="wbn">${P.fmt(t.social)} visits</div><div class="mut sm">came to the website from ${wr.src==='daily'?'social media':'Facebook &amp; Instagram'}, ${(t.sessions?t.social/t.sessions*100:0).toFixed(1)}% of all visits</div></div></div>
@@ -508,7 +519,7 @@ function exploreEmail(){setRange();const h=emHub(),cs=emCamps();const end=[h&&h.
   return o+`<p class="mut sm" style="text-align:center;margin-top:18px">Email data through ${P.fmtDate(end,{year:'numeric'})}. Email doesn't follow the date range yet; it needs one export per campaign.</p>`}
 const fmtT=t=>{const [h,m]=t.split(':').map(Number);return `${h%12||12}:${String(m).padStart(2,'0')} ${h<12?'AM':'PM'}`};
 function emailCampSheet(id){const c=S.email.find(x=>x.kind==='camp'&&x.id===id);if(!c)return;const r=c.resend;
-  const posts=P.filter(S.posts,P.addDays(c.date,-30),P.addDays(c.date,30),'all').filter(x=>qMatch(c.name)(x.cap));const pt=P.totals(posts);
+  const posts=P.filter(S.posts,P.addDays(c.date,-30),P.addDays(c.date,30),'all').filter(qMatch(c.name));const pt=P.totals(posts);
   const lk=c.links||[],lmx=Math.max(1,...lk.map(l=>l[1]));const dlv=c.delivered/c.sends*100;
   const row=(l,k)=>`<tr><td>${l}</td><td>${nf(c[k])}</td>${r?`<td>${nf(r[k])}</td><td>${nf(c[k]+r[k])}</td>`:''}</tr>`;
   const share={kind:'campaign',plat:null,kicker:'Email newsletter · '+P.fmtDate(c.date,{year:'numeric'}),range:'Sent '+P.fmtDate(c.date,{year:'numeric'})+(c.time?' · '+fmtT(c.time)+' JST':''),title:c.name,big:{v:pct1(c.openRate),l:'open rate'},
@@ -564,5 +575,76 @@ function lockScreen(){return `<div class="empty lock"><div class="orb"></div><h1
 function bindLock(){const f=$('#unlock');if(!f)return;f.onsubmit=async e=>{e.preventDefault();const p=$('#pass').value.trim();if(!p)return;$('#lockErr').textContent='Unlocking…';
   try{await applyRemote(SYNC.meta,p);render();toast(`Unlocked · data through ${P.fmtDate(SYNC.meta.through,{year:'numeric'})}`)}catch(err){$('#lockErr').textContent="That passcode didn't work. Try again.";f.classList.remove('shake');void f.offsetWidth;f.classList.add('shake')}};
   const sk=$('#skipLock');if(sk)sk.onclick=()=>{S.locked=false;render()}}
+// ---- global search: header icon (also / and Ctrl/Cmd-K on desktop) opens one sheet over posts, web pages, email campaigns and signage ----
+// Uses only the shared engine (P.searchIndex / P.search), one cached index per dataset, built lazily at idle time when the sheet is about to open.
+const gsAvail=()=>!TV.on&&!(S.locked&&SYNC.meta)&&S.posts.length>0;
+const GSI={post:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 15l3-3 2 2 3-4"/></svg>',web:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.5 2.5 2.5 13.5 0 16M12 4c-2.5 2.5-2.5 13.5 0 16"/></svg>',email:'<svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/></svg>',sign:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>'};
+// posts: the same array Explore searches (excluded collaborator accounts dropped), so the index is shared with Explore when nothing extra is excluded
+let GSP={src:null,n:-1,ex:null,out:[]};
+function gsPosts(){const ex=localStorage.pulseExclude||'';if(GSP.src!==S.posts||GSP.n!==S.posts.length||GSP.ex!==ex){const f=dropExcluded(S.posts);GSP={src:S.posts,n:S.posts.length,ex,out:f.length===S.posts.length?S.posts:f}}return GSP.out}
+// web pages: the pages of the current date range, same list and cache key as Explore › Web › Pages
+function gsWebPages(){if(!S.web.length)return null;setRange();const wr=P.webRange(S.web,S.s,S.e);if(!webHas(wr))return null;const pg=wr.pages.filter(p=>!P.NOISE_PAGES.includes(p[0]));return {wr,pg,key:'w|'+S.s+'|'+S.e+'|'+pg.length+'|'+pg.slice(0,5).map(p=>p[1]).join()}}
+// signage: read-only view of SG.data (slides, playlists, locations, offline screens); signage.js is untouched
+const SGF={name:[1,s=>s.name],sub:[.6,s=>`${s.kind} ${s.sub}`]};const GSG=new WeakMap();
+function gsSign(){const d=SG.data;if(!d)return [];let l=GSG.get(d);if(l)return l;const pl=n=>(SGC[n]||[n])[0];l=[];
+  (d.items||[]).forEach(i=>l.push({k:'slide',name:sgName(i.name),raw:i.name,kind:i.kind==='video'?'Video':'Still',sub:i.playlist?pl(i.playlist)+' playlist':'In rotation'}));
+  (d.playlists||[]).forEach(p=>l.push({k:'pl',name:pl(p.name),kind:'Playlist',sub:`${p.count} pieces in rotation`}));
+  (d.groups||[]).forEach(g=>{l.push({k:'loc',loc:g.name,name:g.name,kind:'Location',sub:`${g.total} screens${g.off.length?` · ${g.off.length} offline`:' · all online'}`});(g.off||[]).forEach(s=>l.push({k:'scr',loc:g.name,name:sgName(s.name),kind:'Screen',sub:`${g.name} · offline ${sgAgo(s.since)}`}))});
+  GSG.set(d,l);return l}
+const GS={open:{},warm:0};
+const GROUPS=[
+ {k:'posts',label:'Posts',run:q=>{const it=gsPosts();return P.search(P.searchIndex(it,PF),q,{tie:r=>r.t,cap:1e5})},
+  row:(r,h)=>[GSI.post,P.hl(P.label(r),h,esc),`${r.plat==='fb'?'Facebook':'Instagram'} · ${esc(acctName(r.plat,r.page))} · ${r.d.slice(0,4)===P.todayKey().slice(0,4)?P.fmtDate(r.d):P.fmtDate(r.d,{year:'numeric'})}${qWhy(r,h)}`,P.fmt(r.v),'views'],see:'See all in Explore'},
+ {k:'web',label:'Web pages',run:q=>{const w=gsWebPages();if(!w)return [];const res=P.search(P.searchIndex(w.pg,WF,w.key),q,{tie:p=>p[1],cap:1e4});res.forEach(x=>x.item=w.pg[x.i]);return res},
+  row:(p,h)=>[GSI.web,P.hl(wTitle(p[0]),h,esc),(p[0][0]==='/'?esc(p[0])+' · ':'')+esc(P.rangeLabel(S.s,S.e)),P.fmt(p[1]),'views'],see:'See all in Web'},
+ {k:'email',label:'Email campaigns',run:q=>S.email.length?emSearch(q):[],
+  row:(c,h)=>{const lt=Object.values(c.titles||{}).slice(0,2);return [GSI.email,P.hl(c.name,h,esc),`Sent ${c.date?P.fmtDate(c.date,{year:'numeric'}):'–'}${lt.length?' · links: '+esc(lt.join(', ')):''}`,c.openRate!=null?pct1(c.openRate):'',c.openRate!=null?'opened':'']}},
+ {k:'sign',label:'Signage',run:q=>{const l=gsSign();return l.length?P.search(P.searchIndex(l,SGF),q,{cap:1e4}):[]},
+  row:(s,h)=>[GSI.sign,P.hl(s.name,h,esc),`${esc(s.kind)} · ${esc(s.sub)}`,'','']}];
+// build the indexes one at a time in idle time (lazy: nothing is built until the search is about to be used)
+function gsWarm(){if(GS.warm||!gsAvail())return;GS.warm=1;const idle=window.requestIdleCallback||(f=>setTimeout(f,30));
+  const jobs=[()=>P.searchIndex(gsPosts(),PF),()=>{const w=gsWebPages();if(w)P.searchIndex(w.pg,WF,w.key)},()=>{if(S.email.length)emSearch('warm')},()=>{const l=gsSign();if(l.length)P.searchIndex(l,SGF)}];
+  const next=()=>{const j=jobs.shift();if(!j){GS.warm=0;return}idle(()=>{try{j()}catch(e){}next()})};next();
+  if(!SG.data&&localStorage.pulsePass&&typeof sgLoad==='function')sgLoad().then(ch=>{if(ch&&$('#gs').classList.contains('show'))gsRender()})}
+const gsHint=fz=>fz.length?`Includes close spellings: ${fz.slice(0,3).map(([a,b])=>`<b>${esc(b)}</b> for “${esc(a)}”`).join(', ')}`:'';
+function gsRender(){const q=$('#gq').value,box=$('#gbody');$('#gclr').hidden=!q;
+  if(!q.trim()){box.innerHTML=`<p class="gempty">Search posts, web pages, email campaigns and signage at once. Typos, “&amp;” vs “and”, and word order are fine.</p><div class="gtry">${['ages & stages','halloween','golf course','summer camp, swim'].map(t=>`<button class="chip sm" data-try="${esc(t)}">${esc(t)}</button>`).join('')}</div><p class="gkeys">Press <kbd>/</kbd> or <kbd>${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl'} K</kbd> to open · <kbd>Esc</kbd> to close</p>`;
+    box.querySelectorAll('[data-try]').forEach(b=>b.onclick=()=>{$('#gq').value=b.dataset.try;GS.open={};gsRender()});return}
+  const R=GROUPS.map(g=>{let res=[];try{res=g.run(q)}catch(e){console.warn('search',g.k,e)}return {g,res}});
+  const fz=[...new Map(R.flatMap(x=>x.res.fuzzy||[]).map(f=>[f[0],f])).values()],total=R.reduce((a,x)=>a+x.res.length,0),empty=R.filter(x=>!x.res.length).map(x=>x.g.label);
+  GS.last={q,R};
+  box.innerHTML=`<p class="gsum">${total?`<b>${nf(total)}</b> ${total===1?'match':'matches'}`:'No matches'} for “${esc(q)}”${fz.length?` · ${gsHint(fz)}`:''}</p>`+
+   R.filter(x=>x.res.length).map(({g,res})=>{const open=GS.open[g.k],n=open?Math.min(res.length,50):Math.min(3,res.length);
+    const btn=g.see?`<button data-see="${g.k}">${g.see}</button>`:res.length>3?`<button data-more="${g.k}">${open?'Show fewer':`Show all ${res.length}`}</button>`:'';
+    return `<section class="ggrp"><div class="gh"><span>${g.label}<b>${nf(res.length)}</b></span>${btn}</div>${res.slice(0,n).map((x,j)=>{const [ic,t,m,num,u]=g.row(x.item,x.hit);return `<button class="gres" data-g="${g.k}" data-j="${j}"><span class="gi">${ic}</span><span class="gb"><span class="gt">${t}</span><span class="gm">${m}</span></span>${num?`<span class="gn">${num}<small>${u}</small></span>`:''}</button>`}).join('')}${open&&res.length>50?`<p class="gnone">Showing the best 50.</p>`:''}</section>`}).join('')+
+   (empty.length&&total?`<p class="gnone">Nothing in ${empty.join(' or ')}.</p>`:'')+(!total?`<p class="gempty">Try fewer words, or separate options with a comma.</p>`:'');
+  box.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{GS.open[b.dataset.more]=!GS.open[b.dataset.more];gsRender()});
+  box.querySelectorAll('[data-see]').forEach(b=>b.onclick=()=>gsSeeAll(b.dataset.see,q));
+  box.querySelectorAll('.gres').forEach(b=>b.onclick=()=>{const x=R.find(r=>r.g.k===b.dataset.g).res[+b.dataset.j];if(x)gsGo(b.dataset.g,x.item)})}
+function gsFlash(el){if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('gflash');setTimeout(()=>el.classList.remove('gflash'),2200)}
+function gsGo(k,it){gsClose(true);
+  if(k==='posts')return postSheet(it.id);
+  if(k==='email')return emailCampSheet(it.id);
+  if(k==='web'){S.view='explore';S.mode='web';localStorage.pulseMode='web';S.wq=wTitle(it[0]);S.wlimit=15;render();const wq=$('#wq');gsFlash(wq?wq.closest('.card'):null);return}
+  if(k==='sign'){S.view='signage';render();scrollTo(0,0);setTimeout(()=>{let el=null;if(it.k==='slide')el=$$('.sgth').find(e=>e.title===it.raw);else if(it.k==='pl')el=$('.sgrot');else el=$$('.sgloc').find(e=>e.querySelector('b')&&e.querySelector('b').textContent===it.loc)||$('.sgneed');gsFlash(el||$('.sgplay'))},120)}}
+function gsSeeAll(k,q){gsClose(true);S.view='explore';
+  if(k==='web'){S.mode='web';localStorage.pulseMode='web';S.wq=q;S.wlimit=15;render();const wq=$('#wq');gsFlash(wq?wq.closest('.card'):null);return}
+  // posts: Explore › Social with the query. If some matches fall outside the current range, widen it to a custom range that holds them all.
+  S.mode='social';localStorage.pulseMode='social';S.plat='all';S.acct='all';S.limit=40;const was=S.q.trim();S.q=q;if(!was&&S.sort==='v'){S.sort='r';S.dir='desc'}
+  const res=GROUPS[0].run(q);setRange();const ds=res.map(x=>x.item.d).sort();let note='';
+  if(ds.length&&(ds[0]<S.s||ds[ds.length-1]>S.e)){S.preset='custom';S.s=ds[0]<S.s?ds[0]:S.s;S.e=ds[ds.length-1]>S.e?ds[ds.length-1]:S.e;note=`Range set to ${P.rangeLabel(S.s,S.e)} so all ${nf(res.length)} matches show`}
+  render();const qi=$('#q');gsFlash(qi?qi.closest('.card'):null);if(note)toast(note)}
+function gsOpen(q){if(!gsAvail())return;const s=$('#setp');if(s&&s.classList.contains('show'))closeSettings(false);if($('#sheet').classList.contains('show'))closeSheet();
+  gsWarm();$('#gs').classList.add('show');$('#gscrim').classList.add('show');$('#app').inert=true;$('#dock').inert=true;$('#gq').value=q||'';GS.open={};gsRender();setTimeout(()=>$('#gq').focus(),60)}
+function gsClose(nav){const g=$('#gs');if(!g||!g.classList.contains('show'))return;g.classList.remove('show');$('#gscrim').classList.remove('show');$('#app').inert=false;$('#dock').inert=false;if(!nav){const b=$('#gbtn');if(b)b.focus({preventScroll:true})}}
+$('#gscrim').onclick=()=>gsClose();$('#gdone').onclick=()=>gsClose();$('#gq').oninput=()=>{GS.open={};gsRender()};
+$('#gclr').onclick=e=>{e.preventDefault();$('#gq').value='';gsRender();$('#gq').focus()};
+$('#gs').addEventListener('scroll',()=>$('.gsin').classList.toggle('lined',$('#gs').scrollTop>4));
+// capture phase so Esc closes the search before the sheet/settings handlers see it
+window.addEventListener('keydown',e=>{if(TV.on)return;const open=$('#gs').classList.contains('show');
+  if(e.key==='Escape'&&open){e.preventDefault();e.stopImmediatePropagation();gsClose();return}
+  const a=document.activeElement,typing=a&&(/INPUT|SELECT|TEXTAREA/.test(a.tagName)||a.isContentEditable);
+  if((e.key==='k'||e.key==='K')&&(e.metaKey||e.ctrlKey)&&!e.altKey){if(!gsAvail())return;e.preventDefault();open?$('#gq').focus():gsOpen('');return}
+  if(e.key==='/'&&!typing&&!open&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&gsAvail()){e.preventDefault();gsOpen('')}},true);
 // ---- boot ----
 (async()=>{document.body.dataset.theme=CFG.theme;S.posts=dropExcluded((await DB.get('posts'))||[]);S.web=(await DB.get('web'))||[];S.email=(await DB.get('email'))||[];render();sync();if(TV.on)TV.start();if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{})})();

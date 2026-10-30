@@ -245,5 +245,81 @@ P.mergeEmail=function(list,item){list=(list||[]).slice();const items=Array.isArr
     else if(it.kind==='links'){const cs=list.filter(x=>x.kind==='camp'&&(!it.exported||x.date<=it.exported)).sort((a,b)=>a.date<b.date?1:-1);const tg=cs.find(x=>!x.links)||cs[0];
       if(!tg)throw new Error('Link clicks need a campaign to attach to. Add the campaign first.');Object.assign(tg,{links:it.links,linksTotal:it.total});note='links:'+tg.name}}
   list.sort((a,b)=>(a.date||a.end)<(b.date||b.end)?-1:1);list.note=note;return list};
+// ---- search: one shared engine for every search box (no dependencies, client-side, no AI) ----
+// P.SEARCH is the sensitivity dial. Raise a number to make search looser, lower it to make it stricter.
+P.SEARCH={
+  q:{exact:1,stem:.92,join:.9,prefix:.75,sub:.45,fz1:.6,fz2:.45}, // quality of each kind of word match: exact word > plural/singular > joined words (#agesandstages) > start of a word > inside a word > typo
+  fz1:4,      // typos allowed from this many letters: 1 edit (extra, missing, swapped or wrong letter) for 4-7 letters
+  fz2:8,      // 2 edits from this many letters (also when a 6-7 letter typed word is checked against a word of 8+ letters: halowen -> halloween)
+  fzDf:1,     // look for typos only when the typed word is in fewer than this many items (1 = only when it is nowhere in the data)
+  sub:4,      // a typed word this long may also match inside a longer word (hashtags, url slugs)
+  phrase:.2,  // bonus when the typed words sit next to each other, in order ("ages and stages")
+  min:.3,     // results scoring under this are dropped
+  rel:.62,    // weak results (typo, plural, inside-a-word or metadata-only) also need 62% of the best score, which stops floods.
+              // Strong results (every word starts a word in the text, the old Pulse rule) are always kept.
+  cap:400     // most results returned
+};
+P.STOP=new Set('a an and the of at in on for to with by or is it our your we you'.split(' '));
+const MON='january february march april may june july august september october november december'.split(' ');
+// normalize: lower case, accents off, & -> and, apostrophes dropped, other punctuation -> space.
+// For indexing (idx) also: #CamelCaseTags split into words, hyphen/dot words kept joined too (t-shirt -> tshirt t shirt)
+P.sNorm=function(s,idx){s=String(s||'');if(/[\u00c0-\u024f]/.test(s))s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  if(idx&&/[#.-]/.test(s))s=s.replace(/#(\w+)/g,(m,w)=>' '+w+' '+w.replace(/([a-z])([A-Z])/g,'$1 $2')+' ').replace(/\b(\w+)[-.](\w+)\b/g,'$1$2 $1 $2');
+  return s.toLowerCase().replace(/&/g,' and ').replace(/['’`]/g,'').replace(/[^a-z0-9]+/g,' ').trim()};
+const toks=s=>s?s.split(' '):[];
+const stem=w=>w.length>4&&/ies$/.test(w)?w.slice(0,-3)+'y':w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w;
+// Damerau-Levenshtein (optimal string alignment); gives up early once the distance passes k
+function dl(a,b,k){if(Math.abs(a.length-b.length)>k)return k+1;let p2=[],p=[],c;for(let j=0;j<=b.length;j++)p[j]=j;
+  for(let i=1;i<=a.length;i++){c=[i];let lo=i;for(let j=1;j<=b.length;j++){c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));
+    if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])c[j]=Math.min(c[j],p2[j-2]+1);if(c[j]<lo)lo=c[j]}if(lo>k)return k+1;p2=p;p=c}return p[b.length]}
+P.dl=dl;
+P.dateWords=d=>{if(!d)return '';const [y,m,dd]=d.split('-');return `${MON[m-1]} ${MON[m-1].slice(0,3)} ${y} ${d} ${+m}/${+dd}`};
+// fields: {name:[weight, item=>text, opts]} - weight 1 for titles/hashtags, ~.75 captions, ~.5 metadata.
+// opts.lead:n gives the first n words weight 1 (a caption's opening line acts as its title); opts.sub:true lets a typed word match inside longer words of this field (hashtags, url slugs).
+// The index is cached per (array, fields) and rebuilt when the array or its length changes. Pass key for lists that are rebuilt as new arrays on each render.
+const SCACHE=new WeakMap(),KCACHE=new Map();
+P.searchIndex=function(items,fields,key){const c=key?KCACHE.get(key):SCACHE.get(items);if(c&&c.fields===fields&&c.n===items.length)return c;
+  const F=Object.values(fields),post=new Map(),stm=new Map(),memo=new Map(),norm=x=>{x=String(x||'');let t=memo.get(x);if(!t){t=toks(P.sNorm(x,1));if(x.length<60)memo.set(x,t)}return t};
+  const docs=items.map((it,i)=>{const f=F.map(([w,get,o])=>({w,t:norm(get(it)),ln:o&&o.lead||0,s:o&&o.sub}));
+    for(const x of f)for(const t of x.t){const l=post.get(t);if(!l){post.set(t,[i]);stm.set(t,stem(t))}else if(l[l.length-1]!==i)l.push(i)}return f});
+  const ix={items,fields,n:items.length,docs,post,stm};if(key){if(KCACHE.size>7)KCACHE.delete(KCACHE.keys().next().value);KCACHE.set(key,ix)}else SCACHE.set(items,ix);return ix};
+// one typed word against the vocabulary -> Map(word in data -> match quality)
+function termMap(ix,t,S,fz){const m=new Map();m.s=new Set();const st=stem(t),Q=S.q,df=(ix.post.get(t)||[]).length;
+  const k=t.length>=S.fz2?2:t.length>=S.fz1?1:0,useFz=k&&!/\d/.test(t)&&df<S.fzDf;
+  for(const [v,l] of ix.post){let q=0;
+    if(v===t)q=Q.exact;else if(ix.stm.get(v)===st)q=Q.stem;else if(t.length>1&&v.startsWith(t))q=Q.prefix*(.6+.4*t.length/v.length);
+    else if(t.length>=S.sub&&v.includes(t))q=-Q.sub; // negative = only counts in fields with opts.sub
+    else if(useFz&&v.length>=S.fz1&&!/\d/.test(v)){const kk=t.length>5&&v.length>=S.fz2?2:k,d=dl(t,v,kk);if(d<=kk){q=d<2?Q.fz1:Q.fz2;fz.push([t,v,l.length])}}
+    if(q){m.set(v,q);if(q>0&&v.startsWith(t))m.s.add(v)}}return m}
+// P.search(index, query, opts) -> [{item, i (its position in the indexed list), score, hit:Set(matched words)}] best first; .fuzzy = [[typed, matched]]
+// Commas or | separate alternatives (OR). Within one, every word must match (AND). Stopwords drop out unless they are all you typed.
+// opts: {stop:Set of extra words to ignore, all:true to skip the relative cut-off, cap, tie:item=>number for equal scores, sens:{...P.SEARCH overrides}}
+P.search=function(ix,query,opts){opts=opts||{};const S=Object.assign({},P.SEARCH,opts.sens),best=new Map(),fzAll=[],X=opts.stop;
+  for(const alt of String(query||'').split(/[,|]/)){const raw=toks(P.sNorm(alt)).filter(t=>!(X&&X.has(t)));if(!raw.length)continue;
+    let ts=raw.filter(t=>!P.STOP.has(t));if(!ts.length)ts=raw;
+    const fz=[],maps=ts.map(t=>termMap(ix,t,S,fz)),joins=ts.length>1?[...new Set([raw.join(''),ts.join('')])]:[];fzAll.push(...fz);
+    // candidates: docs that hold a match for every word, or a joined form of the whole phrase
+    const docsOf=m=>{const s=new Set();for(const v of m.keys())for(const i of ix.post.get(v))s.add(i);return s};
+    const sets=maps.map(docsOf),jm=new Map();for(const [v] of ix.post)if(joins.some(j=>v.startsWith(j)))jm.set(v,S.q.join);
+    const jset=docsOf(jm);let cand=sets.reduce((a,s)=>new Set([...a].filter(i=>s.has(i))));jset.forEach(i=>cand.add(i));
+    for(const i of cand){const doc=ix.docs[i],hit=new Set();let sum=0,pairs=0;
+      const jb=jset.has(i)?Math.max(...doc.map(f=>f.t.some(v=>jm.has(v)&&hit.add(v))?f.w:0))*S.q.join:0;
+      let fail=0,strong=1;for(const m of maps){let b=0,st=0;for(const f of doc)f.t.forEach((v,x)=>{let q=m.get(v);if(q<0)q=f.s?-q:0;if(q){hit.add(v);if(f.w>=.7&&m.s.has(v))st=1;q*=x<f.ln?1:f.w;if(q>b)b=q}});
+        if(!st&&!jb)strong=0;b=Math.max(b,jb);if(!b){fail=1;break}sum+=b}
+      if(fail)continue;
+      let sc=sum/ts.length;
+      // adjacency: typed words next to each other (a stopword may sit between) earn the phrase bonus; reversed order earns half
+      if(ts.length>1){const ok=(m,v)=>m.get(v)>=.6,nx=(m,t,x)=>ok(m,t[x+1])||(P.STOP.has(t[x+1])&&ok(m,t[x+2]));
+        for(let a=0;a+1<ts.length;a++){let p=0;for(const f of doc){if(f.w<.7)continue;const t=f.t;
+          for(let x=0;x<t.length&&p<1;x++){if(ok(maps[a],t[x])&&nx(maps[a+1],t,x))p=1;else if(ok(maps[a+1],t[x])&&nx(maps[a],t,x))p=.5}if(p>=1)break}pairs+=p}
+        sc+=S.phrase*pairs/(ts.length-1)}
+      if(sc>=S.min&&(!best.has(i)||best.get(i).score<sc))best.set(i,{item:ix.items[i],i,score:sc,hit,strong})}}
+  let res=[...best.values()].sort((a,b)=>b.score-a.score||(opts.tie?opts.tie(b.item)-opts.tie(a.item):0));
+  if(res.length&&!opts.all){const cut=res[0].score*S.rel;res=res.filter(r=>r.strong||r.score>=cut)}
+  res=res.slice(0,opts.cap||S.cap);const seen=new Set();
+  res.fuzzy=fzAll.sort((a,b)=>b[2]-a[2]).filter(([t])=>!seen.has(t)&&seen.add(t)).map(([t,v])=>[t,v]);return res};
+// wrap the matched words of text in <mark>; esc is the caller's HTML escaper
+P.hl=function(text,hit,esc){if(!hit||!hit.size)return esc(text);return String(text).split(/(\s+)/).map(w=>{if(!toks(P.sNorm(w,1)).some(x=>hit.has(x)))return esc(w);
+  const m=w.match(/^([^\p{L}\p{N}#]*)(.*?)([^\p{L}\p{N}]*)$/u);return esc(m[1])+'<mark>'+esc(m[2])+'</mark>'+esc(m[3])}).join('')};
 G.Pulse=P;
 })(typeof window!=='undefined'?window:globalThis);
