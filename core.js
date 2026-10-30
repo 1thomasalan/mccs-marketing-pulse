@@ -346,7 +346,7 @@ P.evLinksParse=function(values){if(!values||values.length<2)return [];const c=co
     .filter(x=>x.ev&&x.item&&!/^\(example\)/i.test(x.item))};
 P.progParse=function(values){if(!values||values.length<2)return [];const c=cols(values[0]),g=(r,...n)=>{const i=c(...n);return i<0?'':String(r[i]==null?'':r[i]).trim()};
   return values.slice(1).filter(r=>g(r,'Program')).map(r=>{const ex=g(r,'Expected');return {branch:g(r,'Branch'),program:g(r,'Program'),facility:g(r,'Facility'),id:g(r,'Program ID')||P.sNorm(g(r,'Facility')||g(r,'Program')).replace(/ /g,'-'),
-    fb:splitList(g(r,'FB pages')),ig:splitList(g(r,'IG accounts')).map(x=>x.replace(/^@/,'')),kw:splitList(g(r,'Keywords')),exp:ex===''?null:+ex,notes:g(r,'Notes')}})};
+    fb:splitList(g(r,'FB pages')),ig:splitList(g(r,'IG accounts')).map(x=>x.replace(/^@/,'')),kw:splitList(g(r,'Keywords')),web:splitList(g(r,'Web paths','Web pages')).map(x=>x.replace(/^https?:\/\/[^/]+/,'').toLowerCase()),exp:ex===''?null:+ex,notes:g(r,'Notes')}})};
 P.evWindow=e=>({ws:e.ps||(e.s?P.addDays(e.s,-P.EV.promo):''),we:e.pe||(e.e?P.addDays(e.e,P.EV.after):'')});
 // status from dates (today = JST date key)
 P.evStatus=function(e,today){today=today||P.todayKey();if(/cancel/i.test(e.status))return {k:'cancelled',label:'Cancelled'};if(!e.s)return {k:'undated',label:e.status||'Date needed'};
@@ -476,5 +476,37 @@ P.progCoverage=function(o){const progs=(o.programs||[]).filter(p=>!isShared(p)),
   const branches=[...byBr].map(([b,l])=>{const ids=new Set(),gen=[...general.values()].filter(g=>g.branches.has(b));let n=0,v=0;for(const r of l)for(const x of [...r.own,...r.men])if(!ids.has(x.id)){ids.add(x.id);n++;v+=x.v}
     return {branch:b,programs:l.length,n,v,weak:l.filter(r=>r.weak).length,posted:l.filter(r=>r.n).length,general:gen}}).sort((a,b)=>b.n-a.n);
   return {rows,branches,general:[...general.values()],unmapped:[...unmapped.values()].filter(u=>u.n||true),N,days}};
+// ---- programs across channels (v37 Programs page)
+// o: {cov (P.progCoverage result), web, email (campaigns), signage (items), events, s, e, cs, ce, ds (first day of the daily series), today}
+// web: listed Web paths (prefix) win; else a program keyword found in the page address words. email: keyword in name/subject/link titles. signage: keyword in slide name.
+// events: keyword (or the program/facility name) inside the event name / other names, or the event's lead section naming the program.
+P.slideNorm=n=>' '+P.sNorm(String(n||'').replace(/\.(jpe?g|png|gif|mp4|mov|webm)$/i,'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[_\-]+/g,' '),1)+' ';
+P.progKw=p=>[...new Set([...(p.kw||[]),p.facility||p.program].map(k=>P.sNorm(k,1)).filter(k=>k.length>=3))];
+P.progChannels=function(o){const rows=(o.cov&&o.cov.rows)||[],today=o.today||P.todayKey(),ds=o.ds||o.s,inR=d=>d>=o.s&&d<=o.e,inC=d=>o.cs&&d>=o.cs&&d<=o.ce,inD=d=>d>=ds&&d<=o.e;
+  const kwOf=p=>{const a=[...(p.kw||[]),p.facility||p.program].map(k=>P.sNorm(k,1)).filter(k=>k.length>=3);return [...new Set(a)]};
+  const K=new Map(rows.map(r=>[r.id,kwOf(r.p)])),hasKw=(id,t)=>K.get(id).some(k=>t.includes(' '+k+' '));
+  const out=new Map(rows.map(r=>[r.id,{id:r.id,so:{n:0,v:0,e:0,pv:0,pn:0,list:[]},we:{users:0,views:0,pu:0,pages:[]},em:{opens:0,clicks:0,po:0,camps:[]},sg:{slides:[]},ev:[],daily:new Map()}]));
+  const day=(R,d,k,v)=>{if(!inD(d))return;const x=R.daily.get(d)||{so:0,we:0,em:0};x[k]+=v;R.daily.set(d,x)};
+  for(const r of rows){const R=out.get(r.id);const seen=new Set();for(const x of [...r.own,...r.men]){if(seen.has(x.id))continue;seen.add(x.id);R.so.n++;R.so.v+=x.v;R.so.e+=P.eng(x);R.so.list.push(x)}R.so.pv=r.prevV;R.so.pn=r.prev}
+  // social daily series reaches back past the range: walk the posts once
+  if(o.posts){const own=new Map(),{own:pg}=P.progPages((o.cov&&o.cov.programs)||rows.map(r=>r.p));for(const r of o.posts){if(!inD(r.d))continue;const n=postNorm(r).t,owners=(pg.get(r.plat+'|'+String(r.page).toLowerCase())||[]).map(p=>p.id);
+    for(const row of rows){if(owners.length===1&&owners[0]===row.id||hasKw(row.id,n))day(out.get(row.id),r.d,'so',r.v)}}}
+  // web
+  if(o.web&&o.web.length){const D=P.webDaily(o.web),pm=new Map();const match=path=>{let m=pm.get(path);if(m)return m;const lp=path.toLowerCase().replace(/\/$/,''),pn=' '+P.sNorm(lp.replace(/[-_/.]+/g,' '),1)+' ';m=[];
+      for(const r of rows){const ws=(r.p.web||[]).map(w=>w.replace(/\/$/,''));if(ws.length?ws.some(w=>w&&(lp===w||lp.startsWith(w+'/'))):hasKw(r.id,pn))m.push(r.id)}pm.set(path,m);return m};
+    const pages=new Map();for(const [d,a] of D.pg){const r_=inR(d),c_=inC(d),d_=inD(d);if(!r_&&!c_&&!d_)continue;for(const [path,views,users] of a){if(!path||path[0]!=='/')continue;const ids=match(path);if(!ids.length)continue;
+      for(const id of ids){const R=out.get(id);if(r_){R.we.users+=users;R.we.views+=views;const k=id+'|'+path,q=pages.get(k)||{id,p:[path,0,0]};q.p[1]+=views;q.p[2]+=users;pages.set(k,q)}if(c_)R.we.pu+=users;if(d_)day(R,d,'we',users)}}}
+    for(const q of pages.values())out.get(q.id).we.pages.push(q.p);for(const R of out.values())R.we.pages.sort((a,b)=>b[2]-a[2])}
+  // email
+  for(const c of o.email||[]){if(c.kind!=='camp'||!c.date)continue;const t=' '+P.sNorm([c.name,c.subject||'',...Object.values(c.titles||{})].join(' | ').replace(/[|]/g,' '),1)+' ';
+    for(const r of rows){if(!hasKw(r.id,t))continue;const R=out.get(r.id);if(inR(c.date)){R.em.opens+=c.opens||0;R.em.clicks+=c.clicks||0;R.em.camps.push(c)}if(inC(c.date))R.em.po+=c.opens||0;day(R,c.date,'em',c.opens||0)}}
+  // signage (what is in rotation now)
+  for(const it of o.signage||[]){const t=P.slideNorm(it.name);for(const r of rows)if(hasKw(r.id,t))out.get(r.id).sg.slides.push(it.name)}
+  // events
+  for(const e of o.events||[]){if(!e.s)continue;const t=' '+P.sNorm([e.name,...(e.aka||[])].join(' '),1)+' ',lead=P.sNorm(e.lead||'',1);
+    for(const r of rows){const nm=[r.p.program,r.p.facility].filter(Boolean).map(x=>P.sNorm(x,1));if(hasKw(r.id,t)||lead&&nm.includes(lead))out.get(r.id).ev.push(e)}}
+  for(const r of rows){const R=out.get(r.id);R.ev.sort((a,b)=>a.s<b.s?-1:1);R.next=R.ev.find(e=>(e.e||e.s)>=today)||null;R.reach=R.so.v+R.we.users+R.em.opens;R.prev=R.so.pv+R.we.pu+R.em.po;
+    R.on={so:R.so.n>0,we:R.we.users>0,em:R.em.camps.length>0,sg:R.sg.slides.length>0};R.chans=Object.values(R.on).filter(Boolean).length}
+  return out};
 G.Pulse=P;
 })(typeof window!=='undefined'?window:globalThis);

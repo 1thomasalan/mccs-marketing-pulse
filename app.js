@@ -71,6 +71,7 @@ function render(){const app=$('#app');if(TV.on)return TV.render();
   const WEBV=S.view==='explore'&&S.mode==='web'&&S.web.length,EMV=S.view==='explore'&&S.mode==='email'&&S.email.length,PROGV=S.view==='explore'&&!WEBV&&!EMV&&S.socSub==='programs';
   if(S.view==='signage'){app.innerHTML=topbar()+hubPills('signage')+signageView();bindTop();bindSignage();hubAfterSignage();hubDock();return}
   if(S.view==='events'){app.innerHTML=topbar()+hubEventsView();bindTop();bindHub();return}
+  if(S.view==='programs'){setRange();app.innerHTML=topbar()+progView();bindTop();bindProg();bindHub();return}
   app.innerHTML=topbar()+(S.view==='explore'?(EMV?exploreEmail():WEBV?exploreWeb():PROGV?hubPrograms():explore(L,C,t,c,accts)):hubToday());
   $$('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;localStorage.pulseMode=S.mode;render()});[['#toWeb','web'],['#toEmail','email']].forEach(([id,m])=>{const tw=$(id);if(tw)tw.onclick=()=>{S.view='explore';S.mode=m;localStorage.pulseMode=m;render();scrollTo(0,0)}});if(EMV)$$('[data-ecamp]').forEach(b=>b.onclick=()=>emailCampSheet(b.dataset.ecamp));
   if(WEBV){const wq=$('#wq');if(wq)wq.oninput=()=>{S.wq=wq.value;S.wlimit=15;renderWebPages()};renderWebPages()}
@@ -435,7 +436,7 @@ window.addEventListener('resize',()=>{if($('#report').classList.contains('show')
 window.addEventListener('beforeprint',()=>$$('.a4').forEach(a=>{a.style.transform='';a.style.marginBottom='0'}));window.addEventListener('afterprint',fit);
 $('#rBack').onclick=()=>$('#report').classList.remove('show');$('#rPrint').onclick=()=>window.print();
 // ---- dock ----
-$$('#dock [data-v]').forEach(b=>b.onclick=()=>{if(b.dataset.dm){S.mode=b.dataset.dm;localStorage.pulseMode=S.mode;if(S.mode==='social'){S.socSub='posts';localStorage.pulseSocSub='posts'}}if(b.dataset.v==='events')S.evSub='list';S.view=b.dataset.v;render();scrollTo({top:0,behavior:'smooth'})});
+$$('#dock [data-v]').forEach(b=>b.onclick=()=>{if(b.dataset.dm){S.mode=b.dataset.dm;localStorage.pulseMode=S.mode;if(S.mode==='social'){S.socSub='posts';localStorage.pulseSocSub='posts'}}if(b.dataset.v==='events')S.evSub='list';if(b.dataset.v==='programs')S.progSub='list';S.view=b.dataset.v;render();scrollTo({top:0,behavior:'smooth'})});
 {const bc=$('#bChan');if(bc)bc.onclick=()=>hubChannels()}
 $('#bReport').onclick=buildReport;
 // ---- website (GA4) ----
