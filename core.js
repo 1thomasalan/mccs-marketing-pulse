@@ -416,12 +416,19 @@ P.evMatch=function(o){const evs=(o.events||[]).filter(e=>e.s),posts=o.posts||[],
       for(const tt of Object.values(c.titles||{})){const tn=' '+P.sNorm(tt)+' ';for(const x of ph)if(x.b>best&&tn.includes(' '+x.t+' ')){best=x.b;why='story “'+tt+'”'}}
       if(best)put('em:'+c.id,'em',ev,best,why)}
     if(o.signage&&today>=ws&&today<=we)for(const it of o.signage){const nm=' '+P.sNorm(it.name,1)+' ';let best=0,why='';for(const x of ph)if(x.b>best&&nm.includes(' '+x.t+' ')){best=x.b;why='“'+x.raw.trim()+'” in the slide name'}if(best)put('sg:'+it.name,'sg',ev,best,why)}}
+  // v38 Connections: an enabled rule links at 95% (a person's answer, applied after the Links tab, still wins)
+  const CN=o.conn,evIds=new Set(evs.map(e=>e.id));
+  if(CN)for(const [k,m] of CN.byItem)for(const c of m.values()){if(c.ttype!=='event'||c.state!=='rule'||!evIds.has(c.tid))continue;let a=byItem.get(k);if(!a)byItem.set(k,a=[]);let x=a.find(y=>y.ev===c.tid);
+    if(!x)a.push(x={ev:c.tid,ch:k.slice(0,2),score:0,why:''});if(x.score<P.CONN.rule){x.score=P.CONN.rule;x.why='rule '+(c.rule||'')}else x.why+=' · rule '+(c.rule||'');x.rule=c.rule}
   // manual rows from the sheet's Links tab (and local decisions) always win
   let manual=0;const resolve=l=>{const ch=(l.ch||'').slice(0,2),it=String(l.item).trim();if(/^(so|we|em|sg):/.test(it))return it;
     if(ch==='so'||!ch){const id=(it.match(/(\d{8,})/)||[])[1];const r=o.postById&&(o.postById.get(it)||id&&o.postById.get(id)||[...o.postById.values()].find(p=>p.link&&p.link===it));if(r)return 'so:'+r.id}
     if(ch==='we')return 'we:'+it.replace(/^https?:\/\/[^/]+/,'');if(ch==='em'){const c=(o.email||[]).find(c=>c.id===it||c.name===it||c.full===it);return c?'em:'+c.id:null}if(ch==='si'||ch==='sg')return 'sg:'+it;return null};
   for(const l of links){const k=resolve(l);if(!k||!evs.some(e=>e.id===l.ev))continue;let a=byItem.get(k);if(!a)byItem.set(k,a=[]);let x=a.find(y=>y.ev===l.ev);
     if(l.act==='no'){if(x)x.state='no'}else{manual++;if(!x)a.push(x={ev:l.ev,ch:k.slice(0,2),score:100,why:''});x.state='manual';x.score=100;x.why=l.local?'confirmed in Pulse':'added in the sheet'}}
+  if(CN)for(const [k,m] of CN.byItem)for(const c of m.values()){if(c.ttype!=='event'||c.state==='rule'||!evIds.has(c.tid))continue;let a=byItem.get(k);if(!a)byItem.set(k,a=[]);let x=a.find(y=>y.ev===c.tid);
+    if(c.state==='blocked'){if(x){x.state='no';x.who=c.who}continue}
+    if(!x)a.push(x={ev:c.tid,ch:k.slice(0,2),score:100,why:''});if(x.state!=='manual')manual++;x.state='manual';x.score=100;x.why=c.who?'confirmed by '+c.who:'confirmed in Pulse';x.team=1;x.who=c.who;x.time=c.time}
   const byEvent=new Map(),review=[];
   for(const [k,a] of byItem){const live=a.filter(x=>x.state!=='no').sort((p,q)=>q.score-p.score);if(!live.length)continue;const top=live[0].score;
     for(const x of live){if(!x.state)x.state=x.score>=P.EV.auto&&x.score>=top-3?'auto':x.score>=P.EV.review?'review':'weak';x.key=k;
@@ -487,26 +494,103 @@ P.progChannels=function(o){const rows=(o.cov&&o.cov.rows)||[],today=o.today||P.t
   const K=new Map(rows.map(r=>[r.id,kwOf(r.p)])),hasKw=(id,t)=>K.get(id).some(k=>t.includes(' '+k+' '));
   const out=new Map(rows.map(r=>[r.id,{id:r.id,so:{n:0,v:0,e:0,pv:0,pn:0,list:[]},we:{users:0,views:0,pu:0,pages:[]},em:{opens:0,clicks:0,po:0,camps:[]},sg:{slides:[]},ev:[],daily:new Map()}]));
   const day=(R,d,k,v)=>{if(!inD(d))return;const x=R.daily.get(d)||{so:0,we:0,em:0};x[k]+=v;R.daily.set(d,x)};
-  for(const r of rows){const R=out.get(r.id);const seen=new Set();for(const x of [...r.own,...r.men]){if(seen.has(x.id))continue;seen.add(x.id);R.so.n++;R.so.v+=x.v;R.so.e+=P.eng(x);R.so.list.push(x)}R.so.pv=r.prevV;R.so.pn=r.prev}
+  // v38 Connections: team links add an item to a program, a person's unlink / not-this (or blocked rule) takes it out
+  const CN=o.conn,cl=new Map(),cb=new Set();if(CN)for(const [k,m] of CN.byItem)for(const c of m.values()){if(c.ttype!=='program'||!out.has(c.tid))continue;if(c.state==='blocked')cb.add(k+'|'+c.tid);else (cl.get(c.tid)||cl.set(c.tid,new Map()).get(c.tid)).set(k,c)}
+  const blk=(k,id)=>cb.has(k+'|'+id),lnk=(k,id)=>{const m=cl.get(id);return !!(m&&m.has(k))};const byId=CN&&cl.size&&o.posts?new Map(o.posts.map(p=>[p.id,p])):null;
+  for(const r of rows){const R=out.get(r.id);const seen=new Set();for(const x of [...r.own,...r.men]){if(seen.has(x.id)||blk('so:'+x.id,r.id))continue;seen.add(x.id);R.so.n++;R.so.v+=x.v;R.so.e+=P.eng(x);R.so.list.push(x)}R.so.pv=r.prevV;R.so.pn=r.prev;
+    const tm=cl.get(r.id);R.team=tm?[...tm.entries()].map(([key,c])=>Object.assign({key},c)):[];R.so.team=0;
+    if(tm&&byId)for(const k of tm.keys()){if(k.slice(0,3)!=='so:')continue;const x=byId.get(k.slice(3));if(!x||seen.has(x.id)||!inR(x.d))continue;seen.add(x.id);R.so.n++;R.so.v+=x.v;R.so.e+=P.eng(x);R.so.list.push(x);R.so.team++}}
   // social daily series reaches back past the range: walk the posts once
   if(o.posts){const own=new Map(),{own:pg}=P.progPages((o.cov&&o.cov.programs)||rows.map(r=>r.p));for(const r of o.posts){if(!inD(r.d))continue;const n=postNorm(r).t,owners=(pg.get(r.plat+'|'+String(r.page).toLowerCase())||[]).map(p=>p.id);
-    for(const row of rows){if(owners.length===1&&owners[0]===row.id||hasKw(row.id,n))day(out.get(row.id),r.d,'so',r.v)}}}
+    for(const row of rows){const k='so:'+r.id;if((owners.length===1&&owners[0]===row.id||hasKw(row.id,n))&&!blk(k,row.id)||lnk(k,row.id))day(out.get(row.id),r.d,'so',r.v)}}}
   // web
   if(o.web&&o.web.length){const D=P.webDaily(o.web),pm=new Map();const match=path=>{let m=pm.get(path);if(m)return m;const lp=path.toLowerCase().replace(/\/$/,''),pn=' '+P.sNorm(lp.replace(/[-_/.]+/g,' '),1)+' ';m=[];
-      for(const r of rows){const ws=(r.p.web||[]).map(w=>w.replace(/\/$/,''));if(ws.length?ws.some(w=>w&&(lp===w||lp.startsWith(w+'/'))):hasKw(r.id,pn))m.push(r.id)}pm.set(path,m);return m};
+      const k='we:'+path;for(const r of rows){const ws=(r.p.web||[]).map(w=>w.replace(/\/$/,''));if((ws.length?ws.some(w=>w&&(lp===w||lp.startsWith(w+'/'))):hasKw(r.id,pn))&&!blk(k,r.id)||lnk(k,r.id))m.push(r.id)}pm.set(path,m);return m};
     const pages=new Map();for(const [d,a] of D.pg){const r_=inR(d),c_=inC(d),d_=inD(d);if(!r_&&!c_&&!d_)continue;for(const [path,views,users] of a){if(!path||path[0]!=='/')continue;const ids=match(path);if(!ids.length)continue;
       for(const id of ids){const R=out.get(id);if(r_){R.we.users+=users;R.we.views+=views;const k=id+'|'+path,q=pages.get(k)||{id,p:[path,0,0]};q.p[1]+=views;q.p[2]+=users;pages.set(k,q)}if(c_)R.we.pu+=users;if(d_)day(R,d,'we',users)}}}
     for(const q of pages.values())out.get(q.id).we.pages.push(q.p);for(const R of out.values())R.we.pages.sort((a,b)=>b[2]-a[2])}
   // email
   for(const c of o.email||[]){if(c.kind!=='camp'||!c.date)continue;const t=' '+P.sNorm([c.name,c.subject||'',...Object.values(c.titles||{})].join(' | ').replace(/[|]/g,' '),1)+' ';
-    for(const r of rows){if(!hasKw(r.id,t))continue;const R=out.get(r.id);if(inR(c.date)){R.em.opens+=c.opens||0;R.em.clicks+=c.clicks||0;R.em.camps.push(c)}if(inC(c.date))R.em.po+=c.opens||0;day(R,c.date,'em',c.opens||0)}}
+    const ek='em:'+c.id;for(const r of rows){if(!(hasKw(r.id,t)&&!blk(ek,r.id)||lnk(ek,r.id)))continue;const R=out.get(r.id);if(inR(c.date)){R.em.opens+=c.opens||0;R.em.clicks+=c.clicks||0;R.em.camps.push(c)}if(inC(c.date))R.em.po+=c.opens||0;day(R,c.date,'em',c.opens||0)}}
   // signage (what is in rotation now)
-  for(const it of o.signage||[]){const t=P.slideNorm(it.name);for(const r of rows)if(hasKw(r.id,t))out.get(r.id).sg.slides.push(it.name)}
+  for(const it of o.signage||[]){const t=P.slideNorm(it.name),sk='sg:'+it.name;for(const r of rows)if(hasKw(r.id,t)&&!blk(sk,r.id)||lnk(sk,r.id))out.get(r.id).sg.slides.push(it.name)}
   // events
   for(const e of o.events||[]){if(!e.s)continue;const t=' '+P.sNorm([e.name,...(e.aka||[])].join(' '),1)+' ',lead=P.sNorm(e.lead||'',1);
     for(const r of rows){const nm=[r.p.program,r.p.facility].filter(Boolean).map(x=>P.sNorm(x,1));if(hasKw(r.id,t)||lead&&nm.includes(lead))out.get(r.id).ev.push(e)}}
   for(const r of rows){const R=out.get(r.id);R.ev.sort((a,b)=>a.s<b.s?-1:1);R.next=R.ev.find(e=>(e.e||e.s)>=today)||null;R.reach=R.so.v+R.we.users+R.em.opens;R.prev=R.so.pv+R.we.pu+R.em.po;
     R.on={so:R.so.n>0,we:R.we.users>0,em:R.em.camps.length>0,sg:R.sg.slides.length>0};R.chans=Object.values(R.on).filter(Boolean).length}
   return out};
+// ---- Connections (v38): a shared, append-only ledger of people's answers + "Teach Pulse" rules, layered over the keyword matchers.
+// Pure logic, no DOM. Order for every (item, target): a person's answer wins (link = 100%, unlink / not-this = blocked),
+// then an enabled rule (95%), then the keyword matchers (P.evMatch / P.progChannels).
+// ledger row: {row, version, time, who, item, itype, ilabel, ttype, tid, tlabel, act:'link'|'unlink'|'not-this'|'clear', src:'review'|'manual'|'rule'|'undo', replaces, pending}
+//   'clear' is written only by Undo of a first answer: it puts the pair back to automatic matching.
+// rule: {id, type:'hashtag'|'phrase'|'webpath'|'account'|'newsletter-link', pattern, ttype, tid, tlabel, by, created, on}
+// item descriptor (P.connDesc): {key, ch, text:' normalized words ', tags:Set, path, paths:[], acct:'fb:page'|'ig:handle'}
+// target types: program · event · fb_account · ig_account · web_page · newsletter · slide (item targets use the item key as Target ID)
+P.CONN={rule:95,close:5};
+P.CONN_TT=['program','event','fb_account','ig_account','web_page','newsletter','slide'];
+P.connAct=a=>{a=String(a||'').toLowerCase().replace(/[\s_]+/g,'-');return a==='not-this'||a==='no'||a==='notthis'?'not-this':a==='unlink'||a==='remove'?'unlink':a==='clear'||a==='reset'?'clear':'link'};
+P.connPair=(item,ttype,tid)=>item+'\u0001'+ttype+'\u0001'+tid;
+// server rows by version (then row), pending local rows after them in the order they were made
+P.connSort=rows=>rows.map((r,i)=>[r,i]).sort((a,b)=>{const x=a[0],y=b[0],pa=x.pending?1:0,pb=y.pending?1:0;if(pa!==pb)return pa-pb;
+  const va=+x.version||0,vb=+y.version||0;if(va!==vb)return va-vb;const ra=+x.row||0,rb=+y.row||0;return ra!==rb?ra-rb:a[1]-b[1]}).map(z=>z[0]);
+// newest row per (item, target type, target id)
+P.connState=function(ledger){const m=new Map();for(const r of P.connSort((ledger||[]).filter(Boolean))){if(!r.item||!r.ttype||r.tid==null||r.tid==='')continue;m.set(P.connPair(r.item,r.ttype,String(r.tid)),r)}return m};
+const linkPaths=urls=>[...new Set((urls||[]).map(u=>String(u||'').trim()).filter(u=>/^(https?:\/\/[^/]*usmc-mccs\.org|\/)/i.test(u)).map(u=>u.replace(/^https?:\/\/[^/]+/i,'').split(/[?#]/)[0].toLowerCase().replace(/\/+$/,'')||'/'))];
+P.connDesc=function(ch,x,extra){if(x==null)return null;
+  if(ch==='so'){const n=postNorm(x);return {key:'so:'+x.id,ch,text:n.t,tags:n.tags,paths:n.paths.map(p=>p.replace(/\/+$/,'')||'/'),acct:x.plat+':'+String(x.page||'').toLowerCase().replace(/^@/,'')}}
+  if(ch==='we'){const p=String(x);const lp=p.toLowerCase().replace(/\/+$/,'')||'/';return {key:'we:'+p,ch,path:lp,paths:[lp],text:' '+P.sNorm(lp.replace(/[-_/.]+/g,' ')+' '+(extra||''),1)+' ',tags:new Set()}}
+  if(ch==='em'){const t=[x.name,x.subject||'',...Object.values(x.titles||{})].join(' | ');const urls=[...Object.keys(x.titles||{}),...(x.links||[]).map(l=>Array.isArray(l)?l[0]:l&&(l.url||l.u)||'')];
+    return {key:'em:'+x.id,ch,text:' '+P.sNorm(t.replace(/[|]/g,' '),1)+' ',tags:new Set((t.match(/#\w+/g)||[]).map(h=>h.slice(1).toLowerCase())),paths:linkPaths(urls)}}
+  if(ch==='sg'){const nm=typeof x==='string'?x:x.name;return {key:'sg:'+nm,ch,text:P.slideNorm(nm)+P.sNorm(String(nm||'').replace(/\.(jpe?g|png|gif|mp4|mov|webm)$/i,'').replace(/[_\-]+/g,' '),1)+' ',tags:new Set(),paths:[]}}
+  return null};
+// patterns are stored lower-case; '#okinapa', 'turkey trot', '/okinapa-wine-festival', 'ig:mccsokinawa_fitness', '/comic-con'
+P.connRuleNorm=function(type,pat){let p=String(pat||'').trim().toLowerCase();if(!p)return '';
+  if(type==='hashtag')return '#'+p.replace(/^#+/,'').replace(/\s+/g,'');
+  if(type==='webpath'||type==='newsletter-link'){p=p.replace(/^https?:\/\/[^/]+/,'').split(/[?#]/)[0];if(p[0]!=='/')p='/'+p;return p.replace(/\/+$/,'')||'/'}
+  if(type==='account'){p=p.replace(/\s*[·|]\s*/,':').replace(/^(facebook|fb)\s*:\s*/,'fb:').replace(/^(instagram|ig)\s*:\s*/,'ig:').replace(/:\s*@/,':');if(p[0]==='@')p='ig:'+p.slice(1);return p}
+  return p.replace(/\s+/g,' ')};
+P.connRuleHit=function(r,it){if(!r||!it)return false;const t=r.type,p=P.connRuleNorm(t,r.pattern);if(!p)return false;
+  if(t==='hashtag')return !!(it.tags&&it.tags.has(p.slice(1)));
+  if(t==='phrase'){const q=P.sNorm(p,1);return q.length>=2&&it.text.includes(' '+q+' ')}
+  if(t==='webpath'){if(p==='/')return false;const hit=x=>!!x&&x.includes(p);return it.ch==='we'?hit(it.path):(it.paths||[]).some(hit)}
+  if(t==='account'){if(!it.acct)return false;return p.includes(':')?it.acct===p:it.acct.slice(3)===p}
+  if(t==='newsletter-link')return it.ch==='em'&&p!=='/'&&(it.paths||[]).some(x=>x.includes(p));
+  return false};
+const ruleOn=r=>r&&r.on!==false&&!/^(false|0|no|off)$/i.test(String(r.on==null?'':r.on))&&r.ttype&&r.tid!=null&&r.tid!=='';
+const ITEMT={we:'web_page',em:'newsletter',sg:'slide'};
+P.connTypeOfKey=k=>ITEMT[String(k).slice(0,2)]||null;
+// -> {byItem: Map(itemKey -> Map(ttype|tid -> entry)), byTarget: Map(ttype|tid -> Set(itemKey)), ruleHits: Map(ruleId -> n), state}
+// entry: {ttype, tid, tlabel, state:'person'|'rule'|'blocked', act, score, who, time, src, rule, row, mirror}
+P.connApply=function(ledger,rules,items){const st=P.connState(ledger),byItem=new Map(),byTarget=new Map(),ruleHits=new Map(),K='\u0001';
+  const ent=k=>byItem.get(k)||byItem.set(k,new Map()).get(k);const on=(rules||[]).filter(ruleOn);
+  for(const it of items||[]){if(!it)continue;for(const r of on){if(!P.connRuleHit(r,it))continue;ruleHits.set(r.id,(ruleHits.get(r.id)||0)+1);
+    const tk=r.ttype+K+r.tid,m=ent(it.key);if(m.has(tk))continue;m.set(tk,{ttype:r.ttype,tid:String(r.tid),tlabel:r.tlabel||'',state:'rule',act:'link',score:P.CONN.rule,rule:r.id,who:r.by||'',time:r.created||'',src:'rule'})}}
+  for(const row of st.values()){const tk=row.ttype+K+row.tid,m=ent(row.item),prev=m.get(tk),act=P.connAct(row.act);
+    if(act==='clear'){if(prev&&prev.state!=='rule')m.delete(tk);continue}
+    const base={ttype:row.ttype,tid:String(row.tid),tlabel:row.tlabel||(prev&&prev.tlabel)||'',act,who:row.who||'',time:row.time||'',src:row.src||'manual',row,rule:prev&&prev.rule};
+    if(act==='link')m.set(tk,Object.assign(base,row.src==='rule'?{state:'rule',score:P.CONN.rule}:{state:'person',score:100}));
+    else m.set(tk,Object.assign(base,{state:'blocked',score:0}))}
+  // item-to-item connections (newsletter -> web page) are stored once and read both ways
+  const mir=[];for(const [k,m] of byItem)for(const c of m.values()){if(c.state==='blocked'||c.mirror||!ITEMT[String(c.tid).slice(0,2)]||!/^(we|em|sg):/.test(c.tid))continue;const back=P.connTypeOfKey(k);if(back)mir.push([c.tid,back,k,c])}
+  for(const [k,tt,tid,c] of mir){const m=ent(k),tk=tt+K+tid;if(!m.has(tk))m.set(tk,Object.assign({},c,{ttype:tt,tid,tlabel:'',mirror:1}))}
+  for(const [k,m] of byItem)for(const c of m.values()){if(c.state==='blocked')continue;const tk=c.ttype+K+c.tid;(byTarget.get(tk)||byTarget.set(tk,new Set()).get(tk)).add(k)}
+  return {byItem,byTarget,ruleHits,state:st}};
+P.connOf=(A,key)=>{const m=A&&A.byItem.get(key);return m?[...m.values()]:[]};
+// "Do this every time": the rule a confirmed answer would teach. tgt: {tags:[], phrases:[{t,raw}], paths:[]}; why = the matcher's reason.
+// A hashtag the item has that matches the target, else a web path, else a phrase. Returns {type, pattern} or null.
+P.connRuleGuess=function(it,tgt,why){if(!it)return null;tgt=tgt||{};const tags=new Set((tgt.tags||[]).map(t=>String(t).toLowerCase().replace(/^#/,''))),ph=(tgt.phrases||[]);
+  const its=[...(it.tags||[])];let h=its.find(t=>tags.has(t));
+  if(!h){const ws=new Set();ph.forEach(x=>P.sNorm(x.t||x.raw||x).split(' ').forEach(w=>{if(w.length>=5&&!P.STOP.has(w))ws.add(w)}));const joined=ph.map(x=>P.sNorm(x.t||x.raw||x).replace(/ /g,'')).filter(j=>j.length>=6);
+    h=its.find(t=>joined.some(j=>t.includes(j)))||its.find(t=>[...ws].some(w=>t.includes(w)))}
+  if(h)return {type:'hashtag',pattern:'#'+h};
+  if(it.ch==='we'&&it.path&&it.path!=='/'){const seg=it.path.split('/').filter(Boolean).pop()||'';if(seg.length>=5)return {type:'webpath',pattern:'/'+seg}}
+  const pats=(tgt.paths||[]).map(p=>String(p).toLowerCase().replace(/\/+$/,'')).filter(Boolean);const lp=(it.paths||[]).find(p=>pats.some(q=>p===q||p.startsWith(q+'/')));if(lp&&lp!=='/')return {type:'webpath',pattern:pats.find(q=>lp===q||lp.startsWith(q+'/'))};
+  const q=String(why||'').match(/[“"]([^”"]{3,60})[”"]/);if(q&&it.text.includes(' '+P.sNorm(q[1],1)+' '))return {type:'phrase',pattern:P.sNorm(q[1])};
+  for(const x of ph){const t=P.sNorm(x.t||x.raw||x,1);if(t.length>=4&&it.text.includes(' '+t+' '))return {type:'phrase',pattern:t}}
+  return null};
+// how many of the items a rule would match, by channel
+P.connRuleCount=function(rule,items,skipKey){const n={all:0,so:0,we:0,em:0,sg:0};for(const it of items||[]){if(!it||it.key===skipKey)continue;if(P.connRuleHit(rule,it)){n.all++;n[it.ch]=(n[it.ch]||0)+1}}return n};
 G.Pulse=P;
 })(typeof window!=='undefined'?window:globalThis);

@@ -72,6 +72,7 @@ function render(){const app=$('#app');if(TV.on)return TV.render();
   if(S.view==='signage'){app.innerHTML=topbar()+hubPills('signage')+signageView();bindTop();bindSignage();hubAfterSignage();hubDock();return}
   if(S.view==='events'){app.innerHTML=topbar()+hubEventsView();bindTop();bindHub();return}
   if(S.view==='programs'){setRange();app.innerHTML=topbar()+progView();bindTop();bindProg();bindHub();return}
+  if(S.view==='connections'){app.innerHTML=topbar()+cnView();bindTop();bindHub();bindCn();if(typeof sgFill==='function')sgFill($('#app'));return}
   app.innerHTML=topbar()+(S.view==='explore'?(EMV?exploreEmail():WEBV?exploreWeb():PROGV?hubPrograms():explore(L,C,t,c,accts)):hubToday());
   $$('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;localStorage.pulseMode=S.mode;render()});[['#toWeb','web'],['#toEmail','email']].forEach(([id,m])=>{const tw=$(id);if(tw)tw.onclick=()=>{S.view='explore';S.mode=m;localStorage.pulseMode=m;render();scrollTo(0,0)}});if(EMV)$$('[data-ecamp]').forEach(b=>b.onclick=()=>emailCampSheet(b.dataset.ecamp));
   if(WEBV){const wq=$('#wq');if(wq)wq.oninput=()=>{S.wq=wq.value;S.wlimit=15;renderWebPages()};renderWebPages()}

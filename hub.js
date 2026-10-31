@@ -29,9 +29,9 @@ function evById(){const ps=gsPosts();if(EVC.byIdSrc!==ps||EVC.byIdN!==ps.length)
 const pgTitle=p=>{const t=evTitles()[String(p).toLowerCase().replace(/\/$/,'')];return t?t+' (event page)':wTitle(p)};
 function evTitles(){const t={};for(const c of emCamps())for(const [u,v] of Object.entries(c.titles||{}))t[u.replace(/^https?:\/\/[^/]+/,'').toLowerCase().replace(/\/$/,'')]=v;return t}
 function evM(){const d=evData();if(!d)return null;const ps=gsPosts(),sg=SG.data&&SG.data.items?SG.data.items.length+'|'+SG.data.checked:'';
- const k=[ps.length,ps[0]&&ps[0].id,S.web.length,S.email.length,d.updated,localStorage.pulseEvDec||'',sg,P.todayKey()].join('~');if(EVC.key===k&&EVC.M)return EVC.M;
+ const cn=typeof cnApplied==='function'?cnApplied():null;const k=[ps.length,ps[0]&&ps[0].id,S.web.length,S.email.length,d.updated,localStorage.pulseEvDec||'',sg,P.todayKey(),typeof cnStamp==='function'?cnStamp():''].join('~');if(EVC.key===k&&EVC.M)return EVC.M;
  const links=[...(d.links||[]),...EVD.get().map(x=>({ev:x.ev,ch:x.key.slice(0,2),item:x.key,act:x.act,local:1}))];
- try{EVC.M=P.evMatch({events:d.events,posts:ps,web:S.web,email:emCamps(),signage:SG.data&&SG.data.items,links,titles:evTitles(),postById:evById(),today:P.todayKey()})}catch(e){console.warn('event matching',e);EVC.M={byItem:new Map(),byEvent:new Map(),review:[],manual:0}}
+ try{EVC.M=P.evMatch({events:d.events,posts:ps,web:S.web,email:emCamps(),signage:SG.data&&SG.data.items,links,titles:evTitles(),postById:evById(),today:P.todayKey(),conn:cn})}catch(e){console.warn('event matching',e);EVC.M={byItem:new Map(),byEvent:new Map(),review:[],manual:0}}
  EVC.key=k;EVC.roll=new Map();EVC.prior=new Map();return EVC.M}
 function evRoll(ev){const M=evM();if(!M)return null;let r=EVC.roll.get(ev.id);if(!r){r=P.evRoll(ev,M.byEvent.get(ev.id)||[],{postById:evById(),web:S.web,email:emCamps()});EVC.roll.set(ev.id,r)}return r}
 // the same event a year earlier, social only (web/email history starts in 2026)
@@ -54,7 +54,7 @@ function hubNav(t){const [a,b]=String(t).split(':');if(typeof gsClose==='functio
  if(a==='settings')return settings(b||null);
  if(a==='overview')S.view='overview';else if(['social','web','email'].includes(a)){S.view='explore';S.mode=a;localStorage.pulseMode=a;if(a==='social'){S.socSub='posts';localStorage.pulseSocSub='posts'}}
  else if(a==='programs'){S.view='programs';S.progSub='list'}else if(a==='program'){S.view='programs';S.progSub='detail';S.progId=b;S.pg.tab='so';S.pg.n=10}
- else if(a==='signage')S.view='signage';else if(a==='events'){S.view='events';S.evSub='list'}else if(a==='event'){S.view='events';S.evSub='detail';S.evId=b;S.evItemF='all';S.evItemN=12}else if(a==='review'){S.view='events';S.evSub='review'}
+ else if(a==='signage')S.view='signage';else if(a==='events'){S.view='events';S.evSub='list'}else if(a==='event'){S.view='events';S.evSub='detail';S.evId=b;S.evItemF='all';S.evItemN=12}else if(a==='review'){S.view='connections';S.cnSub='review';localStorage.pulseCnSub='review'}else if(a==='connections'){S.view='connections';if(b)S.cnSub=b}
  else if(a==='chan')return hubChannels();
  render();scrollTo(0,0)}
 document.addEventListener('click',e=>{const t=e.target.closest('[data-nav]');if(!t||TV.on)return;e.preventDefault();e.stopPropagation();hubNav(t.dataset.nav)},true);
@@ -216,7 +216,7 @@ function itemInfo(key,ev){const ch=key.slice(0,2),id=key.slice(3);
  if(ch==='em'){const c=emCamps().find(x=>x.id===id);if(!c)return null;return {ch,t:c.name,s:`Newsletter · ${hd(c.date)}`,v:hk(c.opens||0),u:'opens',n:c.opens||0,d:c.date,camp:c.id,sheet:c.id}}
  if(ch==='sg')return {ch,t:sgName(id),s:'Slide in rotation now',v:'',u:'',n:0,sheet:id,nav:'signage'};return null}
 function itemRow(x,ev,acts){const i=itemInfo(x.key,ev);if(!i)return '';const why=x.state==='manual'?`<span class="why man">${hic('check',11)}${esc(x.why||'by hand')}</span>`:`<span class="why">${esc(x.why)}</span>${x.state!=='manual'?`<span class="conf">match ${x.score}%</span>`:''}`;
- return `<div class="it" ${i.post?`data-post="${esc(i.post)}"`:i.camp?`data-ecamp="${esc(i.camp)}"`:''}><div class="th t-${i.ch}">${i.th?`<img data-th="${esc(i.th)}" alt="">`:hic(CHI[i.ch],18)}</div><div class="ib"><div class="t">${esc(i.t)}</div><div class="s"><span class="cb ${i.ch}">${HN[i.ch]}</span>${esc(i.s)} ${why}</div>${acts||''}</div><div class="n"><b>${i.v}</b><span>${i.u}</span></div></div>`}
+ return `<div class="it" data-key="${esc(x.key)}" ${i.post?`data-post="${esc(i.post)}"`:i.camp?`data-ecamp="${esc(i.camp)}"`:''}><div class="th t-${i.ch}">${i.th?`<img data-th="${esc(i.th)}" alt="">`:hic(CHI[i.ch],18)}</div><div class="ib"><div class="t">${esc(i.t)}</div><div class="s"><span class="cb ${i.ch}">${HN[i.ch]}</span>${esc(i.s)} ${why}</div>${acts||''}</div><div class="n"><b>${i.v}</b><span>${i.u}</span></div></div>`}
 function hubEvent(e){const R=evRoll(e),s=evStat(e),M=evM(),pr=evPrior(e),cov=chCov(R),yo=pr&&pr.R.so.v?P.pct(R.so.v,pr.R.so.v):null,ph=P.evPhrases(e);
  const days=P.daysBetween(R.ws,R.we_),pS=(P.daysBetween(R.ws,e.s)-1)/days*100,pE=P.daysBetween(R.ws,e.e)/days*100;
  const items=R.items.slice().map(x=>({x,i:itemInfo(x.key,e)})).filter(o=>o.i).sort((a,b)=>b.i.n-a.i.n);const cnt=k=>items.filter(o=>o.x.ch===k).length,man=items.filter(o=>o.x.state==='manual').length;
@@ -247,6 +247,7 @@ function hubEvent(e){const R=evRoll(e),s=evStat(e),M=evM(),pr=evPrior(e),cov=chC
    <div class="r"><span class="k">Hashtags</span><span>${(e.tags||[]).map(t=>`<span class="tok">#${esc(t)}</span>`).join('')||'<span class="mut">none in the sheet</span>'}</span></div>
    <div class="r"><span class="k">Web pages</span><span>${(e.paths||[]).map(t=>`<span class="tok">${esc(t)}</span>`).join('')||'<span class="mut">none in the sheet</span>'}</span></div>
    <div class="r"><span class="k">By hand</span><span>${man} item${man===1?'':'s'} · always kept</span></div></div>
+  ${typeof cnTeamCard==='function'?cnTeamCard('event',e.id):''}
   <div class="card"><h2>Waiting for review <small>${rv.length}</small></h2><div class="items">${rv.slice(0,4).map(r=>itemRow(Object.assign({},r.best.ev===e.id?r.best:r.alts.find(a=>a.ev===e.id),{key:r.key}),e)).join('')||'<p class="mut sm">Nothing waiting.</p>'}</div>${rv.length?`<button class="hbtn sm" data-nav="review" style="margin-top:8px">Review matches</button>`:''}</div></div></div>`}
 function hubSgDays(R){if(!R.sg.slides.length)return '—';const log=sgLog(),n=new Set();for(const [d,names] of Object.entries(log))if(d>=R.ws&&d<=R.we_&&R.sg.slides.some(s=>names.includes(s)))n.add(d);return n.size||1}
 function hubEvChart(e,R){const W=1000,H=250,pad=52;const ks=[];for(let k=R.ws;k<=R.we_;k=P.addDays(k,1))ks.push(k);const n=ks.length;const val=k=>R.daily.get(k)||{so:0,we:0,em:0};
@@ -300,7 +301,7 @@ const evSrc=()=>{const d=evData();if(!d)return null;const t=hT(d.updated),dt=isN
    <div class="sgt">Program weak spots: quiet after</div><div class="slist noic" role="radiogroup" aria-label="Quiet after">${[30,45,60,90].map(n=>radioRow('wd',n,CFG.weakDays===n,n+' days',n===45?'Default':'')).join('')}</div><p class="sfoot">A program with no posts (own page or mentions) for this long is flagged on Programs and in Today’s Needs attention. Seasonal festival programs are flagged only when their event is near.</p>`},
  bind:()=>{spRadios('[data-wd]','wd',v=>{CFG.weakDays=+v;COVC.key=''});const g=$('#spEvGo');if(g)g.onclick=()=>{closeSettings(false);hubNav('events')};const r=$('#spDecGo');if(r)r.onclick=()=>{closeSettings(false);hubNav('review')}}})}
 // ---------- render glue ----------
-function bindHub(){hubDock();hubThumbs();$$('[data-ecamp]').forEach(b=>b.onclick=()=>emailCampSheet(b.dataset.ecamp));
+function bindHub(){hubDock();hubThumbs();if(typeof cnDecorate==='function')cnDecorate();$$('[data-ecamp]').forEach(b=>b.onclick=()=>emailCampSheet(b.dataset.ecamp));
  if(S.view==='events'){if(S.evSub==='detail')bindEvent();else if(S.evSub==='review')bindReview();else bindEvList()}
  if(S.view==='explore'&&S.mode==='social'&&S.socSub==='programs')bindPrograms();
  if(S.view==='explore')bindEvFilter(ch=>{if(ch==='so'&&typeof renderList==='function'&&$('#plist')){S.limit=40;render()}else render()})}
