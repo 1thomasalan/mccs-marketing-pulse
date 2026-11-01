@@ -57,7 +57,7 @@ function bindChart(box,ser,m){const svg=box.querySelector('svg.chart');if(!svg)r
 // ---- shared header ----
 function header(accts,web){const end=dataEnd();const wEnd=S.web.reduce((m,x)=>x.end>m?x.end:m,'');const stale=web?(wEnd?`Website data through ${P.fmtDate(wEnd,{year:'numeric'})}`:'No website data yet'):S.e>end?`Data through ${P.fmtDate(end,{year:'numeric'})} · Meta lags ~2 days`:`vs ${P.rangeLabel(S.cs,S.ce)}`;
   return `<div class="ctl"><div class="range presets">${PRESETS.map(([k,l])=>`<button data-p="${k}" class="${S.preset===k?'on':''}">${l}</button>`).join('')}</div>
-  <div class="rlabel">${P.rangeLabel(S.s,S.e)}<small>${stale}</small></div>
+  <div class="rlabel">${P.rangeLabel(S.s,S.e)}<small>${stale}</small></div>${freshPill(web?['web']:['fb','ig'])}
   ${web?'':`<div class="range plats">`}${web?'':[['all','All'],['fb','Facebook'],['ig','Instagram']].map(([k,l])=>`<button data-f="${k}" class="chip ${S.plat===k?'on':''}">${l}</button>`).join('')}${accts?`<label class="chip acctpick ${S.acct!=='all'?'on':''}"><select id="hAcct" aria-label="Account"><option value="all">All accounts</option>${accts.map(g=>`<option value="${g.plat}|${esc(g.page)}" ${S.acct===g.plat+'|'+g.page?'selected':''}>${g.plat.toUpperCase()} · ${esc(acctName(g.plat,g.page))}</option>`).join('')}</select></label>`:''}${web?'':'</div>'}</div>`}
 function topbar(){return `<div class="top"><span>MCCS Pulse</span><span class="tbtns">${gsAvail()?`<button class="icon" id="gbtn" aria-label="Search everything" title="Search everything (/ or ${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl+'}K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>`:''}<button class="icon" id="gear" aria-label="Settings">${ICON.gear}</button></span></div>`}
 // ---- render ----
@@ -247,6 +247,15 @@ function dataStatus(){let src={},imp={};try{src=JSON.parse(localStorage.pulseSrc
   if(d&&d.how)return Object.assign(base,{d,a,stt,file:null,when:null,how:d.how});
   const r=src[s.k]||{},i=imp[s.k];const pub=r.published||null,loc=i&&(!pub||i.at>pub)?i:null;
   return Object.assign(base,{d,a,stt,empty:s.empty?s.empty():'Nothing loaded yet.',file:loc?loc.file:r.file||null,when:loc?loc.at:pub||(d&&localStorage.pulseSynced)||null,how:loc?'imported on this device':pub||localStorage.pulseSynced?'published by Hark':''})})}
+// ---- freshness notice: when the numbers on screen were last updated (amber once a weekly update is due) ----
+function freshInfo(keys){const st=dataStatus().filter(x=>keys.includes(x.k)&&x.d);if(!st.length)return null;
+ const when=st.map(x=>x.when).filter(Boolean).sort().pop()||null,thr=st.map(x=>x.d.through).filter(Boolean).sort()[0]||null;
+ const days=when?(Date.now()-new Date(when))/864e5:null,due=st.some(x=>x.stt[0]!=='ok')||(days!=null&&days>=7);return {when,thr,due}}
+const fDayJ=t=>new Date(t).toLocaleDateString('en-US',{timeZone:'Asia/Tokyo',month:'short',day:'numeric',year:'numeric'});
+function freshPill(keys){const f=freshInfo(keys||['fb','ig']);if(!f)return '';
+ const lab=f.when?`Metrics last updated ${fDayJ(f.when)}`:'Metrics update date unknown',thr='';
+ return `<button class="fresh ${f.due?'due':''}" data-fresh title="Open Data &amp; sync"><i></i><span>${lab}${thr}${f.due?' · <b>update due</b>':''}</span></button>`}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fresh]');if(b){e.preventDefault();settings('data')}});
 const fdtJ=t=>new Date(t).toLocaleString('en-US',{timeZone:'Asia/Tokyo',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
 const fTimeJ=t=>{const d=new Date(t),k=x=>x.toLocaleDateString('en-CA',{timeZone:'Asia/Tokyo'});return k(d)===k(new Date())?d.toLocaleTimeString('en-US',{timeZone:'Asia/Tokyo',hour:'numeric',minute:'2-digit'}):fdtJ(t)};
 const agoTxt=x=>{if(x.a==null)return '';if(x.auto){const h=x.a*24;return h<1?'under an hour ago':h<36?Math.round(h)+(Math.round(h)===1?' hour ago':' hours ago'):Math.round(x.a)+' days ago'}return x.a===0?'today':x.a===1?'1 day ago':x.a+' days ago'};
