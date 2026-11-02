@@ -12,7 +12,11 @@ def gql(query, variables=None):
     try:
         return json.load(urllib.request.urlopen(r, timeout=120))
     except urllib.error.HTTPError as e:
-        return {'errors': [{'message': 'HTTP %s' % e.code}]}
+        try:
+            b = json.loads(e.read().decode())
+            return {'errors': [{'message': 'HTTP %s: %s' % (e.code, (x.get('message') or ''))} for x in (b.get('errors') or [{}])]}
+        except Exception:
+            return {'errors': [{'message': 'HTTP %s' % e.code}]}
 
 
 def errs(o):
@@ -35,7 +39,8 @@ for nm in ['GetPlaybackLogsInput', 'GetLogsFilterParams', 'ExportPlaybackLogsInp
     t = (o.get('data') or {}).get('__type')
     print('INPUT', nm, [(f['name'], typ(f['type'])) for f in t['inputFields']] if t else errs(o))
 o = gql('{ __schema { queryType { fields { name args { name type %s } type %s } } } }' % (T, T))
-for f in o['data']['__schema']['queryType']['fields']:
+print('SCHEMA', errs(o) if o.get('errors') else 'ok')
+for f in ((o.get('data') or {}).get('__schema') or {'queryType': {'fields': []}})['queryType']['fields']:
     if 'log' in f['name'].lower() or 'playback' in f['name'].lower() or 'proof' in f['name'].lower():
         print('QUERY', f['name'], [(a['name'], typ(a['type'])) for a in f['args']], '->', typ(f['type']))
 o = gql('{ __type(name:"PlaybackLogsResponse"){ fields { name type %s } } }' % T)
