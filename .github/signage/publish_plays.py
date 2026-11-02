@@ -11,6 +11,7 @@ so a JST day is paged backwards by moving endTime below the oldest row returned 
 Outputs (repo root):
   signage-plays.bin    encrypted for Pulse (same ECDH P-256 + AES-GCM scheme as signage.bin):
      {"v":1,"from","through","pulled","days":{"YYYY-MM-DD":{"t","ta","sc","s":{name:[plays,screens]},"g":{group:plays}}}}
+     sg = {name: {group: plays}} per-slide location breakdown (file plays; added 2026-11-02)
      t = plays of file content (slides/videos/PDFs), ta = all plays incl. apps, sc = screens with file plays,
      s = file plays by content name (signage.json item names), g = file plays by screen group (signage.json group names)
   signage-plays.state  same days, AES-GCM with a key derived from SCREENCLOUD_API_KEY, so Actions can merge
@@ -90,7 +91,7 @@ def pull_day(day, screen_group):
     e0 = s0 + 86400000
     end, seen, calls = e0, set(), 0
     t = ta = 0
-    scr, s, g = set(), {}, {}
+    scr, s, g, sgl = set(), {}, {}, {}
     while True:
         rows = page(s0, end); calls += 1
         for r in rows:
@@ -110,12 +111,13 @@ def pull_day(day, screen_group):
             e = s.setdefault(nm, [0, set()]); e[0] += 1; e[1].add(sid)
             gn = screen_group.get(sid, 'Other')
             g[gn] = g.get(gn, 0) + 1
+            m = sgl.setdefault(nm, {}); m[gn] = m.get(gn, 0) + 1
         if len(rows) < 5000 or calls > 400:
             break
         end = min(r['timestamp'] for r in rows if isinstance(r.get('timestamp'), int)) - 1
         if end <= s0:
             break
-    out = {'t': t, 'ta': ta, 'sc': len(scr), 's': {k: [v[0], len(v[1])] for k, v in s.items()}, 'g': g}
+    out = {'t': t, 'ta': ta, 'sc': len(scr), 's': {k: [v[0], len(v[1])] for k, v in s.items()}, 'g': g, 'sg': sgl}
     print('day %s: %d file plays, %d all, %d screens, %d calls' % (day, t, ta, len(scr), calls))
     return out
 
@@ -135,7 +137,7 @@ def main():
     missing = []
     d = yday
     while d >= BACKFILL_FROM:
-        if d.isoformat() not in days and d not in todo:
+        if (d.isoformat() not in days or 'sg' not in days[d.isoformat()]) and d not in todo:
             missing.append(d)
         d -= datetime.timedelta(days=1)
     todo += missing  # newest first, so history grows backwards
@@ -152,7 +154,7 @@ def main():
         err = str(e)[:160]
         print('::warning::plays pull failed:', err)
     now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
-    remaining = [d for d in todo[done_n:] if d.isoformat() not in days]
+    remaining = [d for d in todo[done_n:] if d.isoformat() not in days or 'sg' not in days[d.isoformat()]]
     if done_n and not (err and mode in ('daily', 'recheck') and done_n < RECHECK_DAYS):
         state_save(days)
         keys = sorted(days)
