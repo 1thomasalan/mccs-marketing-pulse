@@ -11,13 +11,13 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - name: Tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg poppler-utils >/dev/null
+          sudo apt-get install -y -qq ffmpeg poppler-utils tesseract-ocr tesseract-ocr-eng >/dev/null
           pip install -q cryptography
       - name: Pull ScreenCloud
         env:
