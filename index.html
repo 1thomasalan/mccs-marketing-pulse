@@ -1100,6 +1100,19 @@ a.cn-btn:visited{color:var(--txt)}
 @keyframes skm{from{background-position:100% 0}to{background-position:-200% 0}}
 @media(prefers-reduced-motion:reduce){.skel,.ldd{animation:none}#ldbar i,#ldwrap,#ldtag{transition:none}}
 @media print{#ldwrap{display:none}}
+
+/* v46 auto-connect: scores, not-connected lists, slide connect buttons */
+.accard{margin-top:12px}.acrow{display:grid;grid-template-columns:96px 1fr 44px auto;align-items:center;gap:10px;width:100%;padding:9px 0;border-top:1px solid var(--line);text-align:left;color:inherit;background:none}
+.acrow:first-of-type{border-top:0}.acrow[disabled]{opacity:.7;cursor:default}.acl{font-size:14px}.acv{font-size:15px;text-align:right}.acm{font-size:12.5px;color:var(--mut);white-space:nowrap}
+.acb{height:8px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden}.acb i{display:block;height:100%;border-radius:5px;background:var(--glow)}.acb i.acok{background:#9ee6b4}.acb i.acmid{background:#f3d9a4}.acb i.aclow{background:#f3a6b8}
+@media(max-width:520px){.acrow{grid-template-columns:78px 1fr 40px}.acm{grid-column:1/-1;margin-top:-4px}}
+.aclist{display:flex;flex-direction:column;gap:2px}.acit{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}.acit:first-child{border-top:0}
+.acopen{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left;color:inherit;background:none}.acopen span:last-child{min-width:0;display:flex;flex-direction:column}.acopen b{font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acopen small{color:var(--mut);font-size:12px}
+.acth{flex:0 0 64px;height:36px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.06)}.acth img{width:100%;height:100%;object-fit:cover}
+.acsl{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.acon{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%}.acwarn{color:#f3d9a4;font-size:13px}
+.acnc{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:999px;font-size:11.5px;color:#f3d9a4;border:1px solid color-mix(in srgb,#f3d9a4 45%,transparent);background:rgba(14,20,32,.55)}
+.acnc.on{position:absolute;right:6px;bottom:6px;margin:0;backdrop-filter:blur(6px)}
+@media print{.acnc,.accard{display:none}}
 </style>
 </head>
 <body>
@@ -1138,6 +1151,7 @@ a.cn-btn:visited{color:var(--txt)}
 <script src="hub.js"></script>
 <script src="programs.js"></script>
 <script src="connections.js"></script>
+<script src="autoconn.js"></script>
 <script src="share.js"></script>
 </body>
 </html>

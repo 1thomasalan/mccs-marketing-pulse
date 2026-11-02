@@ -22,7 +22,7 @@ const hrng=(a,b)=>!a?'':a===b?hd(a,{weekday:'short'}):a.slice(0,7)===b.slice(0,7
 // ---------- events data, matching cache, local review decisions ----------
 const EVD={get(){try{return JSON.parse(localStorage.pulseEvDec||'[]')}catch(e){return []}},set(a){localStorage.pulseEvDec=JSON.stringify(a);EVC.key=''}};
 const EVC={key:'',M:null,roll:new Map(),prior:new Map(),byId:null,byIdN:-1,byIdSrc:null};
-const evData=()=>S.ev&&Array.isArray(S.ev.events)?S.ev:null;
+const evData=()=>{if(!(S.ev&&Array.isArray(S.ev.events)))return null;if(S.ev.programs&&S.ev._tree!==S.ev.programs){P.progTree(S.ev.programs);S.ev._tree=S.ev.programs}return S.ev};
 const evList=()=>(evData()||{events:[]}).events;
 const evGet=id=>evList().find(e=>e.id===id);
 function evById(){const ps=gsPosts();if(EVC.byIdSrc!==ps||EVC.byIdN!==ps.length){EVC.byId=new Map(ps.map(r=>[r.id,r]));EVC.byIdSrc=ps;EVC.byIdN=ps.length}return EVC.byId}

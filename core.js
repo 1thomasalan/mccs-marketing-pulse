@@ -346,7 +346,14 @@ P.evLinksParse=function(values){if(!values||values.length<2)return [];const c=co
     .filter(x=>x.ev&&x.item&&!/^\(example\)/i.test(x.item))};
 P.progParse=function(values){if(!values||values.length<2)return [];const c=cols(values[0]),g=(r,...n)=>{const i=c(...n);return i<0?'':String(r[i]==null?'':r[i]).trim()};
   return values.slice(1).filter(r=>g(r,'Program')).map(r=>{const ex=g(r,'Expected');return {branch:g(r,'Branch'),program:g(r,'Program'),facility:g(r,'Facility'),id:g(r,'Program ID')||P.sNorm(g(r,'Facility')||g(r,'Program')).replace(/ /g,'-'),
-    fb:splitList(g(r,'FB pages')),ig:splitList(g(r,'IG accounts')).map(x=>x.replace(/^@/,'')),kw:splitList(g(r,'Keywords')),web:splitList(g(r,'Web paths','Web pages')).map(x=>x.replace(/^https?:\/\/[^/]+/,'').toLowerCase()),exp:ex===''?null:+ex,notes:g(r,'Notes')}})};
+    fb:splitList(g(r,'FB pages')),ig:splitList(g(r,'IG accounts')).map(x=>x.replace(/^@/,'')),kw:splitList(g(r,'Keywords')),web:splitList(g(r,'Web paths','Web pages')).map(x=>x.replace(/^https?:\/\/[^/]+/,'').toLowerCase()),exp:ex===''?null:+ex,notes:g(r,'Notes'),parent:g(r,'Parent')}})};
+// v46 program family tree: a Parent column (program ID or name) rolls children up into parents.
+// A parent's keywords become its own plus every descendant's keywords and names, so anything that matches Veranda also counts for Ocean Breeze and Clubs.
+P.progTree=function(progs){if(!Array.isArray(progs))return progs;const by=new Map(),nm=new Map();for(const p of progs){by.set(p.id,p);for(const n of [p.facility,p.program&&!p.facility?p.program:''])if(n)nm.set(P.sNorm(n,1),p);if(!p.kwOwn)p.kwOwn=(p.kw||[]).slice();p.kids=[];p.up=[]}
+  const find=x=>{x=String(x||'').trim();if(!x)return null;return by.get(x)||by.get(x.toLowerCase())||nm.get(P.sNorm(x,1))||null};
+  for(const p of progs){let q=find(p.parent);const seen=new Set([p.id]);while(q&&!seen.has(q.id)){seen.add(q.id);q.kids.push(p.id);p.up.push(q.id);q=find(q.parent)}}
+  for(const p of progs){const ex=[];for(const k of p.kids){const c=by.get(k);ex.push(...c.kwOwn);const n=c.facility||c.program;if(n)ex.push(n)}p.kw=[...new Set([...p.kwOwn,...ex])]}
+  return progs};
 P.evWindow=e=>({ws:e.ps||(e.s?P.addDays(e.s,-P.EV.promo):''),we:e.pe||(e.e?P.addDays(e.e,P.EV.after):'')});
 // status from dates (today = JST date key)
 P.evStatus=function(e,today){today=today||P.todayKey();if(/cancel/i.test(e.status))return {k:'cancelled',label:'Cancelled'};if(!e.s)return {k:'undated',label:e.status||'Date needed'};
@@ -496,6 +503,7 @@ P.progChannels=function(o){const rows=(o.cov&&o.cov.rows)||[],today=o.today||P.t
   const day=(R,d,k,v)=>{if(!inD(d))return;const x=R.daily.get(d)||{so:0,we:0,em:0};x[k]+=v;R.daily.set(d,x)};
   // v38 Connections: team links add an item to a program, a person's unlink / not-this (or blocked rule) takes it out
   const CN=o.conn,cl=new Map(),cb=new Set();if(CN)for(const [k,m] of CN.byItem)for(const c of m.values()){if(c.ttype!=='program'||!out.has(c.tid))continue;if(c.state==='blocked')cb.add(k+'|'+c.tid);else (cl.get(c.tid)||cl.set(c.tid,new Map()).get(c.tid)).set(k,c)}
+  {const up=new Map(rows.map(r=>[r.id,r.p.up||[]]));for(const [tid,m] of [...cl])for(const u of up.get(tid)||[]){if(!out.has(u))continue;const t=cl.get(u)||cl.set(u,new Map()).get(u);for(const [k,c] of m)if(!t.has(k))t.set(k,Object.assign({},c,{via:tid}))}}
   const blk=(k,id)=>cb.has(k+'|'+id),lnk=(k,id)=>{const m=cl.get(id);return !!(m&&m.has(k))};const byId=CN&&cl.size&&o.posts?new Map(o.posts.map(p=>[p.id,p])):null;
   for(const r of rows){const R=out.get(r.id);const seen=new Set();for(const x of [...r.own,...r.men]){if(seen.has(x.id)||blk('so:'+x.id,r.id))continue;seen.add(x.id);R.so.n++;R.so.v+=x.v;R.so.e+=P.eng(x);R.so.list.push(x)}R.so.pv=r.prevV;R.so.pn=r.prev;
     const tm=cl.get(r.id);R.team=tm?[...tm.entries()].map(([key,c])=>Object.assign({key},c)):[];R.so.team=0;
