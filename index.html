@@ -1083,6 +1083,23 @@ a.cn-btn:visited{color:var(--txt)}
 .fresh.due{color:#b7791f;border-color:rgba(214,158,46,.55);background:rgba(214,158,46,.10)}.fresh.due i{background:#d69e2e}
 .hhero .fresh{margin:12px auto 0}@media(min-width:1100px){.hhero .fresh{margin:12px 0 0}}.xlead>.ctl .fresh{margin-left:auto;margin-right:0}.pgctl .ctl .fresh{margin-left:0}
 @media print{.fresh{display:none}}
+
+/* v45 loading indicator + shimmer */
+#ldwrap{position:fixed;left:0;right:0;top:0;z-index:90;pointer-events:none;opacity:0;transition:opacity .35s}
+#ldwrap.on{opacity:1}
+#ldbar{height:3px;background:color-mix(in srgb,var(--glow) 14%,transparent);overflow:hidden;margin-top:env(safe-area-inset-top,0)}
+#ldbar i{display:block;height:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,color-mix(in srgb,var(--glow) 55%,transparent),var(--glow));box-shadow:0 0 12px var(--glow);transition:transform .5s cubic-bezier(.2,.7,.2,1)}
+#ldtag{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translate(-50%,-4px);display:flex;align-items:center;gap:8px;padding:6px 13px;border-radius:999px;font-size:12.5px;color:var(--txt);background:rgba(14,20,32,.72);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);white-space:nowrap;transition:transform .35s}
+#ldwrap.on #ldtag{transform:translate(-50%,0)}
+.ldd{width:7px;height:7px;border-radius:50%;background:var(--glow);animation:ldp 1.1s ease-in-out infinite}
+@keyframes ldp{50%{opacity:.25;transform:scale(.7)}}
+.skel{display:block;height:12px;margin:10px 0;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,.06) 25%,rgba(255,255,255,.16) 50%,rgba(255,255,255,.06) 75%);background-size:300% 100%;animation:skm 1.4s linear infinite}
+.skel.sknum{height:30px;width:40%;margin:4px 0 14px;border-radius:8px}.skel.skimg{height:84px;width:100%!important;border-radius:10px;margin-top:0}
+.tile .v .skel.sknum{display:inline-block;height:28px;margin:4px 0 0;vertical-align:middle}
+.skgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:12px}
+@keyframes skm{from{background-position:100% 0}to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.skel,.ldd{animation:none}#ldbar i,#ldwrap,#ldtag{transition:none}}
+@media print{#ldwrap{display:none}}
 </style>
 </head>
 <body>
@@ -1115,6 +1132,7 @@ a.cn-btn:visited{color:var(--txt)}
 <script src="core.js"></script>
 <script src="signage.js"></script>
 <script src="plays.js"></script>
+<script src="loader.js"></script>
 <script src="tv.js"></script>
 <script src="app.js"></script>
 <script src="hub.js"></script>
