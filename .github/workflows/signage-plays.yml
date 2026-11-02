@@ -1,0 +1,23 @@
+name: Signage plays (ScreenCloud proof-of-play)
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: probe | backfill | daily
+        default: probe
+permissions:
+  contents: write
+concurrency:
+  group: signage
+  cancel-in-progress: false
+jobs:
+  plays:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe
+        if: ${{ inputs.mode == 'probe' }}
+        env:
+          SCREENCLOUD_API_KEY: ${{ secrets.SCREENCLOUD_API_KEY }}
+        run: python3 .github/signage/plays_probe.py
