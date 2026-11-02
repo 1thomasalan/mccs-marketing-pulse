@@ -140,7 +140,7 @@ def main():
     data['checked'] = checked
     open(os.path.join(ROOT, 'signage.bin'), 'wb').write(seal(json.dumps(data, separators=(',', ':')).encode()))
     json.dump({'v': 1, 'checked': checked, 'updated': old.get('updated') if old.get('h') == h else checked,
-               'h': h, 'file': 'signage.bin', 'thumbs': 'sg/'}, open(mf, 'w'))
+               'h': h, 'file': 'signage.bin', 'thumbs': 'sg/', **({'plays': old['plays']} if old.get('plays') else {})}, open(mf, 'w'))
     print('wrote signage: %d live / %d, %d items' % (total - offn, total, len(items)))
 
 

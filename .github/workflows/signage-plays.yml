@@ -1,19 +1,22 @@
 name: Signage plays (ScreenCloud proof-of-play)
 on:
+  schedule:
+    - cron: '20 16 * * *'   # 01:20 JST daily: re-pull last 3 days + continue backfill
   workflow_dispatch:
     inputs:
       mode:
-        description: probe | backfill | daily
-        default: probe
+        description: daily | backfill | probe
+        default: backfill
 permissions:
   contents: write
+  actions: write
 concurrency:
   group: signage
   cancel-in-progress: false
 jobs:
   plays:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - name: Probe
@@ -21,3 +24,28 @@ jobs:
         env:
           SCREENCLOUD_API_KEY: ${{ secrets.SCREENCLOUD_API_KEY }}
         run: python3 .github/signage/plays_probe.py
+      - name: Tools
+        if: ${{ inputs.mode != 'probe' }}
+        run: pip install -q cryptography
+      - name: Pull plays
+        id: pull
+        if: ${{ inputs.mode != 'probe' }}
+        env:
+          SCREENCLOUD_API_KEY: ${{ secrets.SCREENCLOUD_API_KEY }}
+          PLAYS_BUDGET_MIN: '95'
+        run: python3 .github/signage/publish_plays.py "${{ inputs.mode || 'daily' }}"
+      - name: Commit
+        if: ${{ always() && inputs.mode != 'probe' }}
+        run: |
+          git config user.name "Pulse Signage Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A signage.json signage-plays.bin signage-plays.state 2>/dev/null || true
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -qm "Signage plays sync"
+          for i in 1 2 3 4; do git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0; sleep 5; done
+          exit 1
+      - name: Continue backfill
+        if: ${{ steps.pull.outputs.more == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run signage-plays.yml -f mode=backfill --ref main
