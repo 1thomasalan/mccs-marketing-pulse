@@ -1,118 +1,88 @@
 #!/usr/bin/env python3
-"""Probe ScreenCloud playback-log API shape. PUBLIC LOGS: prints only field names, types, counts, dates.
-Never prints content names, screen names, spaces or messages verbatim."""
-import collections, datetime, json, os, re, sys, urllib.request
+"""Probe 2: paging, volume, retention, id matching. PUBLIC LOGS: counts/dates only."""
+import collections, datetime, json, os, sys, time, urllib.request
 
 API = 'https://graphql.eu.screencloud.com/graphql'
+JST = datetime.timezone(datetime.timedelta(hours=9))
 
 
-def gql(query, variables=None):
+def gql(q):
     h = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + os.environ['SCREENCLOUD_API_KEY'].strip()}
-    r = urllib.request.Request(API, data=json.dumps({'query': query, 'variables': variables or {}}).encode(), headers=h)
+    r = urllib.request.Request(API, data=json.dumps({'query': q}).encode(), headers=h)
     try:
-        return json.load(urllib.request.urlopen(r, timeout=120))
+        o = json.load(urllib.request.urlopen(r, timeout=180))
     except urllib.error.HTTPError as e:
-        try:
-            b = json.loads(e.read().decode())
-            return {'errors': [{'message': 'HTTP %s: %s' % (e.code, (x.get('message') or ''))} for x in (b.get('errors') or [{}])]}
-        except Exception:
-            return {'errors': [{'message': 'HTTP %s' % e.code}]}
+        return None, 'HTTP %s %s' % (e.code, e.read().decode()[:150].replace('"', "'"))
+    if o.get('errors'):
+        return None, str([x.get('message', '')[:120] for x in o['errors']])
+    return o['data'], None
 
 
-def errs(o):
-    return [re.sub(r'"[^"]{0,200}"', '"…"', (e.get('message') or '')[:200]) for e in o.get('errors') or []]
+def logs(start_ms, end_ms, limit=5000, extra=''):
+    q = '{ getPlaybackLogs(input:{limit:%d, startTime:"%d", endTime:"%d"%s}){ status data } }' % (limit, start_ms * 1000000, end_ms * 1000000, extra)
+    t = time.time(); d, e = gql(q); dt = time.time() - t
+    if e: return None, e, dt
+    x = d['getPlaybackLogs']['data']
+    if isinstance(x, str): x = json.loads(x)
+    if isinstance(x, dict): x = next((v for v in x.values() if isinstance(v, list)), [])
+    return x, None, dt
 
 
-def typ(t):
-    s = ''
-    while t:
-        s += t['kind'][0] if t['kind'] in ('NON_NULL', 'LIST') else ''
-        if t.get('name'):
-            return s + ':' + t['name']
-        t = t.get('ofType')
-    return s
+iso = lambda ms: datetime.datetime.fromtimestamp(ms / 1000, JST).strftime('%Y-%m-%d %H:%M JST')
+ms = lambda d: int(d.timestamp() * 1000)
 
-
-T = '{ kind name ofType { kind name ofType { kind name ofType { kind name } } } }'
-for nm in ['GetPlaybackLogsInput', 'GetLogsFilterParams', 'ExportPlaybackLogsInput']:
-    o = gql('{ __type(name:"%s"){ name inputFields { name type %s } } }' % (nm, T))
-    t = (o.get('data') or {}).get('__type')
-    print('INPUT', nm, [(f['name'], typ(f['type'])) for f in t['inputFields']] if t else errs(o))
-o = gql('{ __schema { queryType { fields { name args { name type %s } type %s } } } }' % (T, T))
-print('SCHEMA', errs(o) if o.get('errors') else 'ok')
-for f in ((o.get('data') or {}).get('__schema') or {'queryType': {'fields': []}})['queryType']['fields']:
-    if 'log' in f['name'].lower() or 'playback' in f['name'].lower() or 'proof' in f['name'].lower():
-        print('QUERY', f['name'], [(a['name'], typ(a['type'])) for a in f['args']], '->', typ(f['type']))
-o = gql('{ __type(name:"PlaybackLogsResponse"){ fields { name type %s } } }' % T)
-print('RESP PlaybackLogsResponse', errs(o) or [(f['name'], typ(f['type'])) for f in ((o.get('data') or {}).get('__type') or {}).get('fields') or []])
-
-
-def anon(rows):
-    keys = collections.Counter()
-    for r in rows:
-        keys.update(r.keys() if isinstance(r, dict) else ['<non-dict>'])
-    return dict(keys)
-
-
-def summarize(label, data):
-    if isinstance(data, str):
-        try:
-            data = json.loads(data)
-        except Exception:
-            print(label, 'string len', len(data)); return None
-    if isinstance(data, dict):
-        print(label, 'dict keys', list(data.keys())[:30])
-        for k, v in data.items():
-            if isinstance(v, list):
-                print(label, 'list under', k, 'len', len(v)); data = v; break
-    if not isinstance(data, list):
-        print(label, 'type', type(data).__name__); return None
-    print(label, 'rows', len(data), 'row keys', anon(data[:2000]))
-    if data and isinstance(data[0], dict):
-        r0 = data[0]
-        print(label, 'value types', {k: type(v).__name__ for k, v in r0.items()})
-        for k in ('type', 'message', 'source', 'contentType', 'playbackType', 'consumer', 'platform', 'level'):
-            if k in r0:
-                c = collections.Counter(' '.join(str(r.get(k))[:40].split()[:2]) for r in data)
-                print(label, 'top', k, c.most_common(8))
-        for k in ('timestamp', 'time', 'createdAt', '@timestamp'):
-            if k in r0:
-                ts = [str(r.get(k)) for r in data]
-                print(label, k, 'first', ts[0], 'last', ts[-1])
-        for k in ('screenId', 'contentId', 'name', 'screenName', 'spaceName', 'playlistName'):
-            if k in r0:
-                print(label, 'distinct', k, len({r.get(k) for r in data}))
-        for k in ('duration', 'durationMs', 'playDuration'):
-            if k in r0:
-                print(label, 'has', k)
-    return data
-
-
+# direction variants
 now = datetime.datetime.now(datetime.timezone.utc)
-ns = lambda d: str(int(d.timestamp() * 1e9))
-day0 = (now - datetime.timedelta(days=2)).replace(hour=15, minute=0, second=0, microsecond=0)  # 00:00 JST
-for lbl, inp in [('default-500', '{limit:500}'),
-                 ('one-day', '{limit:5000, startTime:"%s", endTime:"%s", direction:"forward"}' % (ns(day0), ns(day0 + datetime.timedelta(days=1)))),
-                 ('one-day-start', '{limit:5000, startTime:"%s", endTime:"%s", direction:"forward", filterParams:{message:["start"]}}' % (ns(day0), ns(day0 + datetime.timedelta(days=1))))]:
-    o = gql('{ getPlaybackLogs(input:%s){ status data } }' % inp)
-    if o.get('errors'):
-        print(lbl, 'ERR', errs(o)); continue
-    print(lbl, 'status', o['data']['getPlaybackLogs']['status'])
-    summarize(lbl, o['data']['getPlaybackLogs']['data'])
+a = ms(now - datetime.timedelta(hours=6)); b = ms(now - datetime.timedelta(hours=5))
+for ex in ['', ', direction:"forward"', ', direction:"FORWARD"', ', direction:forward']:
+    r, e, dt = logs(a, b, 20, ex)
+    print('DIR', repr(ex), e or ('rows %d first %s last %s inwin %s %.1fs' % (len(r), iso(r[0]['timestamp']), iso(r[-1]['timestamp']), all(a <= x['timestamp'] <= b for x in r), dt) if r else 'rows 0'))
 
-# retention: earliest log at/after a set of start dates
-for start in ['2025-01-01', '2026-01-01', '2026-04-01', '2026-07-01', '2026-09-01', '2026-10-01', '2026-10-20']:
-    d = datetime.datetime.fromisoformat(start + 'T00:00:00+00:00')
-    o = gql('{ getPlaybackLogs(input:{limit:3, startTime:"%s", endTime:"%s", direction:"forward"}){ status data } }' % (ns(d), ns(now)))
-    if o.get('errors'):
-        print('RET', start, 'ERR', errs(o)); continue
-    d2 = o['data']['getPlaybackLogs']['data']
-    if isinstance(d2, str):
-        try: d2 = json.loads(d2)
-        except Exception: pass
-    if isinstance(d2, dict):
-        d2 = next((v for v in d2.values() if isinstance(v, list)), d2)
-    first = None
-    if isinstance(d2, list) and d2 and isinstance(d2[0], dict):
-        first = d2[0].get('timestamp') or d2[0].get('time')
-    print('RET from', start, 'rows', len(d2) if isinstance(d2, list) else '?', 'first ts', first)
+# retention: 1-day windows
+for day in ['2025-06-01', '2026-01-05', '2026-03-02', '2026-05-04', '2026-07-06', '2026-08-03', '2026-09-07', '2026-10-05', '2026-10-19', '2026-10-26']:
+    d = datetime.datetime.fromisoformat(day + 'T03:00:00+00:00')
+    r, e, dt = logs(ms(d), ms(d + datetime.timedelta(hours=1)), 50)
+    print('RET', day, e or ('rows %d inwin %s' % (len(r), all(ms(d) <= x['timestamp'] <= ms(d) + 3600000 for x in r)) if r is not None else 'none'))
+
+# one full JST day volume by paging backwards (endTime = oldest - 1)
+day = (now.astimezone(JST) - datetime.timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
+s0, e0 = ms(day), ms(day + datetime.timedelta(days=1))
+end, rows, calls, tsum = e0, [], 0, 0
+while calls < 80:
+    r, e, dt = logs(s0, end); calls += 1; tsum += dt
+    if e: print('PAGE ERR', e); break
+    rows += r
+    if len(r) < 5000: break
+    end = min(x['timestamp'] for x in r) - 1
+print('DAY', day.date(), 'rows', len(rows), 'calls', calls, 'secs %.0f' % tsum)
+ids = collections.Counter(x.get('contentId') for x in rows)
+dupes = len(rows) - len({(x['timestamp'], x.get('screenId'), x.get('contentId'), x.get('zoneid')) for x in rows})
+print('DAY distinct screens', len({x.get('screenId') for x in rows}), 'content', len(ids), 'dupe rows', dupes)
+print('DAY contentType', collections.Counter(x.get('contentType') for x in rows).most_common())
+print('DAY zones per screen max', max(collections.Counter((x.get('screenId'), x.get('zoneid')) for x in rows).values() or [0]))
+hrs = collections.Counter(datetime.datetime.fromtimestamp(x['timestamp'] / 1000, JST).hour for x in rows)
+print('DAY by JST hour', sorted(hrs.items()))
+# per screen per hour max start count (sanity: plays per hour)
+psh = collections.Counter((x.get('screenId'), datetime.datetime.fromtimestamp(x['timestamp'] / 1000, JST).hour) for x in rows)
+print('DAY max plays per screen-hour', max(psh.values() or [0]), 'median', sorted(psh.values())[len(psh) // 2] if psh else 0)
+# gap between consecutive starts on same screen (seconds)
+by = collections.defaultdict(list)
+for x in rows: by[x.get('screenId')].append(x['timestamp'])
+gaps = []
+for v in by.values():
+    v.sort(); gaps += [(v[i + 1] - v[i]) / 1000 for i in range(len(v) - 1)]
+gaps.sort()
+if gaps: print('DAY gap secs p10 %.1f p50 %.1f p90 %.1f zero-gaps %d' % (gaps[len(gaps) // 10], gaps[len(gaps) // 2], gaps[len(gaps) * 9 // 10], sum(1 for g in gaps if g < 1)))
+
+# match to playlist files + screen groups
+pl, e = gql('{ allPlaylists(filter:{name:{in:["MCCS Program Ads","Sponsorship Ads","Green Side"]}}){ nodes{ id name filesByPlaylistId(first:200){ nodes{ id name } } } } }')
+fids = {f['id'] for p in pl['allPlaylists']['nodes'] for f in p['filesByPlaylistId']['nodes']}
+fnames = {f['name'] for p in pl['allPlaylists']['nodes'] for f in p['filesByPlaylistId']['nodes']}
+pids = {p['id'] for p in pl['allPlaylists']['nodes']}
+print('MATCH file rows by contentId', sum(c for i, c in ids.items() if i in fids), 'by name', sum(1 for x in rows if x.get('name') in fnames), 'of', len(rows))
+print('MATCH files seen', len(fids & set(ids)), 'of', len(fids))
+g, e = gql('{ allScreenGroups(first:100){ nodes{ name screensByScreenGroupId(first:200){ nodes{ id } } } } }')
+sids = {s['id'] for n in g['allScreenGroups']['nodes'] for s in n['screensByScreenGroupId']['nodes']}
+print('MATCH screens in groups', len({x.get('screenId') for x in rows} & sids), 'of', len({x.get('screenId') for x in rows}))
+extra = [k for k in (rows[0].keys() if rows else []) if 'playlist' in k.lower() or 'source' in k.lower() or 'duration' in k.lower()]
+print('FIELDS playlist/source/duration', extra)
