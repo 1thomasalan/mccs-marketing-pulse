@@ -15,7 +15,7 @@ Outputs (repo root):
      s = file plays by content name (signage.json item names), g = file plays by screen group (signage.json group names)
   signage-plays.state  same days, AES-GCM with a key derived from SCREENCLOUD_API_KEY, so Actions can merge
                        (Pulse cannot read it; if the API key changes, the state resets and backfill restarts)
-  signage.json         gains a "plays" block {file, from, through, pulled, err, done}; other keys untouched
+  signage-plays.json   plaintext status {v, file, from, through, pulled, checked, err, done} (signage.json is not touched)
 PUBLIC LOGS: print counts and dates only, never content or screen names.
 """
 import base64, datetime, hashlib, json, os, sys, time, urllib.request
@@ -124,9 +124,8 @@ def main():
     mode = (sys.argv[1] if len(sys.argv) > 1 else '') or 'daily'
     if not KEY:
         print('::notice::SCREENCLOUD_API_KEY not set; skipping'); return
-    mf = os.path.join(ROOT, 'signage.json')
-    meta = json.load(open(mf)) if os.path.exists(mf) else {}
-    pl = meta.get('plays') or {}
+    mf = os.path.join(ROOT, 'signage-plays.json')
+    pl = json.load(open(mf)) if os.path.exists(mf) else {}
     days = state_load()
     today = datetime.datetime.now(JST).date()
     yday = today - datetime.timedelta(days=1)
@@ -159,13 +158,11 @@ def main():
         keys = sorted(days)
         body = {'v': 1, 'from': keys[0], 'through': keys[-1], 'pulled': now, 'days': {k: days[k] for k in keys}}
         open(os.path.join(ROOT, 'signage-plays.bin'), 'wb').write(seal(json.dumps(body, separators=(',', ':')).encode()))
-        pl = {'file': 'signage-plays.bin', 'from': keys[0], 'through': keys[-1], 'pulled': now}
+        pl = {'v': 1, 'file': 'signage-plays.bin', 'from': keys[0], 'through': keys[-1], 'pulled': now}
     pl['checked'] = now
     pl['err'] = err
     pl['done'] = not remaining
-    meta = json.load(open(mf)) if os.path.exists(mf) else {}  # re-read: keep every other key exactly
-    meta['plays'] = pl
-    json.dump(meta, open(mf, 'w'))
+    json.dump(pl, open(mf, 'w'))
     print('plays: %d days pulled this run, %d stored (%s..%s), %d remaining, err=%s' % (
         done_n, len(days), min(days) if days else '-', max(days) if days else '-', len(remaining), bool(err)))
     with open(os.environ.get('GITHUB_OUTPUT', os.devnull), 'a') as f:
