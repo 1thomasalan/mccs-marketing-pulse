@@ -19,14 +19,15 @@ Outputs (repo root):
   signage-plays.json   plaintext status {v, file, from, through, pulled, checked, err, done} (signage.json is not touched)
 PUBLIC LOGS: print counts and dates only, never content or screen names.
 """
-import base64, datetime, hashlib, json, os, sys, time, urllib.request
+import base64, datetime, hashlib, json, os, subprocess, sys, time, urllib.request
 
 ROOT = os.environ.get('PULSE_ROOT', os.getcwd())
 API = 'https://graphql.eu.screencloud.com/graphql'
 JST = datetime.timezone(datetime.timedelta(hours=9))
 BACKFILL_FROM = datetime.date(2026, 1, 1)
 RECHECK_DAYS = 3
-BUDGET_MIN = float(os.environ.get('PLAYS_BUDGET_MIN', '100'))
+BUDGET_MIN = float(os.environ.get('PLAYS_BUDGET_MIN', '30'))
+CHECKPOINT_MIN = float(os.environ.get('PLAYS_CHECKPOINT_MIN', '0'))  # >0: commit+push progress this often (Actions only)
 T0 = time.time()
 
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -118,8 +119,39 @@ def pull_day(day, screen_group):
         if end <= s0:
             break
     out = {'t': t, 'ta': ta, 'sc': len(scr), 's': {k: [v[0], len(v[1])] for k, v in s.items()}, 'g': g, 'sg': sgl}
-    print('day %s: %d file plays, %d all, %d screens, %d calls' % (day, t, ta, len(scr), calls))
+    print('day %s: %d file plays, %d all, %d screens, %d calls' % (day, t, ta, len(scr), calls), flush=True)
     return out
+
+
+def write_out(days, pl, err, remaining):
+    """Write state + encrypted bin + status file. Called after every day so a lost runner loses at most one day."""
+    now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+    if days:
+        state_save(days)
+        keys = sorted(days)
+        body = {'v': 1, 'from': keys[0], 'through': keys[-1], 'pulled': now, 'days': {k: days[k] for k in keys}}
+        open(os.path.join(ROOT, 'signage-plays.bin'), 'wb').write(seal(json.dumps(body, separators=(',', ':')).encode()))
+        pl.update({'v': 1, 'file': 'signage-plays.bin', 'from': keys[0], 'through': keys[-1], 'pulled': now})
+    pl['checked'] = now
+    pl['err'] = err
+    pl['done'] = not remaining
+    json.dump(pl, open(os.path.join(ROOT, 'signage-plays.json'), 'w'))
+
+
+def checkpoint_push():
+    """Commit and push progress mid-run (only when PLAYS_CHECKPOINT_MIN > 0, i.e. in Actions)."""
+    def run(*a):
+        return subprocess.run(list(a), cwd=ROOT, capture_output=True, text=True).returncode
+    run('git', 'add', '-A', 'signage-plays.json', 'signage-plays.bin', 'signage-plays.state')
+    if run('git', 'diff', '--cached', '--quiet') == 0:
+        return
+    run('git', '-c', 'user.name=Pulse Signage Bot', '-c', 'user.email=actions@users.noreply.github.com',
+        'commit', '-qm', 'Signage plays checkpoint')
+    for _ in range(4):
+        if run('git', 'pull', '-q', '--rebase', '-X', 'theirs', 'origin', 'main') == 0 and run('git', 'push', '-q', 'origin', 'HEAD:main') == 0:
+            print('checkpoint pushed'); return
+        time.sleep(5)
+    print('::warning::checkpoint push failed (will retry at next checkpoint)')
 
 
 def main():
@@ -146,25 +178,26 @@ def main():
     try:
         g = gql('{ allScreenGroups(first:100){ nodes{ name screensByScreenGroupId(first:200){ nodes{ id } } } } }')
         sg = {sc['id']: n['name'] for n in g['allScreenGroups']['nodes'] for sc in n['screensByScreenGroupId']['nodes']}
+        last_cp = time.time()
         for d in todo:
             if (time.time() - T0) / 60 > BUDGET_MIN:
                 break
+            t1 = time.time()
             days[d.isoformat()] = pull_day(d, sg); done_n += 1
+            print('  (%.1f min, %.1f min elapsed)' % ((time.time() - t1) / 60, (time.time() - T0) / 60), flush=True)
+            write_out(days, pl, None, [x for x in todo[done_n:]])
+            if CHECKPOINT_MIN > 0 and (time.time() - last_cp) / 60 >= CHECKPOINT_MIN:
+                checkpoint_push(); last_cp = time.time()
     except Exception as e:
         err = str(e)[:160]
         print('::warning::plays pull failed:', err)
-    now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
     remaining = [d for d in todo[done_n:] if d.isoformat() not in days or 'sg' not in days[d.isoformat()]]
     if done_n and not (err and mode in ('daily', 'recheck') and done_n < RECHECK_DAYS):
-        state_save(days)
-        keys = sorted(days)
-        body = {'v': 1, 'from': keys[0], 'through': keys[-1], 'pulled': now, 'days': {k: days[k] for k in keys}}
-        open(os.path.join(ROOT, 'signage-plays.bin'), 'wb').write(seal(json.dumps(body, separators=(',', ':')).encode()))
-        pl = {'v': 1, 'file': 'signage-plays.bin', 'from': keys[0], 'through': keys[-1], 'pulled': now}
-    pl['checked'] = now
-    pl['err'] = err
-    pl['done'] = not remaining
-    json.dump(pl, open(mf, 'w'))
+        write_out(days, pl, err, remaining)
+    else:
+        pl['checked'] = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+        pl['err'] = err; pl['done'] = not remaining
+        json.dump(pl, open(mf, 'w'))
     print('plays: %d days pulled this run, %d stored (%s..%s), %d remaining, err=%s' % (
         done_n, len(days), min(days) if days else '-', max(days) if days else '-', len(remaining), bool(err)))
     with open(os.environ.get('GITHUB_OUTPUT', os.devnull), 'a') as f:

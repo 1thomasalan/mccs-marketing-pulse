@@ -16,7 +16,7 @@ concurrency:
 jobs:
   plays:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - name: Probe
@@ -32,7 +32,8 @@ jobs:
         if: ${{ inputs.mode != 'probe' }}
         env:
           SCREENCLOUD_API_KEY: ${{ secrets.SCREENCLOUD_API_KEY }}
-          PLAYS_BUDGET_MIN: '95'
+          PLAYS_BUDGET_MIN: '35'
+          PLAYS_CHECKPOINT_MIN: '10'
         run: python3 .github/signage/publish_plays.py "${{ inputs.mode || 'daily' }}"
       - name: Commit
         if: ${{ always() && inputs.mode != 'probe' }}
@@ -45,7 +46,7 @@ jobs:
           for i in 1 2 3 4; do git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0; sleep 5; done
           exit 1
       - name: Continue backfill
-        if: ${{ steps.pull.outputs.more == 'true' }}
+        if: ${{ always() && steps.pull.outputs.more == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run signage-plays.yml -f mode=backfill --ref main
