@@ -73,7 +73,7 @@ function spSlideSheet(name){setRange();const R=spSlide(name,S.s,S.e),C=SPL.data&
   const dlt=C&&C.p?dl(R.p,C.p,true):C?'<span class="mut">new this period</span>':'';
   const gmx=R.groups[0]?R.groups[0][1]:1;
   openSheet(top+`<div class="spk spk4"><div><b>${hk(R.p)}</b><span>plays${dlt?' · '+dlt:''}</span></div><div><b>${(R.share*100).toFixed(R.share<.1?1:0)}%</b><span>of all slide plays</span></div><div><b>${R.days}<small> / ${R.span}</small></b><span>days on air</span></div><div><b>${nf(R.sc)}</b><span>screens at peak</span></div></div>
-   <div class="card" style="margin-top:12px"><h2>Daily plays<small>${hd(R.first)} – ${hd(R.last)}</small></h2>${spark(R.daily,HC.sg,64)}</div>
+   <div class="card" style="margin-top:12px"><h2>Daily plays<small>${hd(R.first)} – ${hd(R.last)}</small></h2><div class="spdaily">${spark(R.daily,HC.sg,64)}</div></div>
    ${R.hasG?`<div class="card" style="margin-top:12px"><h2>Plays by location${R.noG?`<small>partial · ${R.days-R.noG} of ${R.days} days</small>`:''}</h2>${R.groups.length?R.groups.slice(0,10).map(([g,v])=>`<div class="spl"><span>${esc(g==='Other'?'Other (no group)':g)}</span><div class="spb"><i style="width:${Math.max(2,v/gmx*100)}%"></i></div><em>${hk(v)}</em></div>`).join(''):'<p class="mut sm">No location detail for these days yet.</p>'}</div>`:`<p class="mut sm spfn">Plays by location for each slide arrive with the next signage sync.</p>`}
    ${evs.length?`<div class="card" style="margin-top:12px"><h2>Linked event${evs.length>1?'s':''}</h2><div class="sgtv">${evs.map(e=>`<button class="chip" data-nav="event:${esc(e.id)}">${esc(e.name)} ›</button>`).join('')}</div></div>`:''}
    <p class="mut sm spfn">${spNote}</p>`);
@@ -87,7 +87,7 @@ function bindSpSection(){setTimeout(spBindTiles,0);$$('[data-spp]').forEach(b=>b
 .spgrid{display:grid;grid-template-columns:1fr;gap:14px}
 @media(min-width:1100px){.spgrid{grid-template-columns:1.1fr 1.3fr 1fr}}
 .spk{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;margin:6px 0 10px}.spk b{display:block;font-size:30px;font-weight:300;letter-spacing:-.5px}.spk span{font-size:13px;color:var(--mut)}
-.spfn{margin:10px 0 0;line-height:1.45}.sprow{cursor:pointer}.sprow:hover{background:rgba(255,255,255,.03)}.spsh{aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.06);margin:0 0 14px}.spsh img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}.spsh img.in{opacity:1}.spk4 b small{font-size:.5em;color:var(--mut)}
+.spfn{margin:10px 0 0;line-height:1.45}.sprow{cursor:pointer}.sprow:hover{background:rgba(255,255,255,.03)}.spsh{aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.06);margin:0 0 14px}.spsh img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}.spsh img.in{opacity:1}.spdaily svg{width:100%;height:84px;display:block}.spk4 b small{font-size:.5em;color:var(--mut)}
 .sprow{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.sprow:last-child{border:0}
 .spth{width:64px;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:rgba(255,255,255,.06)}.spth img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}.spth img.in{opacity:1}
 .spn{min-width:0}.spn b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.spn span{font-size:12px;color:var(--mut)}
