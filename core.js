@@ -422,7 +422,7 @@ P.evMatch=function(o){const evs=(o.events||[]).filter(e=>e.s),posts=o.posts||[],
       for(const x of ph)if(x.b>best&&nm.includes(' '+x.t+' ')){best=Math.min(97,x.b+1);why='“'+x.raw.trim()+'” in the issue name'}
       for(const tt of Object.values(c.titles||{})){const tn=' '+P.sNorm(tt)+' ';for(const x of ph)if(x.b>best&&tn.includes(' '+x.t+' ')){best=x.b;why='story “'+tt+'”'}}
       if(best)put('em:'+c.id,'em',ev,best,why)}
-    if(o.signage&&today>=ws&&today<=we)for(const it of o.signage){const nm=' '+P.sNorm(it.name,1)+' ';let best=0,why='';for(const x of ph)if(x.b>best&&nm.includes(' '+x.t+' ')){best=x.b;why='“'+x.raw.trim()+'” in the slide name'}if(best)put('sg:'+it.name,'sg',ev,best,why)}}
+    if(o.signage&&today>=ws&&today<=we)for(const it of o.signage){const nm=' '+P.sNorm(it.name,1)+' '+P.slideOcr(it);let best=0,why='';for(const x of ph)if(x.b>best&&nm.includes(' '+x.t+' ')){best=x.b;why='“'+x.raw.trim()+'” in the slide'}if(best)put('sg:'+it.name,'sg',ev,best,why)}}
   // v38 Connections: an enabled rule links at 95% (a person's answer, applied after the Links tab, still wins)
   const CN=o.conn,evIds=new Set(evs.map(e=>e.id));
   if(CN)for(const [k,m] of CN.byItem)for(const c of m.values()){if(c.ttype!=='event'||c.state!=='rule'||!evIds.has(c.tid))continue;let a=byItem.get(k);if(!a)byItem.set(k,a=[]);let x=a.find(y=>y.ev===c.tid);
@@ -495,6 +495,8 @@ P.progCoverage=function(o){const progs=(o.programs||[]).filter(p=>!isShared(p)),
 // web: listed Web paths (prefix) win; else a program keyword found in the page address words. email: keyword in name/subject/link titles. signage: keyword in slide name.
 // events: keyword (or the program/facility name) inside the event name / other names, or the event's lead section naming the program.
 P.slideNorm=n=>' '+P.sNorm(String(n||'').replace(/\.(jpe?g|png|gif|mp4|mov|webm)$/i,'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[_\-]+/g,' '),1)+' ';
+// v47: words read off the slide image (Digital Signage OCR, items[].ocr), appended to a slide's match text
+P.slideOcr=x=>x&&typeof x==='object'&&x.ocr?' '+P.sNorm(String(x.ocr),1)+' ':'';
 P.progKw=p=>[...new Set([...(p.kw||[]),p.facility||p.program].map(k=>P.sNorm(k,1)).filter(k=>k.length>=3))];
 P.progChannels=function(o){const rows=(o.cov&&o.cov.rows)||[],today=o.today||P.todayKey(),ds=o.ds||o.s,inR=d=>d>=o.s&&d<=o.e,inC=d=>o.cs&&d>=o.cs&&d<=o.ce,inD=d=>d>=ds&&d<=o.e;
   const kwOf=p=>{const a=[...(p.kw||[]),p.facility||p.program].map(k=>P.sNorm(k,1)).filter(k=>k.length>=3);return [...new Set(a)]};
@@ -521,7 +523,7 @@ P.progChannels=function(o){const rows=(o.cov&&o.cov.rows)||[],today=o.today||P.t
   for(const c of o.email||[]){if(c.kind!=='camp'||!c.date)continue;const t=' '+P.sNorm([c.name,c.subject||'',...Object.values(c.titles||{})].join(' | ').replace(/[|]/g,' '),1)+' ';
     const ek='em:'+c.id;for(const r of rows){if(!(hasKw(r.id,t)&&!blk(ek,r.id)||lnk(ek,r.id)))continue;const R=out.get(r.id);if(inR(c.date)){R.em.opens+=c.opens||0;R.em.clicks+=c.clicks||0;R.em.camps.push(c)}if(inC(c.date))R.em.po+=c.opens||0;day(R,c.date,'em',c.opens||0)}}
   // signage (what is in rotation now)
-  for(const it of o.signage||[]){const t=P.slideNorm(it.name),sk='sg:'+it.name;for(const r of rows)if(hasKw(r.id,t)&&!blk(sk,r.id)||lnk(sk,r.id))out.get(r.id).sg.slides.push(it.name)}
+  for(const it of o.signage||[]){const t=P.slideNorm(it.name)+P.slideOcr(it),sk='sg:'+it.name;for(const r of rows)if(hasKw(r.id,t)&&!blk(sk,r.id)||lnk(sk,r.id))out.get(r.id).sg.slides.push(it.name)}
   // events
   for(const e of o.events||[]){if(!e.s)continue;const t=' '+P.sNorm([e.name,...(e.aka||[])].join(' '),1)+' ',lead=P.sNorm(e.lead||'',1);
     for(const r of rows){const nm=[r.p.program,r.p.facility].filter(Boolean).map(x=>P.sNorm(x,1));if(hasKw(r.id,t)||lead&&nm.includes(lead))out.get(r.id).ev.push(e)}}
@@ -551,7 +553,7 @@ P.connDesc=function(ch,x,extra){if(x==null)return null;
   if(ch==='we'){const p=String(x);const lp=p.toLowerCase().replace(/\/+$/,'')||'/';return {key:'we:'+p,ch,path:lp,paths:[lp],text:' '+P.sNorm(lp.replace(/[-_/.]+/g,' ')+' '+(extra||''),1)+' ',tags:new Set()}}
   if(ch==='em'){const t=[x.name,x.subject||'',...Object.values(x.titles||{})].join(' | ');const urls=[...Object.keys(x.titles||{}),...(x.links||[]).map(l=>Array.isArray(l)?l[0]:l&&(l.url||l.u)||'')];
     return {key:'em:'+x.id,ch,text:' '+P.sNorm(t.replace(/[|]/g,' '),1)+' ',tags:new Set((t.match(/#\w+/g)||[]).map(h=>h.slice(1).toLowerCase())),paths:linkPaths(urls)}}
-  if(ch==='sg'){const nm=typeof x==='string'?x:x.name;return {key:'sg:'+nm,ch,text:P.slideNorm(nm)+P.sNorm(String(nm||'').replace(/\.(jpe?g|png|gif|mp4|mov|webm)$/i,'').replace(/[_\-]+/g,' '),1)+' ',tags:new Set(),paths:[]}}
+  if(ch==='sg'){const nm=typeof x==='string'?x:x.name;return {key:'sg:'+nm,ch,text:P.slideNorm(nm)+P.sNorm(String(nm||'').replace(/\.(jpe?g|png|gif|mp4|mov|webm)$/i,'').replace(/[_\-]+/g,' '),1)+' '+P.slideOcr(x),tags:new Set(),paths:[]}}
   return null};
 // patterns are stored lower-case; '#okinapa', 'turkey trot', '/okinapa-wine-festival', 'ig:mccsokinawa_fitness', '/comic-con'
 P.connRuleNorm=function(type,pat){let p=String(pat||'').trim().toLowerCase();if(!p)return '';
