@@ -69,7 +69,7 @@ function render(){const app=$('#app');if(TV.on)return TV.render();
   {accts=P.byPage(L);if(S.acct!=='all'&&!accts.some(g=>g.plat+'|'+g.page===S.acct))S.acct='all';
     if(S.acct!=='all'){const m=r=>r.plat+'|'+r.page===S.acct;L=L.filter(m);C=C.filter(m);t=P.totals(L);c=P.totals(C)}}
   const WEBV=S.view==='explore'&&S.mode==='web'&&S.web.length,EMV=S.view==='explore'&&S.mode==='email'&&S.email.length,PROGV=S.view==='explore'&&!WEBV&&!EMV&&S.socSub==='programs';
-  if(S.view==='signage'){app.innerHTML=topbar()+hubPills('signage')+signageView();bindTop();bindSignage();hubAfterSignage();hubDock();return}
+  if(S.view==='signage'){app.innerHTML=topbar()+hubPills('signage')+signageView()+(SG.data||SPL.data?spSection():'');bindTop();bindSignage();bindSpSection();spKick('signage');hubAfterSignage();hubDock();return}
   if(S.view==='events'){app.innerHTML=topbar()+hubEventsView();bindTop();bindHub();return}
   if(S.view==='programs'){setRange();app.innerHTML=topbar()+progView();bindTop();bindProg();bindHub();return}
   if(S.view==='connections'){app.innerHTML=topbar()+cnView();bindTop();bindHub();bindCn();if(typeof sgFill==='function')sgFill($('#app'));return}
@@ -236,6 +236,7 @@ const SOURCES=[
  {k:'web',l:'Website (GA4)',short:'Website',due:8,get:webSrc},
  {k:'email',l:'Email (Constant Contact)',short:'Email',due:10,get:emSrc},
  {k:'signage',l:'Digital Signage (ScreenCloud)',short:'Signage',due:2,late:5,auto:1,get:sgSrc,empty:sgEmptyTxt},
+ {k:'plays',l:'Signage slide plays (ScreenCloud)',short:'Slide plays',due:26/24,late:3,auto:1,get:spSrc,empty:spEmptyTxt},
  {k:'events',l:'Strategic Events',short:'Events',planned:1,note:'Not set up yet · coming soon'}
 ];
 function dataStatus(){let src={},imp={};try{src=JSON.parse(localStorage.pulseSrc||'{}')}catch(e){}try{imp=JSON.parse(localStorage.pulseImp||'{}')}catch(e){}
@@ -243,7 +244,7 @@ function dataStatus(){let src={},imp={};try{src=JSON.parse(localStorage.pulseSrc
  return SOURCES.map(s=>{const base={k:s.k,l:s.l,short:s.short||s.l,auto:!!s.auto};
   if(s.planned)return Object.assign(base,{planned:1,note:s.note,stt:['plan','Coming soon']});
   const d=s.get(),a=d?(s.auto?(Date.now()-new Date(d.through))/864e5:age(d.through)):null,late=s.late==null?7:s.late;
-  const stt=!d?['none','No data']:a<=s.due?['ok','Current']:a<=s.due+late?['due',s.auto?'Sync late':'Update due']:['old','Out of date'];
+  const stt=!d?['none','No data']:d.err?['due','Sync late']:a<=s.due?['ok','Current']:a<=s.due+late?['due',s.auto?'Sync late':'Update due']:['old','Out of date'];
   if(d&&d.how)return Object.assign(base,{d,a,stt,file:null,when:null,how:d.how});
   const r=src[s.k]||{},i=imp[s.k];const pub=r.published||null,loc=i&&(!pub||i.at>pub)?i:null;
   return Object.assign(base,{d,a,stt,empty:s.empty?s.empty():'Nothing loaded yet.',file:loc?loc.file:r.file||null,when:loc?loc.at:pub||(d&&localStorage.pulseSynced)||null,how:loc?'imported on this device':pub||localStorage.pulseSynced?'published by Hark':''})})}
