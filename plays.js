@@ -52,20 +52,42 @@ function spSection(){setRange();const R=spRange(S.s,S.e),C=R?spCmp():null,pr=`<d
   if(!R||!R.t)return `<section class="spsec">${head}<div class="card"><p class="mut" style="margin:0">No slide plays logged in this range. Play history starts ${P.fmtDate(SPL.data.from,{year:'numeric'})}.</p></div></section>`;
   const dlt=C?dl(R.t,C.t,true):'',played=R.slides.length,inRot=R.slides.filter(x=>x.item).length;
   const top=R.slides.slice(0,8),mx=top[0]?top[0].p:1,gmx=R.groups[0]?R.groups[0][1]:1;
-  const row=x=>`<div class="sprow"><div class="spth">${x.item&&x.item.t?`<img data-sg="${x.item.t}" alt="">`:''}</div><div class="spn"><b title="${esc(x.name)}">${esc(sgName(x.name))}</b><span>${x.item?'in rotation':'no longer in rotation'} · up to ${x.sc} screen${x.sc===1?'':'s'} · ${x.days} day${x.days===1?'':'s'}</span><div class="spb"><i style="width:${Math.max(2,x.p/mx*100)}%"></i></div></div><em>${hk(x.p)}</em></div>`;
+  const row=x=>`<div class="sprow" role="button" tabindex="0" data-slide="${esc(x.name)}"><div class="spth">${x.item&&x.item.t?`<img data-sg="${x.item.t}" alt="">`:''}</div><div class="spn"><b title="${esc(x.name)}">${esc(sgName(x.name))}</b><span>${x.item?'in rotation':'no longer in rotation'} · up to ${x.sc} screen${x.sc===1?'':'s'} · ${x.days} day${x.days===1?'':'s'}</span><div class="spb"><i style="width:${Math.max(2,x.p/mx*100)}%"></i></div></div><em>${hk(x.p)}</em></div>`;
   return `<section class="spsec">${head}<div class="spgrid">
    <div class="card spin"><h2>In this range</h2><div class="spk"><div><b>${hk(R.t)}</b><span>slide plays${dlt?' · '+dlt:''}</span></div><div><b>${nf(Math.round(R.perScreen))}</b><span>per screen daily</span></div><div><b>${nf(played)}</b><span>slides played${inRot<played?` · ${inRot} still in rotation`:''}</span></div><div><b>${nf(R.scMax)}</b><span>screens at peak</span></div></div>${spark(R.daily.map(x=>x[1]),HC.sg,54)}<p class="mut sm spfn">${spNote}${R.ta>R.t?` Apps (menus, feeds) add another ${hk(R.ta-R.t)} plays, not broken down.`:''}</p></div>
    <div class="card spmost"><h2>Most played<small>this range</small></h2>${top.map(row).join('')}</div>
    <div class="card sploc"><h2>Plays by location</h2>${R.groups.slice(0,10).map(([g,v])=>`<div class="spl"><span>${esc(g==='Other'?'Other (no group)':g)}</span><div class="spb"><i style="width:${Math.max(2,v/gmx*100)}%"></i></div><em>${hk(v)}</em></div>`).join('')}<p class="mut sm spfn">From ScreenCloud's play logs, synced daily. Locations use today's screen groups.</p></div>
   </div></section>`}
-function bindSpSection(){$$('[data-spp]').forEach(b=>b.onclick=()=>{if(b.dataset.spp==='custom')return rangeSheet();S.preset=b.dataset.spp;localStorage.pulsePreset=S.preset;render()});if(typeof sgFill==='function')sgFill($('.spsec'))}
+// ---- one slide's sheet (tap a Most played row or a What's playing tile) ----
+function spSlide(name,s,e){const D=SPL.data;if(!D||!D.days)return null;const from=D.from,thru=D.through,a=s<from?from:s,b=e>thru?thru:e;if(a>b)return null;
+  let p=0,all=0,sc=0,days=0,first='',last='',hasG=false,noG=0;const daily=[],g=new Map();
+  for(let k=a;k<=b;k=P.addDays(k,1)){const d=D.days[k],v=d&&d.s&&d.s[name];all+=d?d.t||0:0;daily.push(v?v[0]:0);if(d&&d.sg)hasG=true;if(!v)continue;if(!d.sg)noG++;p+=v[0];sc=Math.max(sc,v[1]||0);days++;if(!first)first=k;last=k;
+    const gg=d.sg&&d.sg[name];if(gg)for(const x in gg)g.set(x,(g.get(x)||0)+gg[x])}
+  return {s:a,e:b,since:s<from?from:null,p,all,share:all?p/all:0,sc,days,span:Math.round((new Date(b)-new Date(a))/864e5)+1,first,last,daily,hasG,noG,groups:[...g].sort((x,y)=>y[1]-x[1])}}
+function spSlideSheet(name){setRange();const R=spSlide(name,S.s,S.e),C=SPL.data&&S.cs>=(SPL.data.from||'9')?spSlide(name,S.cs,S.ce):null;
+  const it=SG.data&&SG.data.items&&SG.data.items.find(i=>i.name===name),pl=it&&(SGC[it.playlist]||[it.playlist])[0];
+  const evs=typeof evOf==='function'?evOf('sg:'+name).map(x=>evGet(x.ev)).filter(Boolean):[];
+  const img=it&&it.t?`<div class="spsh"><img data-sg="${it.t}" alt=""></div>`:'';
+  const top=`${img}<div class="mut sm">${esc(P.rangeLabel(S.s,S.e))}${R&&R.since?` · plays since ${P.fmtDate(R.since,{year:'numeric'})}`:''}</div><h3 style="margin-top:6px">${esc(sgName(name))}</h3><p class="mut sm" style="margin:-6px 0 12px">${it?`In rotation now${pl?' · '+esc(pl):''}${it.kind==='video'?' · video':''}`:'No longer in rotation'}</p>`;
+  if(!R||!R.p){openSheet(top+`<div class="card"><p class="mut" style="margin:0">${SPL.data?'No plays logged for this slide in this range.':esc(spEmptyTxt())}</p></div>`);sgFill($('#sheetBody'));return}
+  const dlt=C&&C.p?dl(R.p,C.p,true):C?'<span class="mut">new this period</span>':'';
+  const gmx=R.groups[0]?R.groups[0][1]:1;
+  openSheet(top+`<div class="spk spk4"><div><b>${hk(R.p)}</b><span>plays${dlt?' · '+dlt:''}</span></div><div><b>${(R.share*100).toFixed(R.share<.1?1:0)}%</b><span>of all slide plays</span></div><div><b>${R.days}<small> / ${R.span}</small></b><span>days on air</span></div><div><b>${nf(R.sc)}</b><span>screens at peak</span></div></div>
+   <div class="card" style="margin-top:12px"><h2>Daily plays<small>${hd(R.first)} – ${hd(R.last)}</small></h2>${spark(R.daily,HC.sg,64)}</div>
+   ${R.hasG?`<div class="card" style="margin-top:12px"><h2>Plays by location${R.noG?`<small>partial · ${R.days-R.noG} of ${R.days} days</small>`:''}</h2>${R.groups.length?R.groups.slice(0,10).map(([g,v])=>`<div class="spl"><span>${esc(g==='Other'?'Other (no group)':g)}</span><div class="spb"><i style="width:${Math.max(2,v/gmx*100)}%"></i></div><em>${hk(v)}</em></div>`).join(''):'<p class="mut sm">No location detail for these days yet.</p>'}</div>`:`<p class="mut sm spfn">Plays by location for each slide arrive with the next signage sync.</p>`}
+   ${evs.length?`<div class="card" style="margin-top:12px"><h2>Linked event${evs.length>1?'s':''}</h2><div class="sgtv">${evs.map(e=>`<button class="chip" data-nav="event:${esc(e.id)}">${esc(e.name)} ›</button>`).join('')}</div></div>`:''}
+   <p class="mut sm spfn">${spNote}</p>`);
+  sgFill($('#sheetBody'));$$('#sheetBody [data-nav]').forEach(b=>b.onclick=()=>{closeSheet&&closeSheet();if(typeof hubNav==='function')hubNav(b.dataset.nav)})}
+function spBindTiles(){$$('[data-slide]').forEach(el=>{el.onclick=()=>spSlideSheet(el.dataset.slide);el.onkeydown=e=>{if(e.key==='Enter')spSlideSheet(el.dataset.slide)}});
+  $$('.sgth').forEach(el=>{el.style.cursor='pointer';el.onclick=e=>{if(e.target.closest('button'))return;spSlideSheet(el.title)}})}
+function bindSpSection(){setTimeout(spBindTiles,0);$$('[data-spp]').forEach(b=>b.onclick=()=>{if(b.dataset.spp==='custom')return rangeSheet();S.preset=b.dataset.spp;localStorage.pulsePreset=S.preset;render()});if(typeof sgFill==='function')sgFill($('.spsec'))}
 (function(){const st=document.createElement('style');st.textContent=`
 .spsec{margin-top:18px}.sphead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px;margin:0 2px 12px}.sphead h2{margin:0}.sphead h2 small{display:block;margin:4px 0 0}
 .sprange{margin:0}
 .spgrid{display:grid;grid-template-columns:1fr;gap:14px}
 @media(min-width:1100px){.spgrid{grid-template-columns:1.1fr 1.3fr 1fr}}
 .spk{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;margin:6px 0 10px}.spk b{display:block;font-size:30px;font-weight:300;letter-spacing:-.5px}.spk span{font-size:13px;color:var(--mut)}
-.spfn{margin:10px 0 0;line-height:1.45}
+.spfn{margin:10px 0 0;line-height:1.45}.sprow{cursor:pointer}.sprow:hover{background:rgba(255,255,255,.03)}.spsh{aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.06);margin:0 0 14px}.spsh img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}.spsh img.in{opacity:1}.spk4 b small{font-size:.5em;color:var(--mut)}
 .sprow{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.sprow:last-child{border:0}
 .spth{width:64px;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:rgba(255,255,255,.06)}.spth img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}.spth img.in{opacity:1}
 .spn{min-width:0}.spn b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.spn span{font-size:12px;color:var(--mut)}
