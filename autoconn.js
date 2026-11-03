@@ -66,3 +66,37 @@ if(typeof spSection==='function'){const _ss2=spSection;spSection=function(){cons
 {const _b2=spBindTiles;spBindTiles=function(){_b2.apply(this,arguments);if(typeof TV!=='undefined'&&TV.on)return;
   $$('.sprow[data-slide]').forEach(el=>{if(el.querySelector('.acpd'))return;const ps=acPaid('sg:'+el.dataset.slide);if(!ps.length)return;const s=el.querySelector('.spn span');if(s)s.insertAdjacentHTML('beforeend',` <span class="acpd">${hic('tag',11)}Paid ad · ${esc(ps[0].label)}</span>`)});
   $$('.sgplay .sgth[title]').forEach(el=>{if(el.querySelector('.acpd'))return;if(acPaid('sg:'+el.title).length)el.insertAdjacentHTML('beforeend',`<span class="acpd on">${hic('tag',11)}Paid ad</span>`)})}}
+// ---- v49 feedback: every action answers right away, where the finger is, with Undo when it can be undone ----
+const FX={last:null};
+const fxFresh=k=>FX.last&&Date.now()-FX.last.t<6000&&(!k||FX.last.item===k);
+const fxBuzz=t=>{try{if(navigator.vibrate)navigator.vibrate(t==='err'?[20,40,20]:12)}catch(e){}};
+toast=function(m,o){o=o||{};m=String(m);const t=$('#toast');if(!t)return;
+  const type=o.type||(/^(Not saved|Could ?n|Couldn|Error|Failed|That item is not)/i.test(m)?'err':/^(Connected|Linked|Saved|Settings saved|Removed|Kept|Got it|Backup saved|Erased|Copied|Done|Your change|Passcode forgotten|\d+ earlier)/i.test(m)?'ok':'info');
+  t.className='toast t-'+type;t.setAttribute('role',type==='err'?'alert':'status');t.setAttribute('aria-live',type==='err'?'assertive':'polite');
+  t.innerHTML=`<span class="ti">${hic(type==='err'?'alert':type==='ok'?'check':'pulse',16)}</span><span class="tm"></span>${o.undo?'<button class="tu" type="button">Undo</button>':''}`;t.querySelector('.tm').textContent=m;
+  if(o.undo)t.querySelector('.tu').onclick=()=>{clearTimeout(t._h);t.classList.remove('show');o.undo()};
+  t.classList.remove('show');void t.offsetWidth;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),o.undo?6000:type==='err'?5000:2800);if(type!=='info')fxBuzz(type)};
+// remember the last connect/remove so the drawer, toast and page can show it
+{const _ch=cnChange;cnChange=function(c,o){const lid=_ch.apply(this,arguments);if(c&&(c.act==='link'||c.act==='unlink')&&c.src!=='undo'&&c.src!=='rule')FX.last={t:Date.now(),lid,item:c.item,tt:c.ttype,tid:String(c.tid),label:c.tlabel||cnTLabel(c.ttype,c.tid),act:c.act};
+  setTimeout(()=>fxPage(c&&c.item),0);return lid}}
+function fxUndo(){const f=FX.last;if(!f)return;FX.last=null;const r=cnRowByLid(f.lid);
+  const go=()=>{if(r)cnUndo(r);else cnChange({item:f.item,ttype:f.tt,tid:f.tid,tlabel:f.label,act:f.act==='link'?'unlink':'link',src:'undo'});
+   if(CN.d)cnDrawer();fxPage(f.item);toast((f.act==='link'?'Undone · '+f.label+' removed':'Undone · '+f.label+' is back'),{type:'ok'})};
+  typeof cnAskName==='function'?cnAskName(go):go()}
+// the old one-line toasts for connect/remove become specific, with Undo. In the drawer the answer shows in the drawer instead.
+{const _t=toast;toast=function(m,o){if(/^(Connected|Removed) · /.test(String(m))&&fxFresh()){const f=FX.last,said=String(m).split(' · ').slice(1).join(' · ');if(CN.d&&CN.d.key===f.item){fxBuzz('ok');return}
+  return _t((f.act==='link'?'Connected to ':'Removed ')+f.label+(said?' · '+said:''),{type:'ok',undo:fxUndo})}return _t(m,o)}}
+// drawer: a banner at the top and the new chip pops
+{const _d=cnDrawer;cnDrawer=function(){const r=_d.apply(this,arguments);try{const d=CN.d,el=$('#cnd');if(!d||!el||!fxFresh(d.key))return r;const f=FX.last,b=el.querySelector('.dr-b');
+  if(b&&!b.querySelector('.acfx')){b.insertAdjacentHTML('afterbegin',`<div class="acfx ${f.act==='link'?'ok':'rm'}" role="status" aria-live="polite"><span class="ck">${hic(f.act==='link'?'check':'link',16)}</span><span class="tx">${f.act==='link'?'Connected to':'Removed'} <b></b></span><button class="tu" type="button">Undo</button></div>`);
+   const x=b.querySelector('.acfx');x.querySelector('b').textContent=f.label;x.querySelector('.tu').onclick=fxUndo;if(Date.now()-f.t<700)b.scrollTop=0}
+  if(f.act==='link'){const c=el.querySelector(`[data-cnchip="${CSS.escape(f.tt+'|'+f.tid)}"]`);const tc=c&&c.closest('.cn-tc');if(tc&&Date.now()-f.t<1500)tc.classList.add('just')}}catch(e){console.warn('fx drawer',e)}return r}}
+// the page behind: the open sheet and the row update in place, with a short green confirmation
+function fxPage(key){if(!key)return;try{const sh=$('#sheet');
+  if(sh&&sh.classList.contains('show')){const n=sh.dataset.acslide;if(n&&'sg:'+n===key&&typeof spSlideSheet==='function'){const b=$('#sheetBody'),y=b?b.scrollTop:0;spSlideSheet(n);const b2=$('#sheetBody');if(b2)b2.scrollTop=y;const a=b2&&b2.querySelector('.acsl');if(a)a.classList.add('fxok')}
+   else $$(`#sheetBody [data-cn="${CSS.escape(key)}"]`).forEach(btn=>{const has=acHas(key).length||cnConns(key).length;btn.innerHTML=`${hic(has?'check':'link',14)}${has?'Connected · edit':'Connect'}`;btn.classList.toggle('fxok',!!has)})}
+  const has=acHas(key).length;
+  $$(`.acnc[data-cn="${CSS.escape(key)}"]`).forEach(b=>{if(!has)return;b.outerHTML=`<span class="acok${b.classList.contains('on')?' on':''}">${hic('check',11)}Connected</span>`});
+  $$(`.cn-cbtn[data-cn="${CSS.escape(key)}"]`).forEach(b=>{b.classList.remove('fxok');void b.offsetWidth;b.classList.add('fxok')});
+  setTimeout(()=>$$('.acok').forEach(x=>x.classList.add('gone')),2600);setTimeout(()=>$$('.acok.gone').forEach(x=>x.remove()),3200)}catch(e){console.warn('fx page',e)}}
+{const _c=cnCloseDrawer;cnCloseDrawer=function(){const k=CN.d&&CN.d.key;const r=_c.apply(this,arguments);if(k)fxPage(k);return r}}
