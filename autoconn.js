@@ -100,3 +100,12 @@ function fxPage(key){if(!key)return;try{const sh=$('#sheet');
   $$(`.cn-cbtn[data-cn="${CSS.escape(key)}"]`).forEach(b=>{b.classList.remove('fxok');void b.offsetWidth;b.classList.add('fxok')});
   setTimeout(()=>$$('.acok').forEach(x=>x.classList.add('gone')),2600);setTimeout(()=>$$('.acok.gone').forEach(x=>x.remove()),3200)}catch(e){console.warn('fx page',e)}}
 {const _c=cnCloseDrawer;cnCloseDrawer=function(){const k=CN.d&&CN.d.key;const r=_c.apply(this,arguments);if(k)fxPage(k);return r}}
+// ---- v50 Connect buttons say what they do: "Connect" when nothing is linked, "Edit connections" (with a check) when something is ----
+function fxConnN(key){try{return cnConns(key).filter(c=>c.tt!=='fb_account'&&c.tt!=='ig_account').length}catch(e){return 0}}
+function fxLabelBtns(root){try{(root||document).querySelectorAll('.cn-cbtn[data-cn]').forEach(b=>{const n=fxConnN(b.dataset.cn);const st=n?'on':'off';if(b.dataset.st===st)return;b.dataset.st=st;b.classList.toggle('has',!!n);
+   b.innerHTML=n?hic('check',12)+'Edit connections':hic('link',12)+'Connect';b.setAttribute('aria-label',n?`Edit connections (${n} connected)`:'Connect')});
+  (root||document).querySelectorAll('.cn-sheetbtn > [data-cn]').forEach(b=>{if(b.closest('.acsl'))return;const n=fxConnN(b.dataset.cn);b.classList.toggle('has',!!n);b.innerHTML=n?`${hic('check',14)}Edit connections · ${n} connected`:`${hic('link',14)}Connect to programs, events…`})}catch(e){console.warn('fx labels',e)}}
+{const _dc=cnDecorate;cnDecorate=function(root){const r=_dc.apply(this,arguments);fxLabelBtns(root);return r}}
+{const _p=postSheet;postSheet=function(){const r=_p.apply(this,arguments);fxLabelBtns($('#sheetBody'));return r}}
+{const _e=emailCampSheet;emailCampSheet=function(){const r=_e.apply(this,arguments);fxLabelBtns($('#sheetBody'));return r}}
+{const _fp=fxPage;fxPage=function(k){_fp(k);$$('.cn-cbtn[data-cn]').forEach(b=>{if(b.dataset.cn===k)delete b.dataset.st});fxLabelBtns()}}
