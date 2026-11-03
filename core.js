@@ -347,6 +347,11 @@ P.evLinksParse=function(values){if(!values||values.length<2)return [];const c=co
 P.progParse=function(values){if(!values||values.length<2)return [];const c=cols(values[0]),g=(r,...n)=>{const i=c(...n);return i<0?'':String(r[i]==null?'':r[i]).trim()};
   return values.slice(1).filter(r=>g(r,'Program')).map(r=>{const ex=g(r,'Expected');return {branch:g(r,'Branch'),program:g(r,'Program'),facility:g(r,'Facility'),id:g(r,'Program ID')||P.sNorm(g(r,'Facility')||g(r,'Program')).replace(/ /g,'-'),
     fb:splitList(g(r,'FB pages')),ig:splitList(g(r,'IG accounts')).map(x=>x.replace(/^@/,'')),kw:splitList(g(r,'Keywords')),web:splitList(g(r,'Web paths','Web pages')).map(x=>x.replace(/^https?:\/\/[^/]+/,'').toLowerCase()),exp:ex===''?null:+ex,notes:g(r,'Notes'),parent:g(r,'Parent')}})};
+// v48 Sponsors tab: outside sponsors whose paid ads run on MCCS channels. 'paid-other' is the built-in catch-all.
+P.spoParse=function(values){const out=[];if(values&&values.length>=2){const c=cols(values[0]),g=(r,...n)=>{const i=c(...n);return i<0?'':String(r[i]==null?'':r[i]).trim()};
+  for(const r of values.slice(1)){const name=g(r,'Sponsor');if(!name)continue;out.push({id:g(r,'Sponsor ID')||P.sNorm(name).replace(/ /g,'-'),name,kw:splitList(g(r,'Keywords')),cat:g(r,'Category'),s:g(r,'Contract start','Start'),e:g(r,'Contract end','End'),ch:splitList(g(r,'Channels')),notes:g(r,'Notes')})}}
+  if(!out.some(x=>x.id==='paid-other'))out.push({id:'paid-other',name:'Paid ad (sponsor not listed)',kw:[],cat:'Other',s:'',e:'',ch:[],notes:''});return out};
+P.spoKw=x=>x.id==='paid-other'?[]:[...new Set([...(x.kw||[]),x.name].map(k=>P.sNorm(k,1)).filter(k=>k.length>=3))];
 // v46 program family tree: a Parent column (program ID or name) rolls children up into parents.
 // A parent's keywords become its own plus every descendant's keywords and names, so anything that matches Veranda also counts for Ocean Breeze and Clubs.
 P.progTree=function(progs){if(!Array.isArray(progs))return progs;const by=new Map(),nm=new Map();for(const p of progs){by.set(p.id,p);for(const n of [p.facility,p.program&&!p.facility?p.program:''])if(n)nm.set(P.sNorm(n,1),p);if(!p.kwOwn)p.kwOwn=(p.kw||[]).slice();p.kids=[];p.up=[]}

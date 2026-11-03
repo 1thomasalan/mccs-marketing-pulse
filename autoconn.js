@@ -3,7 +3,7 @@
 // 2) "Connected" score + "Not connected" lists: Programs tab (posts, newsletters, slides in the range) and Signage tab (slides)
 // A thing counts as connected when it has any program or event: auto (keywords, page, web paths, family tree), a rule, or a person's link.
 const AC={k:'',R:null};
-function acHas(key){try{if(key.startsWith('sg:')){cnItems();if(!CN.Imap.has(key))CN.Imap.set(key,P.connDesc('sg',key.slice(3)))}return cnConns(key).filter(c=>c.tt==='program'||c.tt==='event')}catch(e){return []}}
+var acHas=function(key){try{if(key.startsWith('sg:')){cnItems();if(!CN.Imap.has(key))CN.Imap.set(key,P.connDesc('sg',key.slice(3)))}return cnConns(key).filter(c=>c.tt==='program'||c.tt==='event')}catch(e){return []}};
 function acSlides(){const n=new Set(((SG.data&&SG.data.items)||[]).map(i=>i.name));const R=typeof spRange==='function'?spRange(S.s,S.e):null;if(R)for(const x of R.slides)n.add(x.name);return [...n]}
 function acScore(){setRange();const k=[S.s,S.e,typeof cnStamp==='function'?cnStamp():'',typeof cnItemsKey==='function'?cnItemsKey():'',SPL.meta&&SPL.meta.pulled,(evData()||{}).updated].join('~');if(AC.k===k&&AC.R)return AC.R;
   const posts=gsPosts().filter(r=>r.d>=S.s&&r.d<=S.e),ems=(typeof emCamps==='function'?emCamps():[]).filter(c=>c.date&&c.date>=S.s&&c.date<=S.e),sl=acSlides();
@@ -13,7 +13,7 @@ const acPct=o=>o.of?Math.round(o.n/o.of*100):null;
 const acBar=(lab,o,ch)=>{const p=acPct(o);return `<button class="acrow" data-acmiss="${ch}" ${o.miss.length?'':'disabled'}><span class="acl">${lab}</span><span class="acb"><i style="width:${p==null?0:p}%" class="${p==null?'':p>=80?'acok':p>=50?'acmid':'aclow'}"></i></span><span class="acv">${p==null?'—':p+'%'}</span><span class="acm">${o.miss.length?`${nf(o.miss.length)} not connected ›`:o.of?'all connected':'none in range'}</span></button>`};
 function acCard(which){const R=acScore();const rows=(which==='sg'?[['Slides',R.sg,'sg']]:[['Posts',R.so,'so'],['Newsletters',R.em,'em'],['Slides',R.sg,'sg']]);
   const tot=rows.reduce((a,[, o])=>[a[0]+o.n,a[1]+o.of],[0,0]),p=tot[1]?Math.round(tot[0]/tot[1]*100):null;
-  return `<div class="card accard"><h2>Connected to a program or event<small>${esc(P.rangeLabel(S.s,S.e))}${p!=null&&which!=='sg'?` · ${p}% overall`:''}</small></h2>${rows.map(([l,o,c])=>acBar(l,o,c)).join('')}<p class="mut sm" style="margin:8px 0 0">Goal: 80% or more connect on their own. Tap a row to connect the rest.</p></div>`}
+  return `<div class="card accard"><h2>Connected to a program, event or sponsor<small>${esc(P.rangeLabel(S.s,S.e))}${p!=null&&which!=='sg'?` · ${p}% overall`:''}</small></h2>${rows.map(([l,o,c])=>acBar(l,o,c)).join('')}<p class="mut sm" style="margin:8px 0 0">Goal: 80% or more connect on their own. Tap a row to connect the rest.</p></div>`}
 function acMissSheet(ch){const R=acScore(),o=R[ch];if(!o)return;const L=o.miss;
   const row=(key,title,sub,th)=>`<div class="acit"><button class="acopen" data-acopen="${esc(key)}">${th||''}<span><b>${esc(title)}</b><small>${esc(sub)}</small></span></button><button class="hbtn ghost sm" data-cn="${esc(key)}">${hic('link',13)}Connect</button></div>`;
   const items=ch==='so'?L.slice().sort((a,b)=>b.v-a.v).slice(0,150).map(r=>row('so:'+r.id,P.label(r),`${r.plat==='ig'?'Instagram':'Facebook'} · ${acctName(r.plat,r.page)} · ${P.fmtDate(r.d)} · ${P.fmt(r.v)} views`))
@@ -28,7 +28,7 @@ if(typeof cnCloseDrawer==='function'){const _c=cnCloseDrawer;cnCloseDrawer=funct
 // slide sheet: what it's connected to + Connect button
 if(typeof spSlideSheet==='function'){const _s=spSlideSheet;spSlideSheet=function(name){_s(name);const body=$('#sheetBody'),sh=$('#sheet');if(!body||!sh.classList.contains('show'))return;sh.dataset.acslide=name;
   const c=acHas('sg:'+name),w=document.createElement('div');w.className='cn-sheetbtn acsl';
-  w.innerHTML=`${c.length?`<div class="acon"><span class="mut sm">Connected to</span>${c.slice(0,6).map(x=>`<span class="chip sm">${esc(x.label||x.tid)}</span>`).join('')}</div>`:'<div class="acon"><span class="acwarn">Not connected yet</span></div>'}<button class="hbtn ghost sm" data-cn="sg:${esc(name)}">${hic('link',14)}${c.length?'Edit connections':'Connect to programs, events…'}</button>`;
+  w.innerHTML=`${c.length?`<div class="acon"><span class="mut sm">Connected to</span>${c.slice(0,6).map(x=>x.tt==='sponsor'?`<span class="acpd" style="margin:0">${hic('tag',11)}Paid ad · ${esc(x.label||x.tid)}</span>`:`<span class="chip sm">${esc(x.label||x.tid)}</span>`).join('')}</div>`:'<div class="acon"><span class="acwarn">Not connected yet</span></div>'}<button class="hbtn ghost sm" data-cn="sg:${esc(name)}">${hic('link',14)}${c.length?'Edit connections':'Connect to programs, events…'}</button>`;
   const p=body.querySelector('h3+p')||body.querySelector('h3');if(p)p.after(w);else body.prepend(w)}}
 if(typeof closeSheet==='function'){const _cs=closeSheet;closeSheet=function(){const sh=$('#sheet');if(sh)delete sh.dataset.acslide;return _cs.apply(this,arguments)}}
 // tiles and rows: a small Connect button only on slides with nothing connected
@@ -40,3 +40,29 @@ if(typeof spSection==='function'){const _ss=spSection;spSection=function(){const
 // Programs tab (list): the three channel scores above the list
 if(typeof bindProg==='function'){const _bp=bindProg;bindProg=function(){_bp.apply(this,arguments);if(S.progSub==='detail'||$('#app .accard')||!evData())return;const anchor=$('#app .ctl');if(!anchor)return;
   const d=document.createElement('div');try{d.innerHTML=acCard('all')}catch(e){console.warn('connect score',e);return}anchor.parentNode.insertBefore(d.firstElementChild,anchor.nextSibling)}}
+// ---- v48 paid ads: outside sponsors (Sponsors tab) as a connection target, kept apart from MCCS promotions ----
+HI.tag='<path d="M3 12V4h8l9 9-8 8-9-9z"/><circle cx="7.5" cy="8.5" r="1.4"/>';
+CNT.sponsor={l:'Sponsor (paid ad)',g:'Paid ads',i:'tag',c:'spo'};
+const acSpons=()=>{const d=evData();const L=(d&&Array.isArray(d.sponsors)&&d.sponsors.length)?d.sponsors:P.spoParse(null);return L.some(x=>x.id==='paid-other')?L:[...L,...P.spoParse(null)]};
+{const _t=cnTargets;cnTargets=function(){const T=_t();if(!T._sp){for(const s of acSpons())T.push({tt:'sponsor',id:s.id,label:s.name,sub:'Paid ad'+(s.cat?' · '+s.cat:'')});T._sp=1}return T}}
+{const _l=cnTLabel;cnTLabel=function(tt,tid,fb){if(tt==='sponsor'){const s=acSpons().find(x=>x.id===tid);return s?s.name:fb||tid}return _l.apply(this,arguments)}}
+// automatic sponsor match: sponsor name or keyword in the item's text (for slides, the file name plus the words read off the slide), inside the contract dates when given
+{const _c=cnConns;cnConns=function(key){const out=_c(key);try{const K='\u0001',have=new Set(out.map(o=>o.tt+K+o.tid));const blocked=new Set(P.connOf(cnApplied(),key).filter(c=>c.state==='blocked').map(c=>c.ttype+K+c.tid));
+  const d=cnDesc(key)||(key.startsWith('sg:')?P.connDesc('sg',key.slice(3)):null);if(!d)return out;const it=cnInfo(key),dt=it&&it.d;
+  for(const s of acSpons()){if(have.has('sponsor'+K+s.id)||blocked.has('sponsor'+K+s.id))continue;if(dt&&((s.s&&dt<s.s)||(s.e&&dt>s.e)))continue;const k=P.spoKw(s).find(k=>d.text.includes(' '+k+' '));if(k)out.push({tt:'sponsor',tid:s.id,label:s.name,src:'auto',why:'sponsor name “'+k+'”',rm:1})}}catch(e){console.warn('sponsor match',e)}return out}}
+const acPaid=key=>{try{return acHas(key).filter(c=>c.tt==='sponsor')}catch(e){return []}};
+// a sponsor counts as connected too
+acHas=function(key){try{if(key.startsWith('sg:')){cnItems();if(!CN.Imap.has(key))CN.Imap.set(key,P.connDesc('sg',key.slice(3)))}return cnConns(key).filter(c=>c.tt==='program'||c.tt==='event'||c.tt==='sponsor')}catch(e){return []}};
+// Signage tab: paid ads vs MCCS promotions, by slide plays in the range
+function acPaidCard(){const R=typeof spRange==='function'?spRange(S.s,S.e):null;if(!R||!R.slides||!R.slides.length)return '';let pp=0,mp=0,pn=0,mn=0;const by=new Map();
+  for(const x of R.slides){const ps=acPaid('sg:'+x.name);if(ps.length){pp+=x.p;pn++;const s=ps[0];const o=by.get(s.tid)||{l:s.label,p:0,n:0};o.p+=x.p;o.n++;by.set(s.tid,o)}else{mp+=x.p;mn++}}
+  const tot=pp+mp||1,pct=Math.round(pp/tot*100),L=[...by.values()].sort((a,b)=>b.p-a.p).slice(0,6);
+  return `<div class="card accard acpaid"><h2>MCCS promotions vs paid ads<small>${esc(P.rangeLabel(S.s,S.e))} · slide plays</small></h2>
+   <div class="acsplit"><i style="width:${100-pct}%"></i><b style="width:${pct}%"></b></div>
+   <div class="acleg"><span><i class="m"></i>MCCS promotions <em>${hk(mp)} plays · ${nf(mn)} slide${mn===1?'':'s'} · ${100-pct}%</em></span><span><i class="p"></i>Paid ads <em>${hk(pp)} plays · ${nf(pn)} slide${pn===1?'':'s'} · ${pct}%</em></span></div>
+   ${L.length?`<div class="acspl">${L.map(o=>`<div class="spl"><span>${esc(o.l)}</span><div class="spb"><i style="width:${Math.max(2,o.p/L[0].p*100)}%;background:#c9b6ff"></i></div><em>${hk(o.p)}</em></div>`).join('')}</div>`:`<p class="mut sm" style="margin:8px 0 0">No slides are tagged as paid ads yet. Add sponsors to the Sponsors tab, or tap Connect on a slide and pick a sponsor.</p>`}</div>`}
+if(typeof spSection==='function'){const _ss2=spSection;spSection=function(){const h=_ss2();if(!localStorage.pulsePass||(!SG.data&&!SPL.data))return h;let c='';try{c=acPaidCard()}catch(e){console.warn('paid card',e)}return c?h.replace(/(<div class="card accard">)/,c+'$1').replace(/<\/section>\s*$/,m=>h.includes('class="card accard"')?m:c+m):h}}
+// slide rows and tiles: a "Paid ad" badge
+{const _b2=spBindTiles;spBindTiles=function(){_b2.apply(this,arguments);if(typeof TV!=='undefined'&&TV.on)return;
+  $$('.sprow[data-slide]').forEach(el=>{if(el.querySelector('.acpd'))return;const ps=acPaid('sg:'+el.dataset.slide);if(!ps.length)return;const s=el.querySelector('.spn span');if(s)s.insertAdjacentHTML('beforeend',` <span class="acpd">${hic('tag',11)}Paid ad · ${esc(ps[0].label)}</span>`)});
+  $$('.sgplay .sgth[title]').forEach(el=>{if(el.querySelector('.acpd'))return;if(acPaid('sg:'+el.title).length)el.insertAdjacentHTML('beforeend',`<span class="acpd on">${hic('tag',11)}Paid ad</span>`)})}}
