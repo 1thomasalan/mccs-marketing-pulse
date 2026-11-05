@@ -59,7 +59,7 @@ function header(accts,web){const end=dataEnd();const wEnd=S.web.reduce((m,x)=>x.
   return `<div class="ctl"><div class="range presets">${PRESETS.map(([k,l])=>`<button data-p="${k}" class="${S.preset===k?'on':''}">${l}</button>`).join('')}</div>
   <div class="rlabel">${P.rangeLabel(S.s,S.e)}<small>${stale}</small></div>${freshPill(web?['web']:['fb','ig'])}
   ${web?'':`<div class="range plats">`}${web?'':[['all','All'],['fb','Facebook'],['ig','Instagram']].map(([k,l])=>`<button data-f="${k}" class="chip ${S.plat===k?'on':''}">${l}</button>`).join('')}${accts?`<label class="chip acctpick ${S.acct!=='all'?'on':''}"><select id="hAcct" aria-label="Account"><option value="all">All accounts</option>${accts.map(g=>`<option value="${g.plat}|${esc(g.page)}" ${S.acct===g.plat+'|'+g.page?'selected':''}>${g.plat.toUpperCase()} · ${esc(acctName(g.plat,g.page))}</option>`).join('')}</select></label>`:''}${web?'':'</div>'}</div>`}
-function topbar(){return `<div class="top"><span>MCCS Pulse</span><span class="tbtns">${gsAvail()?`<button class="icon" id="gbtn" aria-label="Search everything" title="Search everything (/ or ${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl+'}K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>`:''}<button class="icon" id="gear" aria-label="Settings">${ICON.gear}</button></span></div>`}
+function topbar(){return `<div class="top"><button class="brandhome" data-nav="overview" aria-label="MCCS Pulse, go to Today" title="Go to Today">MCCS Pulse<small class="pver" title="App version">${esc(pulseVer())}</small></button><span class="tbtns">${gsAvail()?`<button class="icon" id="gbtn" aria-label="Search everything" title="Search everything (/ or ${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl+'}K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>`:''}<button class="icon" id="gear" aria-label="Settings">${ICON.gear}</button></span></div>`}
 // ---- render ----
 function render(){const app=$('#app');if(TV.on)return TV.render();
   if(S.locked&&SYNC.meta){$('#dock').style.display='none';app.innerHTML=topbar()+lockScreen();bindTop();bindLock();return;}
@@ -697,3 +697,9 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
     if(c){c.textContent='Try again';c.disabled=false;c.classList.add('bad')}
     if(r.state!=='locked')toast(r.err||"Couldn't check for updates",{type:'err',act:'Try again',undo:()=>spCheckNow()})}}
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
+
+// v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
+const PULSE_V='v52';
+function pulseVer(){return localStorage.pulseVer||PULSE_V}
+(async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
+  if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();
