@@ -63,7 +63,7 @@ function srInfo(key,B){const ch=key.slice(0,2),id=key.slice(3);
   return itemInfo(key)}
 const srPct=(a,b)=>{const p=b?P.pct(a,b):null;return p==null||!isFinite(p)?null:p};
 // ---------- options sheet ----------
-function srOpen(q){q=String(q||'').trim();if(!q)return;if(SR.q!==q){SR.drop=new Set();SR.rev=0;SR.o=null}SR.q=q;if(!SR.o){SR.o=srOpt();const r=typeof gsRange==='function'?gsRange():null;if(r){SR.o.dates='search';SR.o.cs=r.s;SR.o.ce=r.e;const g=(typeof GSRP!=='undefined'?GSRP:[]).find(x=>x[0]===GSR.k);SR.o.gsLab=g?g[1]:'custom dates'}}
+function srOpen(q){q=String(q||'').trim();if(!q)return;if(SR.q!==q){SR.drop=new Set();SR.rev=0;SR.o=null}SR.q=q;const r=typeof gsRange==='function'?gsRange():null,gk=r?r.s+'|'+r.e:'all';if(!SR.o)SR.o=srOpt();if(SR.o.gsKey!==gk){SR.o.gsKey=gk;if(r){SR.o.dates='search';SR.o.cs=r.s;SR.o.ce=r.e;const g=(typeof GSRP!=='undefined'?GSRP:[]).find(x=>x[0]===GSR.k);SR.o.gsLab=g?g[1]:'custom dates'}else{if(SR.o.dates==='search')SR.o.dates=srOpt().dates==='search'?'around':srOpt().dates;delete SR.o.gsLab}}
   if(typeof gsClose==='function')gsClose(true);srPaint(true)}
 function srPaint(first){const o=SR.o,q=SR.q;let B;try{B=srBuild(q,o)}catch(e){console.error(e);toast("Couldn't build this report. Try a shorter search.",{type:'err'});return}SR.B=B;
   const alt=srBuild(q,Object.assign({},o,{exact:o.exact?0:1,cmp:0})),altN=alt.items.length,n=B.items.length,ev=srEvent(q);
