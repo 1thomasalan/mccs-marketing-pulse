@@ -56,12 +56,12 @@ const ovl=(s,e,a,b)=>{if(!a||!b||!s||!e)return 0;const x=s>a?s:a,y=e<b?e:b;retur
 // current range doesn't run more than 2 days (normal Meta lag) past the data. Returns {ok} or {ok:false, why}.
 function fairCmp(chs,cs,ce,s,e){cs=cs||S.cs;ce=ce||S.ce;s=s||S.s;e=e||S.e;
   for(const ch of chs){const sp=srcSpan(ch);if(!sp.a)continue;
-    if(ovl(cs,ce,sp.a,sp.b)<.8)return {ok:false,why:`no fair comparison (${sp.a>cs?`${CHN[ch]} data starts ${fYr(sp.a)}`:`${CHN[ch]} data covers too little of ${P.rangeLabel(cs,ce)}`})`};
-    if(sp.b<e&&sp.b>=s&&P.daysBetween(sp.b,e)-1>2)return {ok:false,why:`no fair comparison (${CHN[ch]} data ends ${fYr(sp.b)}, ${P.daysBetween(sp.b,e)-1} days before this range does)`}}
+    if(ovl(cs,ce,sp.a,sp.b)<.8)return {ok:false,why:`no % change: ${sp.a>cs?`${CHN[ch]} data starts ${fYr(sp.a)}, after the comparison dates begin`:`${CHN[ch]} data covers too little of ${P.rangeLabel(cs,ce)}`}`};
+    if(sp.b<e&&sp.b>=s&&P.daysBetween(sp.b,e)-1>2)return {ok:false,why:`no % change: ${CHN[ch]} data stops at ${fYr(sp.b)}, ${P.daysBetween(sp.b,e)-1} days before these dates end`}}
   return {ok:true}}
 const socChs=()=>S.acct!=='all'?[S.acct.split('|')[0]]:S.plat==='all'?['fb','ig']:[S.plat];
 // delta, or "no fair comparison" (the scope line says why)
-const dlx=(a,b,has,f)=>has&&f&&!f.ok?`<span class="mut nofair" title="${esc(f.why)}">no fair comparison</span>`:dl(a,b,has);
+const dlx=(a,b,has,f)=>has&&f&&!f.ok?`<span class="mut nofair" title="${esc(f.why)}">no % change</span>`:dl(a,b,has);
 const cmpSlot=f=>f&&!f.ok?{t:esc(f.why),w:1}:{t:'vs '+esc(cmpLabel())};
 // when a source's numbers were last brought in (import or publish date), as "Oct 27"
 function updOf(keys){const st=dataStatus().filter(x=>keys.includes(x.k)&&x.d&&x.when);if(!st.length)return '';const ds=[...new Set(st.map(x=>fMdJ(x.when)))];
@@ -515,7 +515,7 @@ function buildReport(){setRange();const wEnd=srcSpan('we').b,eEnd=srcSpan('em').
  const rScope=scopeLine(['posts published in range · lifetime metrics','views organic + paid, as Meta reports them',exclSlot(),cmpOK?'vs '+esc(cmpLabel()):{t:c.n?esc(f.why):'no comparison data',w:1},end&&end<S.e?{t:`posts through ${fYr(end)}`,w:1}:''],'rscope');
  const fd=k=>k?P.fmtDate(k):'—',sh=x=>String(x).replace(/Facebook /g,'FB ').replace(/Instagram /g,'IG '),ftx=pg2=>`Sources: Meta Business Suite (${chs.map(k=>k.toUpperCase()).join(' + ')}${upM?', updated '+sh(upM):''}${end?'; posts through '+fd(end):''})${(pg2?wHas&&R.team:wHas)?` · GA4 (${esc(wDates(wr).replace(/, \d{4}/g,''))}${wEnd?', through '+fd(wEnd):''})`:''}${!pg2&&eHas?` · Constant Contact (${eIn.length?'sends in range':'year to date'}${eEnd?', through '+fd(eEnd):''})`:''} · ${S.acct!=='all'||S.plat!=='all'?filt:'Filter: all accounts'} · ${exclSlot()||'no accounts excluded'} · lifetime metrics, posts published in range · ${cmpOK?'vs '+esc(cmpLabel()):'no fair comparison'} · generated ${P.fmtDate(P.todayKey(),{year:'numeric'})}`;
  $('#pages').innerHTML=`<div class="a4 st-${CFG.rStyle}${wHas||eHas?' hasweb':''}${wHas&&eHas?' hasem':''}"><div class="hd"><b>${esc(CFG.rHead)}</b><span>${rl}</span></div><div class="ttl">${esc(CFG.rTitle)}</div><div class="st">${esc(CFG.rOrg)} · ${who} · ${t.n} posts${wHas?' · website':''}${eHas?' · newsletter':''}</div>${rScope}
- <div class="k4">${K.map(([l,v,s,[d,col]])=>`<div class="wc"><span class="pill" style="min-width:80%">${l}</span><div class="bv">${v}</div><div class="bs">${s}</div><div class="bd" style="color:${col}">${d}</div><div class="bds">${cmpOK?'vs '+esc(cmpLabel()):c.n?'no fair comparison':'no comparison data'}</div></div>`).join('')}</div>
+ <div class="k4">${K.map(([l,v,s,[d,col]])=>`<div class="wc"><span class="pill" style="min-width:80%">${l}</span><div class="bv">${v}</div><div class="bs">${s}</div><div class="bd" style="color:${col}">${d}</div><div class="bds">${cmpOK?'vs '+esc(cmpLabel()):c.n?'no % change (data incomplete)':'no comparison data'}</div></div>`).join('')}</div>
  ${pair(R.chart?chart:'',R.eff?(chs.length>1?eff:`<div class="wc eff"><span class="pill">In This Report</span><div style="font-size:8pt;font-weight:700;margin:2mm 0">${who}</div><div style="font-size:7.5pt;line-height:1.45">${S.acct!=='all'?'One account, as filtered on screen.':'One platform, as filtered on screen.'} ${CHN[chs[0]==='fb'?'ig':'fb']} is not included, so platform share isn't shown.</div></div>`):'','r2')}${pair(R.summary?summ:'',R.top?tops:'','r3')}${wband}${eband}
  ${R.watch?`<div class="wc wl"><h4 style="font-size:11pt">Watch List</h4><div class="g3" contenteditable>${CFG.watch.filter(Boolean).map(w=>`<div>${esc(w)}</div>`).join('')}</div></div>`:''}
  <div class="ft">${ftx(0)}</div></div>
@@ -818,7 +818,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v58';
+const PULSE_V='v59';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();
