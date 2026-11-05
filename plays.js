@@ -47,7 +47,9 @@ const spEmptyTxt=()=>!localStorage.pulsePass?'Unlock Pulse with your passcode to
 const spNote='Counts each time a slide starts on a screen (layouts with several zones count each zone), so use them for trend and share, not people reached.';
 // ---- Signage tab section ----
 function spSection(){setRange();const R=spRange(S.s,S.e),C=R?spCmp():null,pr=`<div class="range presets sprange">${PRESETS.map(([k,l])=>`<button data-spp="${k}" class="${S.preset===k?'on':''}">${l}</button>`).join('')}</div>`;
-  const head=`<div class="sphead"><h2>Slide plays<small>${esc(P.rangeLabel(S.s,S.e))}${R&&R.since?` · plays since ${P.fmtDate(R.since,{year:'numeric'})}`:''}${R&&R.cut?` · through ${P.fmtDate(R.cut)}`:''}</small></h2>${pr}</div>`;
+  const D=SPL.data,thru=D&&(D.through||Object.keys(D.days||{}).sort().pop()),pulled=SPL.meta&&spTime(SPL.meta.pulled||SPL.meta.checked);
+  const sc=scopeLine([esc(P.rangeLabel(S.s,S.e)),R&&R.since?{t:`plays since ${P.fmtDate(R.since,{year:'numeric'})} (play history starts then)`,w:1}:'','ScreenCloud play logs','plays = slide starts, not people',C?'vs '+esc(cmpLabel()):R?{t:`no comparison (play history starts ${D&&D.from?fYr(D.from):'later'})`,w:1}:'',thru?(R&&R.cut?{t:`plays through ${fYr(thru)}`,w:1}:`plays through ${fYr(thru)}`):'',pulled&&!isNaN(pulled)?`synced ${fdtJ(pulled)} JST (daily, about 1:20 AM)`:'']);
+  const head=`<div class="sphead"><h2>Slide plays<small>${esc(P.rangeLabel(S.s,S.e))}${R&&R.since?` · plays since ${P.fmtDate(R.since,{year:'numeric'})}`:''}${R&&R.cut?` · through ${P.fmtDate(R.cut)}`:''}</small></h2>${pr}</div>${sc}`;
   if(!SPL.data)return `<section class="spsec">${head}<div class="card"><p class="mut" style="margin:0">${esc(spEmptyTxt())}</p></div></section>`;
   if(!R||!R.t)return `<section class="spsec">${head}<div class="card"><p class="mut" style="margin:0">No slide plays logged in this range. Play history starts ${P.fmtDate(SPL.data.from,{year:'numeric'})}.</p></div></section>`;
   const dlt=C?dl(R.t,C.t,true):'',played=R.slides.length,inRot=R.slides.filter(x=>x.item).length;
@@ -68,7 +70,7 @@ function spSlideSheet(name){setRange();const R=spSlide(name,S.s,S.e),C=SPL.data&
   const it=SG.data&&SG.data.items&&SG.data.items.find(i=>i.name===name),pl=it&&(SGC[it.playlist]||[it.playlist])[0];
   const evs=typeof evOf==='function'?evOf('sg:'+name).map(x=>evGet(x.ev)).filter(Boolean):[];
   const img=it&&it.t?`<div class="spsh"><img data-sg="${it.t}" alt=""></div>`:'';
-  const top=`${img}<div class="mut sm">${esc(P.rangeLabel(S.s,S.e))}${R&&R.since?` · plays since ${P.fmtDate(R.since,{year:'numeric'})}`:''}</div><h3 style="margin-top:6px">${esc(sgName(name))}</h3><p class="mut sm" style="margin:-6px 0 12px">${it?`In rotation now${pl?' · '+esc(pl):''}${it.kind==='video'?' · video':''}`:'No longer in rotation'}</p>`;
+  const thru=SPL.data&&SPL.data.through;const top=`${img}<div class="mut sm">${esc(P.rangeLabel(S.s,S.e))}${R&&R.since?` · plays since ${P.fmtDate(R.since,{year:'numeric'})}`:''}</div><h3 style="margin-top:6px">${esc(sgName(name))}</h3>${scopeLine(['ScreenCloud play logs','plays = slide starts, not people',C?'vs '+esc(cmpLabel()):{t:'no comparison (play history too short)',w:1},thru?(R&&R.e<S.e?{t:'plays through '+fYr(thru),w:1}:'plays through '+fYr(thru)):''])}<p class="mut sm" style="margin:-6px 0 12px">${it?`In rotation now${pl?' · '+esc(pl):''}${it.kind==='video'?' · video':''}`:'No longer in rotation'}</p>`;
   if(!R||!R.p){openSheet(top+`<div class="card"><p class="mut" style="margin:0">${SPL.data?'No plays logged for this slide in this range.':esc(spEmptyTxt())}</p></div>`);sgFill($('#sheetBody'));return}
   const dlt=C&&C.p?dl(R.p,C.p,true):C?'<span class="mut">new this period</span>':'';
   const gmx=R.groups[0]?R.groups[0][1]:1;

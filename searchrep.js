@@ -6,7 +6,7 @@ if(typeof HI==='object'){HI.doc=HI.doc||'<path d="M7 3h7l5 5v13H7z"/><path d="M1
 const SR={q:'',o:null,drop:new Set(),rev:0,B:null};
 const SRD={exact:1,dates:'around',cmp:1,detail:'hi',ch:{so:1,we:1,em:1,sg:1}};
 function srOpt(){let s={};try{s=JSON.parse(localStorage.pulseSrOpt||'{}')}catch(e){}return Object.assign({},SRD,s,{ch:Object.assign({},SRD.ch,s.ch||{})})}
-function srSave(){const o=SR.o;try{localStorage.pulseSrOpt=JSON.stringify({exact:o.exact,dates:o.dates==='custom'?'around':o.dates,cmp:o.cmp,detail:o.detail,ch:o.ch})}catch(e){}}
+function srSave(){const o=SR.o;try{localStorage.pulseSrOpt=JSON.stringify({exact:o.exact,dates:o.dates==='custom'||o.dates==='search'?'around':o.dates,cmp:o.cmp,detail:o.detail,ch:o.ch})}catch(e){}}
 const srSens=o=>o.exact?{sens:{fzDf:0}}:{};
 const srCH=k=>({so:'Social',we:'Web',em:'Email',sg:'Signage'})[k];
 function srFind(q,o){const sn=srSens(o),F={so:[],em:[],sg:[]};
@@ -21,7 +21,8 @@ function srWeb(q,o,ws,we){if(!S.web.length)return [];const wr=P.webRange(S.web,w
   return P.search(P.searchIndex(pages,WF,'sr|'+ws+'|'+we+'|'+pages.length),qq,Object.assign({cap:1e4},srSens(o))).map(x=>pages[x.i][0])}
 function srWin(F,o){const t=P.todayKey();setRange();
   if(o.dates==='range')return {ws:S.s,we:S.e,how:'the current date range'};
-  if(o.dates==='custom'&&o.cs&&o.ce&&o.cs<=o.ce)return {ws:o.cs,we:o.ce,how:'custom dates'};
+  if(o.dates==='search'&&o.cs&&o.ce&&o.cs<=o.ce)return {ws:o.cs,we:o.ce,how:`the dates picked in search (${o.gsLab||'search dates'})`};
+  if(o.dates==='custom'&&o.cs&&o.ce&&o.cs<=o.ce)return {ws:o.cs,we:o.ce,how:'custom dates you picked'};
   const ds=[...F.so.map(r=>r.d),...F.em.map(c=>c.date)].filter(Boolean).sort();
   if(!ds.length)return {ws:S.s,we:S.e,how:'the current date range (no dated matches)'};
   // the latest burst of activity: matches no more than 60 days apart
@@ -34,8 +35,18 @@ function srBuild(q,o){const F=srFind(q,o),W=srWin(F,o),{ws,we}=W,inW=d=>d&&d>=ws
   let plays=null;if(o.ch.sg&&R.sg.slides.length&&typeof spSlide==='function'&&typeof SPL!=='undefined'&&SPL.data){plays=0;for(const s of R.sg.slides){const x=spSlide(s,ws,we);if(x)plays+=x.p}}
   let C=null;if(o.cmp){const cs=P.addDays(ws,-364),ce=P.addDays(we,-364),inC=d=>d&&d>=cs&&d<=ce;
     const ci=[...(o.ch.so?F.so.filter(r=>inC(r.d)).map(r=>({key:'so:'+r.id,ch:'so'})):[]),...(o.ch.we?srWeb(q,o,cs,ce).map(p=>({key:'we:'+p,ch:'we'})):[]),...(o.ch.em?F.em.filter(c=>inC(c.date)).map(c=>({key:'em:'+c.id,ch:'em'})):[])];
-    C=P.evRoll({id:'sr~',ps:cs,pe:ce},ci,ctx);C.n=ci.length;C.covered=gsPosts().reduce((m,r)=>r.d<m?r.d:m,'9')<=P.addDays(cs,14)}
+    C=P.evRoll({id:'sr~',ps:cs,pe:ce},ci,ctx);C.n=ci.length;
+    // which channels have >=80% of last year's days in the data; only those go into the comparison
+    const cov=k=>k==='so'?['fb','ig'].some(p=>ovl(cs,ce,srcSpan(p).a,srcSpan(p).b)>=.8):ovl(cs,ce,srcSpan(k).a,srcSpan(k).b)>=.8;
+    const on=['so','we','em'].filter(k=>o.ch[k]&&keys[k].length);C.chs=on.filter(cov);C.miss=on.filter(k=>!cov(k));C.covered=C.chs.length>0;const st=k=>k==='so'?['fb','ig'].map(p=>srcSpan(p).a).filter(Boolean).sort()[0]:srcSpan(k).a;C.why=on.map(k=>`${srCH(k)} data starts ${fYr(st(k))}`).join(', ')||'no data';
+    const part=(X,k)=>k==='so'?X.so.v:k==='we'?X.we.users:X.em.opens;C.cur=C.chs.reduce((a,k)=>a+part(R,k),0);C.prev=C.chs.reduce((a,k)=>a+part(C,k),0);C.cs=cs;C.ce=ce}
   return {q,o,F,W,keys,items,R,C,plays}}
+// "vs same weekdays last year (dates) · Social only (Web, Email history starts …)"
+function srCmpTxt(C){if(!C)return '';const st=k=>k==='so'?['fb','ig'].map(p=>srcSpan(p).a).filter(Boolean).sort()[0]:srcSpan(k).a;
+  return `same weekdays last year (${P.rangeLabel(C.cs,C.ce)})${C.chs&&C.chs.length?` · compared on ${C.chs.map(srCH).join(' + ')} only`:''}${C.miss&&C.miss.length?` · ${C.miss.map(srCH).join(', ')} left out (history starts ${C.miss.map(k=>fYr(st(k))).join(', ')})`:''}`}
+function srScope(B,o){const {C,W}=B,chs=HCH.filter(k=>o.ch[k]&&B.keys[k].length);const up=updOf(['fb','ig','web','email']);
+  return scopeLine([esc(P.rangeLabel(W.ws,W.we))+(o.dates==='range'?'':` (${esc(W.how)})`),chs.map(srCH).join(', ')||'no channels','keyword matches, '+(o.exact?'exact':'with close spellings'),chs.includes('so')?'social: posts published in range, lifetime metrics, organic + paid as Meta reports them':'',exclSlot(),chs.includes('sg')?'slide plays beside the total':'',
+    !o.cmp?'no comparison':C&&C.covered?'vs '+esc(srCmpTxt(C)):{t:`no fair comparison with ${esc(P.rangeLabel(C?C.cs:P.addDays(W.ws,-364),C?C.ce:P.addDays(W.we,-364)))} (${esc(C?C.why:'no data')})`,w:1},up?'updated '+up:''],o.cls)}
 function srEvent(q){if(typeof evList!=='function')return null;const L=evList().filter(e=>e.s);if(!L.length)return null;
   let res=[];try{res=P.search(P.searchIndex(L,{n:[1,e=>e.name]},'srev|'+L.length+'|'+L.map(e=>e.id).join()),q,{cap:50,sens:{fzDf:0}}).filter(x=>x.strong)}catch(e){return null}
   if(!res.length)return null;const t=P.todayKey(),top=res[0].score,c=res.filter(x=>x.score>=top*.9).map(x=>x.item);
@@ -45,7 +56,7 @@ function srInfo(key,B){const ch=key.slice(0,2),id=key.slice(3);
   return itemInfo(key)}
 const srPct=(a,b)=>{const p=b?P.pct(a,b):null;return p==null||!isFinite(p)?null:p};
 // ---------- options sheet ----------
-function srOpen(q){q=String(q||'').trim();if(!q)return;if(SR.q!==q){SR.drop=new Set();SR.rev=0;SR.o=null}SR.q=q;if(!SR.o){SR.o=srOpt();const r=typeof gsRange==='function'?gsRange():null;if(r){SR.o.dates='custom';SR.o.cs=r.s;SR.o.ce=r.e}}
+function srOpen(q){q=String(q||'').trim();if(!q)return;if(SR.q!==q){SR.drop=new Set();SR.rev=0;SR.o=null}SR.q=q;if(!SR.o){SR.o=srOpt();const r=typeof gsRange==='function'?gsRange():null;if(r){SR.o.dates='search';SR.o.cs=r.s;SR.o.ce=r.e;const g=(typeof GSRP!=='undefined'?GSRP:[]).find(x=>x[0]===GSR.k);SR.o.gsLab=g?g[1]:'custom dates'}}
   if(typeof gsClose==='function')gsClose(true);srPaint(true)}
 function srPaint(first){const o=SR.o,q=SR.q;let B;try{B=srBuild(q,o)}catch(e){console.error(e);toast("Couldn't build this report. Try a shorter search.",{type:'err'});return}SR.B=B;
   const alt=srBuild(q,Object.assign({},o,{exact:o.exact?0:1,cmp:0})),altN=alt.items.length,n=B.items.length,ev=srEvent(q);
@@ -60,11 +71,11 @@ function srPaint(first){const o=SR.o,q=SR.q;let B;try{B=srBuild(q,o)}catch(e){co
    <div class="sro"><h4>Matches</h4><div class="chips">${chip(o.exact,'data-srx="1"',`Exact matches only · ${o.exact?n:altN}`)}${chip(!o.exact,'data-srx="0"',`Include close spellings · ${o.exact?altN:n}`)}</div>
     <p class="mut sm" style="margin:8px 0 0">${altN===n?'This search has no close-spelling matches.':o.exact?`${Math.abs(altN-n)} more would come in with close spellings (typos and similar words).`:`Close spellings add ${Math.abs(n-altN)} item${Math.abs(n-altN)===1?'':'s'}. Check them in the list.`}</p>
     <button class="srlink" id="srRev">${SR.rev?'Hide the list':`Review the ${n} item${n===1?'':'s'}${dropN?` · ${dropN} removed`:''} · remove any that don't belong`} ›</button>${rev}</div>
-   <div class="sro"><h4>Dates</h4><div class="chips">${chip(o.dates==='around','data-srd="around"','Around the matches')}${chip(o.dates==='range','data-srd="range"','Current range')}${chip(o.dates==='custom','data-srd="custom"','Custom')}</div>
+   <div class="sro"><h4>Dates</h4><div class="chips">${o.dates==='search'?chip(1,'data-srd="search"',`Search dates · ${esc(o.gsLab||'')}`):''}${chip(o.dates==='around','data-srd="around"','Around the matches')}${chip(o.dates==='range','data-srd="range"','Current range')}${chip(o.dates==='custom','data-srd="custom"','Custom')}</div>
     ${o.dates==='custom'?`<div class="srdt"><label>From<input type="date" id="srCs" value="${esc(o.cs||ws)}"></label><label>To<input type="date" id="srCe" value="${esc(o.ce||we)}"></label></div>`:''}
     <p class="mut sm" style="margin:8px 0 0">${esc(P.rangeLabel(ws,we))} · ${esc(B.W.how)}${B.W.older?`. Older matches are left out${o.cmp?' here and used for the comparison':''}; use Custom to include them.`:''}</p></div>
-   <div class="sro"><h4>Compare</h4><div class="chips">${chip(!o.cmp,'data-src2="0"','No comparison')}${chip(o.cmp,'data-src2="1"','vs. the same dates last year')}</div>
-    ${o.cmp&&B.C?`<p class="mut sm" style="margin:8px 0 0">${esc(P.rangeLabel(P.addDays(ws,-364),P.addDays(we,-364)))} · ${B.C.n} matching item${B.C.n===1?'':'s'}${B.C.covered?'':' · Pulse has no social data that far back'}. Web and email history starts in 2026.</p>`:''}</div>
+   <div class="sro"><h4>Compare</h4><div class="chips">${chip(!o.cmp,'data-src2="0"','No comparison')}${chip(o.cmp,'data-src2="1"','vs. the same weekdays last year')}</div>
+    ${o.cmp&&B.C?`<p class="mut sm" style="margin:8px 0 0">${esc(P.rangeLabel(B.C.cs,B.C.ce))} (364 days back, so weekdays line up) · ${B.C.n} matching item${B.C.n===1?'':'s'}${B.C.covered?`. Compared on ${B.C.chs.map(srCH).join(' + ')} only${B.C.miss.length?`; ${B.C.miss.map(srCH).join(', ')} ${B.C.miss.length>1?'have':'has'} no history that far back`:''}.`:` · not enough history to compare fairly (${esc(B.C.why)}).`}</p>`:''}</div>
    <div class="sro"><h4>Detail</h4><div class="chips">${chip(o.detail==='hi','data-srl="hi"','Highlights')}${chip(o.detail==='full','data-srl="full"','Full detail')}</div></div>
    <div class="sro"><h4>Open as</h4><div class="srout"><button class="srbig" id="srScreen" ${n?'':'disabled'}><span>${hic('chart',20)}</span><b>On-screen report</b><small>Interactive, in Pulse · share as an image</small></button><button class="srbig" id="srPrint" ${n?'':'disabled'}><span>${hic('doc',20)}</span><b>Printer-friendly report</b><small>Clean style, A4 · print or save as PDF</small></button></div>
     ${n?'':'<p class="srerr">Nothing is left in this report. Turn a channel back on, widen the dates, or include close spellings.</p>'}</div></div>`;
@@ -72,7 +83,7 @@ function srPaint(first){const o=SR.o,q=SR.q;let B;try{B=srBuild(q,o)}catch(e){co
 function srBind(){const o=SR.o,re=()=>{srSave();srPaint()};
   $$('[data-src]').forEach(b=>b.onclick=()=>{const k=b.dataset.src;o.ch[k]=o.ch[k]?0:1;re()});
   $$('[data-srx]').forEach(b=>b.onclick=()=>{o.exact=+b.dataset.srx;re()});
-  $$('[data-srd]').forEach(b=>b.onclick=()=>{o.dates=b.dataset.srd;if(o.dates==='custom'&&!o.cs&&SR.B){o.cs=SR.B.W.ws;o.ce=SR.B.W.we}re()});
+  $$('[data-srd]').forEach(b=>b.onclick=()=>{const was=o.dates;o.dates=b.dataset.srd;if(o.dates==='custom'&&(was==='search'||!o.cs)&&SR.B){o.cs=SR.B.W.ws;o.ce=SR.B.W.we}re()});
   $$('[data-src2]').forEach(b=>b.onclick=()=>{o.cmp=+b.dataset.src2;re()});
   $$('[data-srl]').forEach(b=>b.onclick=()=>{o.detail=b.dataset.srl;re()});
   const dt=()=>{const a=$('#srCs').value,b=$('#srCe').value;if(a&&b&&a>b){toast('The From date is after the To date.',{type:'err'});return}o.cs=a;o.ce=b;srPaint()};
@@ -84,22 +95,22 @@ function srBind(){const o=SR.o,re=()=>{srSave();srPaint()};
 // ---------- on-screen report ----------
 function srPeak(R){let pk=null,mx=-1;for(const [d,v] of R.daily){const t=v.so+v.we+v.em;if(t>mx){mx=t;pk=d}}return pk}
 function srScreen(){const B=SR.B;if(!B||!B.items.length)return;const {R,C,o,W}=B,full=o.detail==='full',q=B.q;
-  const chs=HCH.filter(k=>o.ch[k]&&B.keys[k].length),yo=C&&C.covered?srPct(R.touch,C.touch):null,ys=C&&C.covered?srPct(R.so.v,C.so.v):null,ly=P.addDays(W.ws,-364).slice(0,4);
+  const chs=HCH.filter(k=>o.ch[k]&&B.keys[k].length),yo=C&&C.covered?srPct(C.cur,C.prev):null,ys=C&&C.covered&&C.chs.includes('so')?srPct(R.so.v,C.so.v):null,ly=P.addDays(W.ws,-364).slice(0,4);
   const items=B.items.map(x=>({x,i:srInfo(x.key,B)})).filter(z=>z.i).sort((a,b)=>b.i.n-a.i.n),shown=full?items:items.slice(0,6);
   const pk=srPeak(R);
-  const card=k=>k==='so'?`<div class="card so"><h3>Social <small>${R.so.n} posts · FB ${R.so.fb} · IG ${R.so.ig}</small></h3><div class="kv"><div><b>${hk(R.so.v)}</b><span>views</span></div><div><b>${hk(R.so.e)}</b><span>engagements</span></div><div><b>${nf(R.so.lc)}</b><span>link clicks</span></div></div>${ys!=null?`<div class="cnote">${ys>=0?'Up':'Down'} ${Math.abs(ys).toFixed(0)}% on the same dates in ${ly} (${hk(C.so.v)} views).</div>`:''}</div>`
+  const card=k=>k==='so'?`<div class="card so"><h3>Social <small>${R.so.n} posts · FB ${R.so.fb} · IG ${R.so.ig}</small></h3><div class="kv"><div><b>${hk(R.so.v)}</b><span>views</span></div><div><b>${hk(R.so.e)}</b><span>engagements</span></div><div><b>${nf(R.so.lc)}</b><span>link clicks</span></div></div>${ys!=null?`<div class="cnote">${ys>=0?'Up':'Down'} ${Math.abs(ys).toFixed(0)}% on the same weekdays in ${ly} (${hk(C.so.v)} views, ${esc(P.rangeLabel(C.cs,C.ce))}).</div>`:''}</div>`
    :k==='we'?`<div class="card we"><h3>Web <small>${R.we.pages.length} page${R.we.pages.length===1?'':'s'}</small></h3><div class="kv"><div><b>${hk(R.we.users)}</b><span>users</span></div><div><b>${hk(R.we.views)}</b><span>page views</span></div><div><b>${R.we.pages.length}</b><span>pages</span></div></div>${R.we.pages.length?`<div class="srcbars">${R.we.pages.slice(0,full?8:3).map(p=>`<div class="r"><span title="${esc(p[0])}">${esc(pgTitle(p[0]))}</span><i><span style="width:${R.we.pages[0][2]?p[2]/R.we.pages[0][2]*100:0}%"></span></i><b>${hk(p[2])}</b></div>`).join('')}</div>`:''}</div>`
    :k==='em'?`<div class="card em"><h3>Email <small>${R.em.camps.length} issue${R.em.camps.length===1?'':'s'}</small></h3><div class="kv"><div><b>${hk(R.em.opens)}</b><span>issue opens</span></div><div><b>${nf(R.em.clicks)}</b><span>clicks</span></div><div><b>${R.em.camps.length?R.em.camps.slice(0,2).map(c=>Math.round(c.openRate)+'%').join(', '):'—'}</b><span>open rate</span></div></div><div class="cnote">${R.em.camps.map(c=>esc(c.name)+' ('+hd(c.date)+')').join(', ')}. Opens are for the whole issue.</div></div>`
    :`<div class="card sg"><h3>Signage <small>${R.sg.slides.length} slide${R.sg.slides.length===1?'':'s'}</small></h3><div class="kv"><div><b>${R.sg.slides.length}</b><span>in rotation</span></div><div><b>${B.plays!=null?hk(B.plays):'—'}</b><span>slide plays</span></div><div><b>${SG.data?SG.data.live:'—'}</b><span>screens live</span></div></div><div class="cnote">Slide plays count each time a slide started on a screen, not people, so they sit beside the total.</div></div>`;
   const chart=pk?hubEvChart({s:pk,e:pk},R).replace('>Event</text>','>Peak day</text>'):'';
-  const share={kind:'campaign',plat:null,kicker:'Search report · '+chs.map(srCH).join(', '),range:P.rangeLabel(W.ws,W.we),title:q,big:{v:hk(R.touch),l:'touchpoints'},note:{rest:`Social ${hk(R.so.v)} views · Web ${hk(R.we.users)} users · Email ${hk(R.em.opens)} opens${yo!=null?` · ${yo>=0?'+':''}${yo.toFixed(0)}% vs ${ly}`:''}`},
+  const share={kind:'campaign',plat:null,kicker:'Search report · '+chs.map(srCH).join(', '),range:P.rangeLabel(W.ws,W.we),title:q,big:{v:hk(R.touch),l:'touchpoints'},note:{rest:`Social ${hk(R.so.v)} views · Web ${hk(R.we.users)} users · Email ${hk(R.em.opens)} opens${yo!=null?` · ${yo>=0?'+':''}${yo.toFixed(0)}% vs same weekdays ${ly} (${C.chs.map(srCH).join(' + ')})`:''}`},
     stats:[{l:'Items',v:nf(B.items.length)},{l:'Engagement',v:hk(R.eng)},{l:'Posts',v:nf(R.so.n)}],list:R.so.list.slice().sort((a,b)=>b.v-a.v).slice(0,5).map((r,i)=>({...shPost(r),rank:i+1})),listTitle:'Top posts'};
   const html=`<div class="srrep"><button class="hback" id="srBack">${hic('back',15)}Report options</button>
    <div class="mut sm" style="margin-top:6px"><span class="tag camp">SEARCH REPORT</span>${chs.map(srCH).join(' · ')} · ${nf(B.items.length)} items · ${o.exact?'exact matches':'includes close spellings'}</div>
-   <h3 style="margin-top:8px">“${esc(q)}”</h3><p class="mut sm" style="margin:2px 0 0">${esc(P.rangeLabel(W.ws,W.we))}${SR.drop.size?` · ${SR.drop.size} removed by hand`:''}</p>
+   <h3 style="margin-top:8px">“${esc(q)}”</h3><p class="mut sm" style="margin:2px 0 0">${esc(P.rangeLabel(W.ws,W.we))}${SR.drop.size?` · ${SR.drop.size} removed by hand`:''}</p>${srScope(B,o)}
    <div class="hl4"><div class="card lead2"><div class="l">Touchpoints</div><div class="v">${hk(R.touch)}</div><div class="s">social views + web users + email opens</div></div>
     <div class="card"><div class="l">Engagement</div><div class="v">${hk(R.eng)}</div><div class="s">social engagements + email clicks</div></div>
-    <div class="card"><div class="l">vs last year</div>${yo!=null?`<div class="v ${yo>=0?'up':'down'}">${yo>=0?'+':'−'}${Math.abs(yo).toFixed(0)}%</div><div class="s">${hk(C.touch)} on the same dates in ${ly}</div>`:`<div class="v mut">—</div><div class="s">${o.cmp?(C&&!C.covered?'No data from that far back':'No matches on those dates last year'):'Comparison is off'}</div>`}</div>
+    <div class="card"><div class="l">vs same weekdays last year</div>${yo!=null?`<div class="v ${yo>=0?'up':'down'}">${yo>=0?'+':'−'}${Math.abs(yo).toFixed(0)}%</div><div class="s">${hk(C.cur)} → ${hk(C.prev)} in ${esc(P.rangeLabel(C.cs,C.ce))} · ${C.chs.map(srCH).join(' + ')} only, like for like</div>`:`<div class="v mut">—</div><div class="s">${o.cmp?(C&&!C.covered?'Not enough history to compare fairly: '+esc(C.why):'No matches on those dates last year'):'Comparison is off'}</div>`}</div>
     <div class="card"><div class="l">${B.plays!=null?'Slide plays':'Items'}</div><div class="v">${B.plays!=null?hk(B.plays):nf(B.items.length)}</div><div class="s">${B.plays!=null?'beside the total, not people':'posts, pages, issues and slides'}</div></div></div>
    <div class="pc">${chs.map(card).join('')}</div>
    ${chart?`<div class="card chartwrap"><h2>Daily touchpoints by channel <small>${hd(W.ws)} → ${hd(W.we)}</small></h2><div class="chartscroll"><div>${chart}</div></div><div class="hlegend"><span><i style="background:${HC.so}"></i>Social views (by post date)</span><span><i style="background:${HC.we}"></i>Web users</span><span><i style="background:${HC.em}"></i>Email opens</span></div></div>`:''}
@@ -114,10 +125,10 @@ function srBars(R,ws,we){const ks=[];for(let k=ws;k<=we;k=P.addDays(k,1))ks.push
   ks.forEach((k,i)=>{let y=H;const v=val(k);['em','we','so'].forEach(c=>{if(!v[c])return;const h=v[c]/mx*(H-8);y-=h;b+=`<rect x="${(i*bw).toFixed(2)}" y="${y.toFixed(2)}" width="${Math.max(.6,bw-.6).toFixed(2)}" height="${h.toFixed(2)}" fill="${col[c]}"/>`})});
   return `<svg viewBox="0 -4 ${W} ${H+18}" style="width:100%"><line x1="0" x2="${W}" y1="${H}" y2="${H}" stroke="#dfe3ec"/>${b}<text x="0" y="${H+12}" font-size="10" fill="#5b6478">${P.fmtDate(ws)}</text><text x="${W}" y="${H+12}" font-size="10" fill="#5b6478" text-anchor="end">${P.fmtDate(we)}</text><text x="0" y="6" font-size="10" fill="#5b6478">${hk(mx)}</text></svg>`}
 function srPrint(){const B=SR.B;if(!B||!B.items.length)return;const {R,C,o,W}=B,full=o.detail==='full',q=B.q,rl=P.rangeLabel(W.ws,W.we),ly=P.addDays(W.ws,-364).slice(0,4);
-  const chs=HCH.filter(k=>o.ch[k]&&B.keys[k].length),yo=C&&C.covered?srPct(R.touch,C.touch):null,dd=p=>p==null?['—','#5b6478']:[(p>=0?'+':'−')+Math.abs(p).toFixed(0)+'%',p>=0?'#16b85c':'#f0363b'];
-  const cmpD=p=>o.cmp?(C&&C.covered?dd(p):['—','#5b6478',`no ${ly} data`]):null;
-  const K=[['Touchpoints',hk(R.touch),'social views + web users + email opens',cmpD(yo)]];
-  if(chs.includes('so'))K.push(['Social views',hk(R.so.v),`${R.so.n} posts · ${hk(R.so.e)} engagements`,cmpD(C&&C.covered?srPct(R.so.v,C.so.v):null)]);
+  const chs=HCH.filter(k=>o.ch[k]&&B.keys[k].length),yo=C&&C.covered?srPct(C.cur,C.prev):null,dd=p=>p==null?['—','#5b6478']:[(p>=0?'+':'−')+Math.abs(p).toFixed(0)+'%',p>=0?'#16b85c':'#f0363b'];
+  const cmpD=(p,lab)=>o.cmp?(C&&C.covered&&p!=null?[...dd(p),lab]:['—','#5b6478',C&&!C.covered?'not enough history to compare':`no ${ly} data`]):null,lyR=C?P.rangeLabel(C.cs,C.ce):'';
+  const K=[['Touchpoints',hk(R.touch),'social views + web users + email opens',cmpD(yo,C&&C.covered?`vs same weekdays ${ly} · ${C.chs.map(srCH).join(' + ')} only`:'')]];
+  if(chs.includes('so'))K.push(['Social views',hk(R.so.v),`${R.so.n} posts · ${hk(R.so.e)} engagements`,cmpD(C&&C.covered&&C.chs.includes('so')?srPct(R.so.v,C.so.v):null,`vs same weekdays ${ly}`)]);
   if(chs.includes('we'))K.push(['Web users',hk(R.we.users),`${R.we.pages.length} page${R.we.pages.length===1?'':'s'} · ${hk(R.we.views)} views`,null]);
   if(chs.includes('em'))K.push(['Email opens',hk(R.em.opens),`${R.em.camps.length} issue${R.em.camps.length===1?'':'s'} · ${nf(R.em.clicks)} clicks`,null]);
   if(K.length<4)K.push(['Engagement',hk(R.eng),'social engagements + email clicks',null]);
@@ -127,13 +138,13 @@ function srPrint(){const B=SR.B;if(!B||!B.items.length)return;const {R,C,o,W}=B,
   const pt=`<div class="wc"><span class="pill" style="min-width:50%">Top Posts</span><table><tr><th style="text-align:left">Post</th><th>Date</th><th>Views</th><th>Eng.</th></tr>${posts.slice(0,7).map(r=>`<tr><td>${esc(P.label(r).slice(0,58))}<br><small style="color:var(--sub)">${r.plat==='fb'?'FB':'IG'} · ${esc(acctName(r.plat,r.page))}</small></td><td>${P.fmtDate(r.d)}</td><td>${nf(r.v)}</td><td>${nf(P.eng(r))}</td></tr>`).join('')||'<tr><td colspan="4">No posts in this report</td></tr>'}</table></div>`;
   const side=`<div class="wc"><span class="pill" style="min-width:50%">Web &amp; Email</span><table><tr><th style="text-align:left">Item</th><th>Users / opens</th></tr>${R.we.pages.slice(0,5).map(p=>`<tr><td>${esc(pgTitle(p[0]).slice(0,48))}</td><td>${nf(p[2])}</td></tr>`).join('')}${R.em.camps.map(c=>`<tr><td>${esc(c.name.slice(0,48))}<br><small style="color:var(--sub)">Newsletter · ${P.fmtDate(c.date)} · ${c.openRate}% opened</small></td><td>${nf(c.opens||0)}</td></tr>`).join('')}${!R.we.pages.length&&!R.em.camps.length?'<tr><td colspan="2">No web pages or newsletters matched</td></tr>':''}</table>
     ${R.sg.slides.length?`<div class="srsg"><b>Signage:</b> ${R.sg.slides.length} slide${R.sg.slides.length===1?'':'s'} in rotation${B.plays!=null?` · ${nf(B.plays)} slide plays (not people, not in the total)`:''}</div>`:''}</div>`;
-  const how=`Found by searching “${esc(q)}” (${o.exact?'exact matches':'with close spellings'}) in ${esc(B.W.how)}${SR.drop.size?`; ${SR.drop.size} item${SR.drop.size===1?'':'s'} removed by hand`:''}.${o.cmp?` Compared with ${esc(P.rangeLabel(P.addDays(W.ws,-364),P.addDays(W.we,-364)))}${C&&!C.covered?' (no data that far back)':''}.`:''}`;
-  const src=`Source: Meta Business Suite${chs.includes('we')?' · Google Analytics 4':''}${chs.includes('em')?' · Constant Contact':''}${chs.includes('sg')?' · ScreenCloud':''} · ${rl} · generated ${P.fmtDate(P.todayKey(),{year:'numeric'})}`;
+  const how=`Found by searching “${esc(q)}” (${o.exact?'exact matches':'with close spellings'}) in ${esc(B.W.how)}${SR.drop.size?`; ${SR.drop.size} item${SR.drop.size===1?'':'s'} removed by hand`:''}.${o.cmp?` Compared with the same weekdays last year, ${esc(lyR)}${C&&!C.covered?' (no data that far back)':`, on ${C.chs.map(srCH).join(' + ')} only${C.miss.length?` (${C.miss.map(srCH).join(', ')}: no history that far back)`:''}`}.`:''}`;
+  const upd=k=>updOf([k]),src=`Sources: Meta Business Suite${upd('fb')||upd('ig')?' (updated '+updOf(['fb','ig'])+')':''}${chs.includes('we')?` · Google Analytics 4${upd('web')?' (updated '+upd('web')+')':''}`:''}${chs.includes('em')?` · Constant Contact${upd('email')?' (updated '+upd('email')+')':''}`:''}${chs.includes('sg')?' · ScreenCloud play logs':''} · ${esc(rl)} (${esc(W.how)}) · keyword matches, ${o.exact?'exact':'with close spellings'} · ${exclSlot()||'no accounts excluded'} · social metrics lifetime to date · ${o.cmp?(C&&C.covered?'compared with '+esc(srCmpTxt(C)):'no comparison data'):'no comparison'} · generated ${P.fmtDate(P.todayKey(),{year:'numeric'})}`;
   const all=B.items.map(x=>srInfo(x.key,B)).filter(Boolean).sort((a,b)=>b.n-a.n);
   const pg2=full?`<div class="a4 st-light srA4"><div class="hd"><b>${esc(CFG.rHead)}</b><span>${rl}</span></div><div class="ttl" style="font-size:24pt">Everything in this report</div><div class="st">“${esc(q)}” · ${all.length} items</div>
     <div class="wc"><table><tr><th style="text-align:left">Item</th><th style="text-align:left">Channel</th><th>Result</th></tr>${all.slice(0,34).map(i=>`<tr><td>${esc(i.t.slice(0,70))}<br><small style="color:var(--sub)">${esc(i.s.slice(0,80))}</small></td><td style="text-align:left">${HN[i.ch]}</td><td>${i.v} ${i.u}</td></tr>`).join('')}</table>${all.length>34?`<p class="srsg">Plus ${all.length-34} smaller items.</p>`:''}</div><div class="ft">${src}</div></div>`:'';
-  $('#pages').innerHTML=`<div class="a4 st-light srA4"><div class="hd"><b>${esc(CFG.rHead)}</b><span>${rl}</span></div><div class="ttl" style="font-size:${q.length>22?24:32}pt">${esc(q)}</div><div class="st">Search report · ${esc(CFG.rOrg)} · ${chs.map(srCH).join(', ')} · ${nf(B.items.length)} items</div>
-   <div class="k4">${K.map(([l,v,s,d])=>`<div class="wc"><span class="pill" style="min-width:80%">${l}</span><div class="bv">${v}</div><div class="bs">${s}</div>${d?`<div class="bd" style="color:${d[1]}">${d[0]}</div><div class="bds">${d[2]||'vs same dates '+ly}</div>`:''}</div>`).join('')}</div>
+  $('#pages').innerHTML=`<div class="a4 st-light srA4"><div class="hd"><b>${esc(CFG.rHead)}</b><span>${rl}</span></div><div class="ttl" style="font-size:${q.length>22?24:32}pt">${esc(q)}</div><div class="st">Search report · ${esc(CFG.rOrg)} · ${chs.map(srCH).join(', ')} · ${nf(B.items.length)} items</div>${srScope(B,Object.assign({},o,{cls:'rscope'}))}
+   <div class="k4">${K.map(([l,v,s,d])=>`<div class="wc"><span class="pill" style="min-width:80%">${l}</span><div class="bv">${v}</div><div class="bs">${s}</div>${d?`<div class="bd" style="color:${d[1]}">${d[0]}</div><div class="bds">${d[2]||'vs same weekdays '+ly}</div>`:''}</div>`).join('')}</div>
    <div class="wc srch"><span class="pill" style="min-width:40%">Daily touchpoints</span>${srBars(R,W.ws,W.we)}<div class="srlg">${chs.includes('so')?'<span style="color:#d9577a">● Social views</span>':''}${chs.includes('we')?'<span style="color:#3d6fd6">● Web users</span>':''}${chs.includes('em')?'<span style="color:#8a63d2">● Email opens</span>':''}</div></div>
    <div class="r2 srr2">${pt}${side}</div><p class="srhow" contenteditable>${how}</p><div class="ft">${src}</div></div>${pg2}`;
   closeSheet();$('#rStyleBar').innerHTML='<span class="srclean">Clean style</span>';$('#report').classList.add('show');scrollTo(0,0);$('#report').scrollTop=0;fit()}
