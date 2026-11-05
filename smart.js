@@ -16,7 +16,7 @@ SM.hash=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Ma
 SM.txt={
  post:r=>SM.lead(String(r.cap||'').replace(/#(\w+)/g,'$1'),28),
  web:p=>{const t=typeof wTitle==='function'?wTitle(p[0]):p[0];const u=p[0][0]==='/'?SM.urlWords(p[0]):'';return SM.lead(t+(u&&P.sNorm(u)!==P.sNorm(t)?' · '+u:''),24)},
- email:c=>SM.lead([c.name,...Object.values(c.titles||{}),...(c.links||[]).map(l=>SM.urlWords(l[0]))].filter(Boolean).join(' · '),40),
+ email:c=>SM.lead([c.name,...(typeof emLinkNames==='function'?emLinkNames(c):Object.values(c.titles||{})),...(c.links||[]).map(l=>SM.urlWords(l[0]))].filter(Boolean).join(' · '),40),
  sign:s=>SM.lead(s.name,16)};
 SM.key={post:r=>'p:'+r.id,web:p=>'w:'+p[0],email:c=>'e:'+c.id,sign:s=>'s:'+s.k+':'+(s.raw||s.name)};
 // every item that can be searched, all dates (consumers filter by date)

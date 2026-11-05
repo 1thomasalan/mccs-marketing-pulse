@@ -218,7 +218,10 @@ const PF={cap:[.75,r=>r.cap,{lead:12}],tags:[1,r=>(String(r.cap).match(/#\w+/g)|
 const postSearch=(q,o)=>P.search(P.searchIndex(S.posts,PF),q,Object.assign({tie:r=>r.t,cap:1e5},o));
 // commas or | separate alternatives; within one, every word must match (& = and, typos and partial words allowed). Returns a test on a post.
 function qMatch(q){if(!String(q).trim())return ()=>true;const ids=new Set(postSearch(q).map(x=>x.item.id));return r=>ids.has(r.id)}
-const EF={name:[1,c=>c.name],links:[.75,c=>Object.values(c.titles||{}).join(' · ')],urls:[.4,c=>(c.links||[]).map(l=>String(l[0]||'').replace(/^https?:\/\/(www\.)?/,'')).join(' '),{sub:1}],meta:[.5,c=>`email newsletter ${c.full||''} ${c.subject||''} ${P.dateWords(c.date)}`]};
+// names for common newsletter links that have no fetched title (the jobs block links to the careers site)
+const EM_LNK=[[/^https?:\/\/careers\.usmc-mccs\.org/i,'Hot jobs: MCCS Careers, now hiring'],[/\/careers\/working-at-mccs/i,'Working at MCCS: careers and jobs']];
+const emLinkNames=c=>{const t=c.titles||{},o=Object.values(t);for(const l of c.links||[]){const u=String(l[0]||'');if(t[u])continue;const m=EM_LNK.find(x=>x[0].test(u));if(m&&!o.includes(m[1]))o.push(m[1])}return o};
+const EF={name:[1,c=>c.name],links:[.75,c=>emLinkNames(c).join(' · ')],urls:[.4,c=>(c.links||[]).map(l=>String(l[0]||'').replace(/^https?:\/\/(www\.)?/,'')).join(' '),{sub:1}],meta:[.5,c=>`email newsletter ${c.full||''} ${c.subject||''} ${P.dateWords(c.date)}`]};
 const emSearch=q=>{const cs=emCamps();return P.search(P.searchIndex(cs,EF,'em|'+cs.map(c=>c.id).join()),q,{cap:1e4}).map(x=>Object.assign(x,{item:cs[x.i]}))};
 const WF={title:[1,p=>wTitle(p[0])],path:[.8,p=>p[0],{sub:1}]};
 // v56 related words (smart.js): a search that contains one of these also looks for the others, shown as "related by meaning" below the keyword matches.
@@ -743,7 +746,7 @@ const GROUPS=[
   row:(p,h)=>[GSI.web,P.hl(wTitle(p[0]),h,esc),(p[0][0]==='/'?esc(p[0])+' · ':'')+esc(gsRangeLabel()),P.fmt(p[1]),'views'],see:'See all in Web'},
  {k:'email',label:'Email campaigns',run:q=>{if(!S.email.length)return [];const res=emSearch(q),out=res.filter(x=>gsIn(x.item.date));out.fuzzy=res.fuzzy;out.all=res;return out},
   rel:(q,res)=>{if(!S.email.length)return [];const cs=emCamps();return SM.related('email',cs,res.all||res,P.searchIndex(cs,EF,'em|'+cs.map(c=>c.id).join()),q,c=>c.date)},
-  row:(c,h)=>{const lt=Object.values(c.titles||{}).slice(0,2);return [GSI.email,P.hl(c.name,h,esc),`Sent ${c.date?P.fmtDate(c.date,{year:'numeric'}):'–'}${lt.length?' · links: '+esc(lt.join(', ')):''}`,c.openRate!=null?pct1(c.openRate):'',c.openRate!=null?'opened':'']}},
+  row:(c,h)=>{const all=emLinkNames(c),hit=x=>h&&h.size&&P.sNorm(x,1).split(/\s+/).some(w=>h.has(w)),lt=[...all.filter(hit),...all.filter(x=>!hit(x))].slice(0,2);return [GSI.email,P.hl(c.name,h,esc),`Sent ${c.date?P.fmtDate(c.date,{year:'numeric'}):'–'}${lt.length?' · links: '+P.hl(lt.join(', '),h,esc):''}`,c.openRate!=null?pct1(c.openRate):'',c.openRate!=null?'opened':'']}},
  {k:'sign',label:'Signage',run:q=>{const l=gsSign();return l.length?P.search(P.searchIndex(l,SGF),q,{cap:1e4}):[]},
   rel:(q,res)=>{const l=gsSign();return l.length?SM.related('sign',l,res,P.searchIndex(l,SGF),q,null):[]},
   row:(s,h)=>[GSI.sign,P.hl(s.name,h,esc),`${esc(s.kind)} · ${esc(s.sub)}`,'','']}];
@@ -818,7 +821,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v59';
+const PULSE_V='v60';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();
