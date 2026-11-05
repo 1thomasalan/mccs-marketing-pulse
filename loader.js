@@ -3,7 +3,7 @@
 // It only appears when work runs longer than 350 ms, stays at least 600 ms once shown, then fills and fades.
 // While a source is still loading, cards waiting on it shimmer (body classes ld-data / ld-sg / ld-pl drive the CSS).
 // Also: saved signage and slide plays come up from this device instantly (spWarm), and slide plays wait for the main data.
-const LD={jobs:new Map(),done:0,total:0,shown:0,timer:0,hide:0,el:null,
+const LD={err:'',jobs:new Map(),done:0,total:0,shown:0,timer:0,hide:0,el:null,
   ui(){if(this.el)return this.el;const d=document.createElement('div');d.id='ldwrap';d.setAttribute('role','status');d.setAttribute('aria-live','polite');
     d.innerHTML='<div id="ldbar"><i></i></div><div id="ldtag"><span class="ldd"></span><span id="ldtxt">Updating</span></div>';document.body.appendChild(d);this.el=d;return d},
   tv(){return typeof TV!=='undefined'&&TV.on},
@@ -21,7 +21,7 @@ const LD={jobs:new Map(),done:0,total:0,shown:0,timer:0,hide:0,el:null,
   idle(k){return new Promise(ok=>{const t=()=>this.jobs.has(k)?setTimeout(t,120):ok();t()})},
   paint(){if(!this.el)return;const p=this.total?this.done/this.total:0;const live=[...this.jobs.values()][0];
     this.el.querySelector('#ldbar i').style.transform=`scaleX(${this.jobs.size?Math.max(.08,Math.min(.94,p*.9+.06)):1})`;
-    if(live&&live.label)this.el.querySelector('#ldtxt').textContent='Updating · '+live.label;else if(!this.jobs.size)this.el.querySelector('#ldtxt').textContent='Up to date'}};
+    if(live&&live.label)this.el.querySelector('#ldtxt').textContent='Updating · '+live.label;else if(!this.jobs.size)this.el.querySelector('#ldtxt').textContent=this.err?"Couldn't update · saved data showing":'Up to date';this.el.classList.toggle('ldbad',!this.jobs.size&&!!this.err)}};
 
 // wrap the two signage loaders (defined in signage.js and plays.js) without touching those files
 if(typeof sgLoad==='function'){const _sg=sgLoad;sgLoad=function(f){if(SG.loading)return SG.loading;LD.go('sg','Signage screens');const p=_sg(f);p.finally(()=>LD.end('sg'));return p}}

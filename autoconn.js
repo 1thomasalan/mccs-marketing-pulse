@@ -73,7 +73,7 @@ const fxBuzz=t=>{try{if(navigator.vibrate)navigator.vibrate(t==='err'?[20,40,20]
 toast=function(m,o){o=o||{};m=String(m);const t=$('#toast');if(!t)return;
   const type=o.type||(/^(Not saved|Could ?n|Couldn|Error|Failed|That item is not)/i.test(m)?'err':/^(Connected|Linked|Saved|Settings saved|Removed|Kept|Got it|Backup saved|Erased|Copied|Done|Your change|Passcode forgotten|\d+ earlier)/i.test(m)?'ok':'info');
   t.className='toast t-'+type;t.setAttribute('role',type==='err'?'alert':'status');t.setAttribute('aria-live',type==='err'?'assertive':'polite');
-  t.innerHTML=`<span class="ti">${hic(type==='err'?'alert':type==='ok'?'check':'pulse',16)}</span><span class="tm"></span>${o.undo?'<button class="tu" type="button">Undo</button>':''}`;t.querySelector('.tm').textContent=m;
+  t.innerHTML=`<span class="ti">${hic(type==='err'?'alert':type==='ok'?'check':'pulse',16)}</span><span class="tm"></span>${o.undo?`<button class="tu" type="button">${esc(o.act||'Undo')}</button>`:''}`;t.querySelector('.tm').textContent=m;
   if(o.undo)t.querySelector('.tu').onclick=()=>{clearTimeout(t._h);t.classList.remove('show');o.undo()};
   t.classList.remove('show');void t.offsetWidth;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),o.undo?6000:type==='err'?5000:2800);if(type!=='info')fxBuzz(type)};
 // remember the last connect/remove so the drawer, toast and page can show it
