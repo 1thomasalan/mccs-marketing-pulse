@@ -218,9 +218,22 @@ const PF={cap:[.75,r=>r.cap,{lead:12}],tags:[1,r=>(String(r.cap).match(/#\w+/g)|
 const postSearch=(q,o)=>P.search(P.searchIndex(S.posts,PF),q,Object.assign({tie:r=>r.t,cap:1e5},o));
 // commas or | separate alternatives; within one, every word must match (& = and, typos and partial words allowed). Returns a test on a post.
 function qMatch(q){if(!String(q).trim())return ()=>true;const ids=new Set(postSearch(q).map(x=>x.item.id));return r=>ids.has(r.id)}
-const EF={name:[1,c=>c.name],links:[.75,c=>Object.values(c.titles||{}).join(' · ')],meta:[.5,c=>`email newsletter ${c.full||''} ${c.subject||''} ${P.dateWords(c.date)}`]};
+const EF={name:[1,c=>c.name],links:[.75,c=>Object.values(c.titles||{}).join(' · ')],urls:[.4,c=>(c.links||[]).map(l=>String(l[0]||'').replace(/^https?:\/\/(www\.)?/,'')).join(' '),{sub:1}],meta:[.5,c=>`email newsletter ${c.full||''} ${c.subject||''} ${P.dateWords(c.date)}`]};
 const emSearch=q=>{const cs=emCamps();return P.search(P.searchIndex(cs,EF,'em|'+cs.map(c=>c.id).join()),q,{cap:1e4}).map(x=>Object.assign(x,{item:cs[x.i]}))};
 const WF={title:[1,p=>wTitle(p[0])],path:[.8,p=>p[0],{sub:1}]};
+// v56 related words (smart.js): a search that contains one of these also looks for the others, shown as "related by meaning" below the keyword matches.
+// 'block' words (or [a,b] pairs: searching a blocks b) keep look-alikes out. The Social Media publisher can add more as the encrypted events field `related`.
+const SM_GROUPS=[
+ {words:['careers','career','jobs','job','hot jobs','hiring','now hiring','employment','vacancies','vacancy','job openings','join our team','work with us','NAF','USAJobs','apply today','recruiting','recruitment','help wanted','job fair','career fair'],block:['job well done','great job','good job','nice job','great work','good work','team work','teamwork']},
+ {words:['swim','swimming','pool','pools','aquatics','lifeguard','lifeguards','learn to swim']},
+ {words:['halloween','trunk or treat','haunted house','costume contest','spooky']},
+ {words:['kids','children','youth','teens','child development','CDC','school age care']},
+ {words:['gym','gyms','fitness','workout','semper fit','group exercise','personal training']},
+ {words:['restaurant','restaurants','dining','food','brunch','lunch','dinner','menu']},
+ {words:['thanksgiving','turkey','turkey trot']},
+ {words:['marine corps birthday','birthday ball','usmc birthday']},
+ {words:['library','libraries','books','story time']},
+ {words:['volunteer','volunteers','volunteering']}];
 const QSTOP=new Set('and the of a an at in on for to with by annual mccs okinawa event events our your you we'.split(' '));
 // campaign-to-website matching skips generic words (annual, mccs, okinawa, event, 16th) so only the event name has to match a page
 function pageMatch(q,pages){const qq=String(q).split(/[,|]/).map(a=>P.sNorm(a).split(' ').filter(w=>w&&!QSTOP.has(w)&&!/^\d+(st|nd|rd|th)?$/.test(w)).join(' ')).filter(Boolean).join(',');if(!qq)return null;
@@ -722,13 +735,17 @@ function gsSign(){const d=SG.data;if(!d)return [];let l=GSG.get(d);if(l)return l
   GSG.set(d,l);return l}
 const GS={open:{},warm:0};
 const GROUPS=[
- {k:'posts',label:'Posts',run:q=>{const it=gsPosts(),res=P.search(P.searchIndex(it,PF),q,{tie:r=>r.t,cap:1e5}),out=res.filter(x=>gsIn(x.item.d));out.fuzzy=res.fuzzy;return out},
+ {k:'posts',label:'Posts',run:q=>{const it=gsPosts(),res=P.search(P.searchIndex(it,PF),q,{tie:r=>r.t,cap:1e5}),out=res.filter(x=>gsIn(x.item.d));out.fuzzy=res.fuzzy;out.all=res;return out},
+  rel:(q,res)=>{const it=gsPosts();return SM.related('post',it,res.all,P.searchIndex(it,PF),q,r=>r.d)},
   row:(r,h)=>[GSI.post,P.hl(P.label(r),h,esc),`${r.plat==='fb'?'Facebook':'Instagram'} · ${esc(acctName(r.plat,r.page))} · ${r.d.slice(0,4)===P.todayKey().slice(0,4)?P.fmtDate(r.d):P.fmtDate(r.d,{year:'numeric'})}${qWhy(r,h)}`,P.fmt(r.v),'views'],see:'See all in Social'},
  {k:'web',label:'Web pages',run:q=>{const w=gsWebPages();if(!w)return [];const res=P.search(P.searchIndex(w.pg,WF,w.key),q,{tie:p=>p[1],cap:1e4});res.forEach(x=>x.item=w.pg[x.i]);return res},
+  rel:(q,res)=>{const w=gsWebPages();return w?SM.related('web',w.pg,res,P.searchIndex(w.pg,WF,w.key),q,null):[]},
   row:(p,h)=>[GSI.web,P.hl(wTitle(p[0]),h,esc),(p[0][0]==='/'?esc(p[0])+' · ':'')+esc(gsRangeLabel()),P.fmt(p[1]),'views'],see:'See all in Web'},
- {k:'email',label:'Email campaigns',run:q=>{if(!S.email.length)return [];const res=emSearch(q),out=res.filter(x=>gsIn(x.item.date));out.fuzzy=res.fuzzy;return out},
+ {k:'email',label:'Email campaigns',run:q=>{if(!S.email.length)return [];const res=emSearch(q),out=res.filter(x=>gsIn(x.item.date));out.fuzzy=res.fuzzy;out.all=res;return out},
+  rel:(q,res)=>{if(!S.email.length)return [];const cs=emCamps();return SM.related('email',cs,res.all||res,P.searchIndex(cs,EF,'em|'+cs.map(c=>c.id).join()),q,c=>c.date)},
   row:(c,h)=>{const lt=Object.values(c.titles||{}).slice(0,2);return [GSI.email,P.hl(c.name,h,esc),`Sent ${c.date?P.fmtDate(c.date,{year:'numeric'}):'–'}${lt.length?' · links: '+esc(lt.join(', ')):''}`,c.openRate!=null?pct1(c.openRate):'',c.openRate!=null?'opened':'']}},
  {k:'sign',label:'Signage',run:q=>{const l=gsSign();return l.length?P.search(P.searchIndex(l,SGF),q,{cap:1e4}):[]},
+  rel:(q,res)=>{const l=gsSign();return l.length?SM.related('sign',l,res,P.searchIndex(l,SGF),q,null):[]},
   row:(s,h)=>[GSI.sign,P.hl(s.name,h,esc),`${esc(s.kind)} · ${esc(s.sub)}`,'','']}];
 // build the indexes one at a time in idle time (lazy: nothing is built until the search is about to be used)
 function gsWarm(){if(GS.warm||!gsAvail())return;GS.warm=1;const idle=window.requestIdleCallback||(f=>setTimeout(f,30));
@@ -740,20 +757,24 @@ const GSRP=[['7','7 days'],['30','30 days'],['lastweek','Last week'],['month','T
 function gsRngHtml(){const r=gsRange()||{};return `<div class="grng" role="radiogroup" aria-label="Search dates">${GSRP.map(([k,l])=>`<button class="chip sm ${GSR.k===k?'on':''}" role="radio" aria-checked="${GSR.k===k}" data-gr="${k}">${l}</button>`).join('')}</div>${GSR.k==='custom'?`<div class="grc"><label>From<input type="date" id="grS" value="${esc(r.s||'')}"></label><label>To<input type="date" id="grE" value="${esc(r.e||'')}"></label></div>`:''}`}
 function gsRngBind(){const g=$('.grng'),on=g&&g.querySelector('.on');if(on&&g.scrollWidth>g.clientWidth)g.scrollLeft=Math.max(0,on.offsetLeft-g.clientWidth/2+on.offsetWidth/2);$$('[data-gr]').forEach(b=>b.onclick=()=>{const k=b.dataset.gr;if(k==='custom'&&GSR.k!=='custom'){const r=gsRange()||P.preset('30');GSR.s=r.s;GSR.e=r.e}GSR.k=k;GS.open={};gsRender()});
   const f=()=>{const a=$('#grS').value,b=$('#grE').value;if(!a||!b)return;if(a>b){toast('The From date is after the To date.',{type:'err'});return}GSR.s=a;GSR.e=b;GS.open={};gsRender()};if($('#grS')){$('#grS').onchange=f;$('#grE').onchange=f}}
-function gsRender(){const q=$('#gq').value,box=$('#gbody');$('#gclr').hidden=!q;
-  if(!q.trim()){box.innerHTML=gsRngHtml()+`<p class="gempty">Search posts, web pages, email campaigns and signage at once. Typos, “&amp;” vs “and”, and word order are fine.</p><div class="gtry">${['ages & stages','halloween','golf course','summer camp, swim'].map(t=>`<button class="chip sm" data-try="${esc(t)}">${esc(t)}</button>`).join('')}</div><p class="gkeys">Press <kbd>/</kbd> or <kbd>${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl'} K</kbd> to open · <kbd>Esc</kbd> to close</p>`;
-    box.querySelectorAll('[data-try]').forEach(b=>b.onclick=()=>{$('#gq').value=b.dataset.try;GS.open={};gsRender()});gsRngBind();return}
-  const R=GROUPS.map(g=>{let res=[];try{res=g.run(q)}catch(e){console.warn('search',g.k,e)}return {g,res}});
-  const fz=[...new Map(R.flatMap(x=>x.res.fuzzy||[]).map(f=>[f[0],f])).values()],total=R.reduce((a,x)=>a+x.res.length,0),empty=R.filter(x=>!x.res.length).map(x=>x.g.label);
-  GS.last={q,R};
-  box.innerHTML=gsRngHtml()+`<p class="gsum">${total?`<b>${nf(total)}</b> ${total===1?'match':'matches'}`:'No matches'} for “${esc(q)}” in ${esc(gsRangeLabel())}${fz.length?` · ${gsHint(fz)}`:''}</p>`+
-   R.filter(x=>x.res.length).map(({g,res})=>{const open=GS.open[g.k],n=open?Math.min(res.length,50):Math.min(3,res.length);
-    const btn=g.see?`<button data-see="${g.k}">${g.see}</button>`:res.length>3?`<button data-more="${g.k}">${open?'Show fewer':`Show all ${res.length}`}</button>`:'';
-    return `<section class="ggrp"><div class="gh"><span>${g.label}<b>${nf(res.length)}</b></span>${btn}</div>${res.slice(0,n).map((x,j)=>{const [ic,t,m,num,u]=g.row(x.item,x.hit);return `<button class="gres" data-g="${g.k}" data-j="${j}"><span class="gi">${ic}</span><span class="gb"><span class="gt">${t}</span><span class="gm">${m}</span></span>${num?`<span class="gn">${num}<small>${u}</small></span>`:''}</button>`}).join('')}${open&&res.length>50?`<p class="gnone">Showing the best 50.</p>`:''}</section>`}).join('')+
-   (empty.length&&total?`<p class="gnone">Nothing in ${empty.join(' or ')}.</p>`:'')+(!total?`<p class="gempty">Try fewer words, a wider date range, or separate options with a comma.</p>`:'')+(R.some(x=>x.g.k==='sign'&&x.res.length)?`<p class="gnone">Signage shows what is in rotation now, whatever the dates.</p>`:'');
-  gsRngBind();box.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{GS.open[b.dataset.more]=!GS.open[b.dataset.more];gsRender()});
+function gsRender(){const q=$('#gq').value,box=$('#gbody');$('#gclr').hidden=!q;const smOn=typeof SM==='object'&&SM.on();
+  if(!q.trim()){box.innerHTML=gsRngHtml()+(typeof SM==='object'?SM.bar():'')+`<p class="gempty">Search posts, web pages, email campaigns and signage at once. Typos, “&amp;” vs “and”, and word order are fine.${smOn?' Smart matches also find related items, like “hot jobs” for “careers”.':''}</p><div class="gtry">${['ages & stages','halloween','golf course','summer camp, swim','careers'].map(t=>`<button class="chip sm" data-try="${esc(t)}">${esc(t)}</button>`).join('')}</div><p class="gkeys">Press <kbd>/</kbd> or <kbd>${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl'} K</kbd> to open · <kbd>Esc</kbd> to close</p>`;
+    box.querySelectorAll('[data-try]').forEach(b=>b.onclick=()=>{$('#gq').value=b.dataset.try;GS.open={};gsRender()});gsRngBind();if(typeof SM==='object')SM.bind();return}
+  const R=GROUPS.map(g=>{let res=[],rel=[];try{res=g.run(q)}catch(e){console.warn('search',g.k,e)}if(smOn&&g.rel){try{rel=g.rel(q,res)}catch(e){console.warn('smart',g.k,e)}}return {g,res,rel}});
+  const fz=[...new Map(R.flatMap(x=>x.res.fuzzy||[]).map(f=>[f[0],f])).values()],total=R.reduce((a,x)=>a+x.res.length,0),relN=R.reduce((a,x)=>a+x.rel.length,0),empty=R.filter(x=>!x.res.length&&!x.rel.length).map(x=>x.g.label);
+  GS.last={q,R,relN};
+  const row=(g,x,j,r)=>{const [ic,t,m,num,u]=g.row(x.item,x.hit);let lab='';if(r){const rl=x.rel;lab=rl.by==='word'?`<span class="gmean">matched by meaning · “${esc(rl.ph)}”</span>`:`<span class="gmean" data-smph="${esc(rl.k)}" data-smt="${esc(SM.txt[{posts:'post',web:'web',email:'email',sign:'sign'}[g.k]](x.item))}">matched by meaning</span>`}
+    return `<button class="gres${r?' grelr':''}" data-g="${g.k}" data-j="${j}"${r?' data-r="1"':''}><span class="gi">${ic}</span><span class="gb"><span class="gt">${t}</span><span class="gm">${m}</span>${lab}</span>${num?`<span class="gn">${num}<small>${u}</small></span>`:''}</button>`};
+  box.innerHTML=gsRngHtml()+(typeof SM==='object'?SM.bar():'')+`<p class="gsum">${total?`<b>${nf(total)}</b> ${total===1?'match':'matches'}`:'No matches'}${relN?` + <b>${nf(relN)}</b> related by meaning`:''} for “${esc(q)}” in ${esc(gsRangeLabel())}${fz.length?` · ${gsHint(fz)}`:''}</p>`+
+   R.filter(x=>x.res.length||x.rel.length).map(({g,res,rel})=>{const open=GS.open[g.k],n=open?Math.min(res.length,50):Math.min(3,res.length),ro=GS.open['rel:'+g.k],rn=ro?Math.min(rel.length,50):Math.min(3,rel.length);
+    const btn=g.see&&res.length?`<button data-see="${g.k}">${g.see}</button>`:res.length>3?`<button data-more="${g.k}">${open?'Show fewer':`Show all ${res.length}`}</button>`:'';
+    return `<section class="ggrp"><div class="gh"><span>${g.label}<b>${nf(res.length)}</b>${rel.length?`<em class="ghrel">+${nf(rel.length)} related</em>`:''}</span>${btn}</div>${res.slice(0,n).map((x,j)=>row(g,x,j)).join('')}${open&&res.length>50?`<p class="gnone">Showing the best 50.</p>`:''}`+
+     (rel.length?`<div class="grel"><span>Related by meaning<b>${nf(rel.length)}</b></span>${rel.length>3?`<button data-rmore="${g.k}">${ro?'Show fewer':`Show all ${rel.length}`}</button>`:''}</div>${rel.slice(0,rn).map((x,j)=>row(g,x,j,1)).join('')}`:'')+`</section>`}).join('')+
+   (empty.length&&(total||relN)?`<p class="gnone">Nothing in ${empty.join(' or ')}.</p>`:'')+(!total&&!relN?`<p class="gempty">Try fewer words, a wider date range, or separate options with a comma.</p>`:'')+(R.some(x=>x.g.k==='sign'&&(x.res.length||x.rel.length))?`<p class="gnone">Signage shows what is in rotation now, whatever the dates.</p>`:'');
+  gsRngBind();if(typeof SM==='object'){SM.bind();if(relN)SM.fillPhrases(q)}box.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{GS.open[b.dataset.more]=!GS.open[b.dataset.more];gsRender()});
+  box.querySelectorAll('[data-rmore]').forEach(b=>b.onclick=()=>{const k='rel:'+b.dataset.rmore;GS.open[k]=!GS.open[k];gsRender()});
   box.querySelectorAll('[data-see]').forEach(b=>b.onclick=()=>gsSeeAll(b.dataset.see,q));
-  box.querySelectorAll('.gres').forEach(b=>b.onclick=()=>{const x=R.find(r=>r.g.k===b.dataset.g).res[+b.dataset.j];if(x)gsGo(b.dataset.g,x.item)})}
+  box.querySelectorAll('.gres').forEach(b=>b.onclick=()=>{const g=R.find(r=>r.g.k===b.dataset.g),x=(b.dataset.r?g.rel:g.res)[+b.dataset.j];if(x)gsGo(b.dataset.g,x.item)})}
 function gsFlash(el){if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('gflash');setTimeout(()=>el.classList.remove('gflash'),2200)}
 function gsGo(k,it){gsClose(true);
   if(k==='posts')return postSheet(it.id);
@@ -768,7 +789,7 @@ function gsSeeAll(k,q){gsClose(true);S.view='explore';const fixed=gsApplyRange()
   if(!fixed&&ds.length&&(ds[0]<S.s||ds[ds.length-1]>S.e)){S.preset='custom';S.s=ds[0]<S.s?ds[0]:S.s;S.e=ds[ds.length-1]>S.e?ds[ds.length-1]:S.e;note=`Range set to ${P.rangeLabel(S.s,S.e)} so all ${nf(res.length)} matches show`}
   render();const qi=$('#q');gsFlash(qi?qi.closest('.card'):null);if(note)toast(note)}
 function gsOpen(q){if(!gsAvail())return;const s=$('#setp');if(s&&s.classList.contains('show'))closeSettings(false);if($('#sheet').classList.contains('show'))closeSheet();
-  setRange();GSR.k=S.preset;if(S.preset==='custom'){GSR.s=S.s;GSR.e=S.e}gsWarm();$('#gs').classList.add('show');$('#gscrim').classList.add('show');$('#app').inert=true;$('#dock').inert=true;$('#gq').value=q||'';GS.open={};gsRender();setTimeout(()=>$('#gq').focus(),60)}
+  setRange();GSR.k=S.preset;if(S.preset==='custom'){GSR.s=S.s;GSR.e=S.e}gsWarm();if(typeof SM==='object')try{SM.start()}catch(e){console.warn('smart',e)}$('#gs').classList.add('show');$('#gscrim').classList.add('show');$('#app').inert=true;$('#dock').inert=true;$('#gq').value=q||'';GS.open={};gsRender();setTimeout(()=>$('#gq').focus(),60)}
 function gsClose(nav){const g=$('#gs');if(!g||!g.classList.contains('show'))return;g.classList.remove('show');$('#gscrim').classList.remove('show');$('#app').inert=false;$('#dock').inert=false;if(!nav){const b=$('#gbtn');if(b)b.focus({preventScroll:true})}}
 $('#gscrim').onclick=()=>gsClose();$('#gdone').onclick=()=>gsClose();$('#gq').oninput=()=>{GS.open={};gsRender()};
 $('#gclr').onclick=e=>{e.preventDefault();$('#gq').value='';gsRender();$('#gq').focus()};
@@ -797,7 +818,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v55';
+const PULSE_V='v56';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();

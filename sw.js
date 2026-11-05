@@ -1,4 +1,7 @@
-const C='pulse-v55';const F=['./','index.html','core.js','app.js','hub.js','programs.js','connections.js','autoconn.js','share.js','searchrep.js','signage.js','plays.js','loader.js','tv.js','manifest.webmanifest','icon-192.png','icon-512.png'];
+const C='pulse-v56',AI='pulse-ai-v1';const F=['./','index.html','core.js','app.js','hub.js','programs.js','connections.js','autoconn.js','share.js','searchrep.js','smart.js','signage.js','plays.js','loader.js','tv.js','manifest.webmanifest','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F)));self.skipWaiting()});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});
-self.addEventListener('fetch',e=>{if(e.request.url.match(/(data|web|email|events)\.(enc\.json|\d+\.bin)|\/t\/|signage|\/sg\//))return;if(e.request.method!=='GET'||!e.request.url.startsWith(self.location.origin))return;e.respondWith(fetch(e.request.url,{cache:'no-cache'}).then(r=>{const cp=r.clone();caches.open(C).then(c=>c.put(e.request,cp));return r}).catch(()=>caches.match(e.request)))});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C&&x!==AI).map(x=>caches.delete(x)))));self.clients.claim()});
+self.addEventListener('fetch',e=>{
+ // v56 smart search model + runtime (~33 MB): not precached; cached on first use, cache-first, kept across version bumps
+ if(e.request.method==='GET'&&e.request.url.startsWith(self.location.origin)&&/\/ai\/(models\/|[^/]+\.wasm$|transformers\.min\.js$)/.test(e.request.url)){e.respondWith(caches.open(AI).then(c=>c.match(e.request).then(h=>h||fetch(e.request).then(r=>{if(r.ok)c.put(e.request,r.clone());return r}))));return}
+ if(e.request.url.match(/(data|web|email|events)\.(enc\.json|\d+\.bin)|\/t\/|signage|\/sg\//))return;if(e.request.method!=='GET'||!e.request.url.startsWith(self.location.origin))return;e.respondWith(fetch(e.request.url,{cache:'no-cache'}).then(r=>{const cp=r.clone();caches.open(C).then(c=>c.put(e.request,cp));return r}).catch(()=>caches.match(e.request)))});

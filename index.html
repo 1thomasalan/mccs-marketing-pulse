@@ -1127,6 +1127,17 @@ a.cn-btn:visited{color:var(--txt)}
 #spWhen.bad{color:#ff8a80}.sact.bad{color:#ff8a80;border-color:rgba(255,138,128,.5)}#ldwrap.ldbad #ldbar i{background:#ff8a80}#ldwrap.ldbad #ldtxt{color:#ff8a80}
 .pver{font-size:10.5px;font-weight:500;letter-spacing:.04em;opacity:.55;margin-left:6px;padding:1px 6px;border:1px solid currentColor;border-radius:999px;vertical-align:2px;font-family:inherit;text-transform:none}
 .brandhome{all:unset;cursor:pointer;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;padding:6px 8px 6px 0;-webkit-tap-highlight-color:transparent;border-radius:6px}.brandhome:hover{color:var(--ink,#fff)}.brandhome:active{opacity:.6}.brandhome:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+/* v56 smart matches */
+.gsmart{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--mut)}
+.gsmt{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px 0 6px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--txt);font-size:12.5px;cursor:pointer}
+.gsmt i{width:28px;height:16px;border-radius:999px;background:var(--line2,rgba(255,255,255,.2));position:relative;transition:background .15s}.gsmt i::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform .15s}
+.gsmt[aria-checked=true] i{background:var(--glow)}.gsmt[aria-checked=true] i::after{transform:translateX(12px)}
+.gsmn.fail{color:var(--mut);font-style:italic}
+.ggrp .gh .ghrel{font-style:normal;font-size:10.5px;letter-spacing:1px;color:var(--mut);margin-left:8px;text-transform:none}
+.grel{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--mut);margin-top:6px;border-top:1px dashed var(--line);padding-top:4px}
+.grel b{font-weight:500;color:var(--txt);margin-left:6px;letter-spacing:1px}.grel button{font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--glow);min-height:36px;padding:0 0 0 12px}
+.gres.grelr{border-top-style:dashed}.gmean{display:block;color:var(--glow);font-size:12px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srrel{display:inline-block;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--glow);border:1px solid currentColor;border-radius:6px;padding:0 5px;margin-right:6px}
 .gsumrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px}.gsumrow .gsum{margin:0}
 .gsrep{display:inline-flex;align-items:center;gap:7px;background:var(--glow);color:#1a1408;font-weight:600;font-size:13px;padding:8px 14px;border-radius:999px;border:0;cursor:pointer;white-space:nowrap}.gsrep .hi{stroke:currentColor}.gsrep:active{transform:scale(.97)}
 .srev{display:flex;gap:10px;align-items:center;background:color-mix(in srgb,var(--glow) 8%,transparent);border:1px solid color-mix(in srgb,var(--glow) 35%,transparent);border-radius:14px;padding:10px 12px;margin:12px 0 4px;font-size:13px}.srev.gs{margin-top:12px}.srev .ic{color:var(--glow);display:grid}.srev .t{flex:1;min-width:0}.srev small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
@@ -1210,6 +1221,7 @@ a.cn-btn:visited{color:var(--txt)}
 <script src="connections.js"></script>
 <script src="autoconn.js"></script>
 <script src="share.js"></script>
+<script src="smart.js"></script>
 <script src="searchrep.js"></script>
 </body>
 </html>
