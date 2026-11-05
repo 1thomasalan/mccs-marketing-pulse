@@ -618,7 +618,13 @@ const GSI={post:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="1
 let GSP={src:null,n:-1,ex:null,out:[]};
 function gsPosts(){const ex=localStorage.pulseExclude||'';if(GSP.src!==S.posts||GSP.n!==S.posts.length||GSP.ex!==ex){const f=dropExcluded(S.posts);GSP={src:S.posts,n:S.posts.length,ex,out:f.length===S.posts.length?S.posts:f}}return GSP.out}
 // web pages: the pages of the current date range, same list and cache key as Explore › Web › Pages
-function gsWebPages(){if(!S.web.length)return null;setRange();const wr=P.webRange(S.web,S.s,S.e);if(!webHas(wr))return null;const pg=wr.pages.filter(p=>!P.NOISE_PAGES.includes(p[0]));return {wr,pg,key:'w|'+S.s+'|'+S.e+'|'+pg.length+'|'+pg.slice(0,5).map(p=>p[1]).join()}}
+// v54 search date range: GSR.k is a preset key, 'custom' (GSR.s/GSR.e) or 'all'. Starts on the app's range each time search opens.
+const GSR={k:'30',s:'',e:''};
+function gsRange(){if(GSR.k==='all')return null;if(GSR.k==='custom'&&GSR.s&&GSR.e)return {s:GSR.s,e:GSR.e};const r=P.preset(GSR.k==='custom'?'30':GSR.k);return {s:r.s,e:r.e}}
+const gsIn=d=>{const r=gsRange();return !r||(d&&d>=r.s&&d<=r.e)};
+function gsRangeLabel(){const r=gsRange();return r?P.rangeLabel(r.s,r.e):'all dates'}
+function gsApplyRange(){const r=gsRange();if(!r)return false;S.preset=GSR.k;if(GSR.k==='custom'){S.s=r.s;S.e=r.e;const n=P.daysBetween(r.s,r.e);S.ce=P.addDays(r.s,-1);S.cs=P.addDays(S.ce,-(n-1))}setRange();return true}
+function gsWebPages(){if(!S.web.length)return null;const rr=gsRange()||{s:'2024-01-01',e:P.todayKey()};const wr=P.webRange(S.web,rr.s,rr.e);if(!webHas(wr))return null;const pg=wr.pages.filter(p=>!P.NOISE_PAGES.includes(p[0]));return {wr,pg,key:'w|'+rr.s+'|'+rr.e+'|'+pg.length+'|'+pg.slice(0,5).map(p=>p[1]).join()}}
 // signage: read-only view of SG.data (slides, playlists, locations, offline screens); signage.js is untouched
 const SGF={name:[1,s=>s.name],sub:[.6,s=>`${s.kind} ${s.sub}`]};const GSG=new WeakMap();
 function gsSign(){const d=SG.data;if(!d)return [];let l=GSG.get(d);if(l)return l;const pl=n=>(SGC[n]||[n])[0];l=[];
@@ -628,11 +634,11 @@ function gsSign(){const d=SG.data;if(!d)return [];let l=GSG.get(d);if(l)return l
   GSG.set(d,l);return l}
 const GS={open:{},warm:0};
 const GROUPS=[
- {k:'posts',label:'Posts',run:q=>{const it=gsPosts();return P.search(P.searchIndex(it,PF),q,{tie:r=>r.t,cap:1e5})},
+ {k:'posts',label:'Posts',run:q=>{const it=gsPosts(),res=P.search(P.searchIndex(it,PF),q,{tie:r=>r.t,cap:1e5}),out=res.filter(x=>gsIn(x.item.d));out.fuzzy=res.fuzzy;return out},
   row:(r,h)=>[GSI.post,P.hl(P.label(r),h,esc),`${r.plat==='fb'?'Facebook':'Instagram'} · ${esc(acctName(r.plat,r.page))} · ${r.d.slice(0,4)===P.todayKey().slice(0,4)?P.fmtDate(r.d):P.fmtDate(r.d,{year:'numeric'})}${qWhy(r,h)}`,P.fmt(r.v),'views'],see:'See all in Social'},
  {k:'web',label:'Web pages',run:q=>{const w=gsWebPages();if(!w)return [];const res=P.search(P.searchIndex(w.pg,WF,w.key),q,{tie:p=>p[1],cap:1e4});res.forEach(x=>x.item=w.pg[x.i]);return res},
-  row:(p,h)=>[GSI.web,P.hl(wTitle(p[0]),h,esc),(p[0][0]==='/'?esc(p[0])+' · ':'')+esc(P.rangeLabel(S.s,S.e)),P.fmt(p[1]),'views'],see:'See all in Web'},
- {k:'email',label:'Email campaigns',run:q=>S.email.length?emSearch(q):[],
+  row:(p,h)=>[GSI.web,P.hl(wTitle(p[0]),h,esc),(p[0][0]==='/'?esc(p[0])+' · ':'')+esc(gsRangeLabel()),P.fmt(p[1]),'views'],see:'See all in Web'},
+ {k:'email',label:'Email campaigns',run:q=>{if(!S.email.length)return [];const res=emSearch(q),out=res.filter(x=>gsIn(x.item.date));out.fuzzy=res.fuzzy;return out},
   row:(c,h)=>{const lt=Object.values(c.titles||{}).slice(0,2);return [GSI.email,P.hl(c.name,h,esc),`Sent ${c.date?P.fmtDate(c.date,{year:'numeric'}):'–'}${lt.length?' · links: '+esc(lt.join(', ')):''}`,c.openRate!=null?pct1(c.openRate):'',c.openRate!=null?'opened':'']}},
  {k:'sign',label:'Signage',run:q=>{const l=gsSign();return l.length?P.search(P.searchIndex(l,SGF),q,{cap:1e4}):[]},
   row:(s,h)=>[GSI.sign,P.hl(s.name,h,esc),`${esc(s.kind)} · ${esc(s.sub)}`,'','']}];
@@ -642,35 +648,39 @@ function gsWarm(){if(GS.warm||!gsAvail())return;GS.warm=1;const idle=window.requ
   const next=()=>{const j=jobs.shift();if(!j){GS.warm=0;return}idle(()=>{try{j()}catch(e){}next()})};next();
   if(!SG.data&&localStorage.pulsePass&&typeof sgLoad==='function')sgLoad().then(ch=>{if(ch&&$('#gs').classList.contains('show'))gsRender()})}
 const gsHint=fz=>fz.length?`Includes close spellings: ${fz.slice(0,3).map(([a,b])=>`<b>${esc(b)}</b> for “${esc(a)}”`).join(', ')}`:'';
+const GSRP=[['7','7 days'],['30','30 days'],['lastweek','Last week'],['month','This month'],['lastmonth','Last month'],['ytd','Year to date'],['all','All time'],['custom','Custom']];
+function gsRngHtml(){const r=gsRange()||{};return `<div class="grng" role="radiogroup" aria-label="Search dates">${GSRP.map(([k,l])=>`<button class="chip sm ${GSR.k===k?'on':''}" role="radio" aria-checked="${GSR.k===k}" data-gr="${k}">${l}</button>`).join('')}</div>${GSR.k==='custom'?`<div class="grc"><label>From<input type="date" id="grS" value="${esc(r.s||'')}"></label><label>To<input type="date" id="grE" value="${esc(r.e||'')}"></label></div>`:''}`}
+function gsRngBind(){const g=$('.grng'),on=g&&g.querySelector('.on');if(on&&g.scrollWidth>g.clientWidth)g.scrollLeft=Math.max(0,on.offsetLeft-g.clientWidth/2+on.offsetWidth/2);$$('[data-gr]').forEach(b=>b.onclick=()=>{const k=b.dataset.gr;if(k==='custom'&&GSR.k!=='custom'){const r=gsRange()||P.preset('30');GSR.s=r.s;GSR.e=r.e}GSR.k=k;GS.open={};gsRender()});
+  const f=()=>{const a=$('#grS').value,b=$('#grE').value;if(!a||!b)return;if(a>b){toast('The From date is after the To date.',{type:'err'});return}GSR.s=a;GSR.e=b;GS.open={};gsRender()};if($('#grS')){$('#grS').onchange=f;$('#grE').onchange=f}}
 function gsRender(){const q=$('#gq').value,box=$('#gbody');$('#gclr').hidden=!q;
-  if(!q.trim()){box.innerHTML=`<p class="gempty">Search posts, web pages, email campaigns and signage at once. Typos, “&amp;” vs “and”, and word order are fine.</p><div class="gtry">${['ages & stages','halloween','golf course','summer camp, swim'].map(t=>`<button class="chip sm" data-try="${esc(t)}">${esc(t)}</button>`).join('')}</div><p class="gkeys">Press <kbd>/</kbd> or <kbd>${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl'} K</kbd> to open · <kbd>Esc</kbd> to close</p>`;
-    box.querySelectorAll('[data-try]').forEach(b=>b.onclick=()=>{$('#gq').value=b.dataset.try;GS.open={};gsRender()});return}
+  if(!q.trim()){box.innerHTML=gsRngHtml()+`<p class="gempty">Search posts, web pages, email campaigns and signage at once. Typos, “&amp;” vs “and”, and word order are fine.</p><div class="gtry">${['ages & stages','halloween','golf course','summer camp, swim'].map(t=>`<button class="chip sm" data-try="${esc(t)}">${esc(t)}</button>`).join('')}</div><p class="gkeys">Press <kbd>/</kbd> or <kbd>${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl'} K</kbd> to open · <kbd>Esc</kbd> to close</p>`;
+    box.querySelectorAll('[data-try]').forEach(b=>b.onclick=()=>{$('#gq').value=b.dataset.try;GS.open={};gsRender()});gsRngBind();return}
   const R=GROUPS.map(g=>{let res=[];try{res=g.run(q)}catch(e){console.warn('search',g.k,e)}return {g,res}});
   const fz=[...new Map(R.flatMap(x=>x.res.fuzzy||[]).map(f=>[f[0],f])).values()],total=R.reduce((a,x)=>a+x.res.length,0),empty=R.filter(x=>!x.res.length).map(x=>x.g.label);
   GS.last={q,R};
-  box.innerHTML=`<p class="gsum">${total?`<b>${nf(total)}</b> ${total===1?'match':'matches'}`:'No matches'} for “${esc(q)}”${fz.length?` · ${gsHint(fz)}`:''}</p>`+
+  box.innerHTML=gsRngHtml()+`<p class="gsum">${total?`<b>${nf(total)}</b> ${total===1?'match':'matches'}`:'No matches'} for “${esc(q)}” in ${esc(gsRangeLabel())}${fz.length?` · ${gsHint(fz)}`:''}</p>`+
    R.filter(x=>x.res.length).map(({g,res})=>{const open=GS.open[g.k],n=open?Math.min(res.length,50):Math.min(3,res.length);
     const btn=g.see?`<button data-see="${g.k}">${g.see}</button>`:res.length>3?`<button data-more="${g.k}">${open?'Show fewer':`Show all ${res.length}`}</button>`:'';
     return `<section class="ggrp"><div class="gh"><span>${g.label}<b>${nf(res.length)}</b></span>${btn}</div>${res.slice(0,n).map((x,j)=>{const [ic,t,m,num,u]=g.row(x.item,x.hit);return `<button class="gres" data-g="${g.k}" data-j="${j}"><span class="gi">${ic}</span><span class="gb"><span class="gt">${t}</span><span class="gm">${m}</span></span>${num?`<span class="gn">${num}<small>${u}</small></span>`:''}</button>`}).join('')}${open&&res.length>50?`<p class="gnone">Showing the best 50.</p>`:''}</section>`}).join('')+
-   (empty.length&&total?`<p class="gnone">Nothing in ${empty.join(' or ')}.</p>`:'')+(!total?`<p class="gempty">Try fewer words, or separate options with a comma.</p>`:'');
-  box.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{GS.open[b.dataset.more]=!GS.open[b.dataset.more];gsRender()});
+   (empty.length&&total?`<p class="gnone">Nothing in ${empty.join(' or ')}.</p>`:'')+(!total?`<p class="gempty">Try fewer words, a wider date range, or separate options with a comma.</p>`:'')+(R.some(x=>x.g.k==='sign'&&x.res.length)?`<p class="gnone">Signage shows what is in rotation now, whatever the dates.</p>`:'');
+  gsRngBind();box.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{GS.open[b.dataset.more]=!GS.open[b.dataset.more];gsRender()});
   box.querySelectorAll('[data-see]').forEach(b=>b.onclick=()=>gsSeeAll(b.dataset.see,q));
   box.querySelectorAll('.gres').forEach(b=>b.onclick=()=>{const x=R.find(r=>r.g.k===b.dataset.g).res[+b.dataset.j];if(x)gsGo(b.dataset.g,x.item)})}
 function gsFlash(el){if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('gflash');setTimeout(()=>el.classList.remove('gflash'),2200)}
 function gsGo(k,it){gsClose(true);
   if(k==='posts')return postSheet(it.id);
   if(k==='email')return emailCampSheet(it.id);
-  if(k==='web'){S.view='explore';S.mode='web';localStorage.pulseMode='web';S.wq=wTitle(it[0]);S.wlimit=15;render();const wq=$('#wq');gsFlash(wq?wq.closest('.card'):null);return}
+  if(k==='web'){gsApplyRange();S.view='explore';S.mode='web';localStorage.pulseMode='web';S.wq=wTitle(it[0]);S.wlimit=15;render();const wq=$('#wq');gsFlash(wq?wq.closest('.card'):null);return}
   if(k==='sign'){S.view='signage';render();scrollTo(0,0);setTimeout(()=>{let el=null;if(it.k==='slide')el=$$('.sgth').find(e=>e.title===it.raw);else if(it.k==='pl')el=$('.sgrot');else el=$$('.sgloc').find(e=>e.querySelector('b')&&e.querySelector('b').textContent===it.loc)||$('.sgneed');gsFlash(el||$('.sgplay'))},120)}}
-function gsSeeAll(k,q){gsClose(true);S.view='explore';
+function gsSeeAll(k,q){gsClose(true);S.view='explore';const fixed=gsApplyRange();
   if(k==='web'){S.mode='web';localStorage.pulseMode='web';S.wq=q;S.wlimit=15;render();const wq=$('#wq');gsFlash(wq?wq.closest('.card'):null);return}
   // posts: Explore › Social with the query. If some matches fall outside the current range, widen it to a custom range that holds them all.
   S.mode='social';localStorage.pulseMode='social';S.socSub='posts';S.plat='all';S.acct='all';S.limit=40;const was=S.q.trim();S.q=q;if(!was&&S.sort==='v'){S.sort='r';S.dir='desc'}
   const res=GROUPS[0].run(q);setRange();const ds=res.map(x=>x.item.d).sort();let note='';
-  if(ds.length&&(ds[0]<S.s||ds[ds.length-1]>S.e)){S.preset='custom';S.s=ds[0]<S.s?ds[0]:S.s;S.e=ds[ds.length-1]>S.e?ds[ds.length-1]:S.e;note=`Range set to ${P.rangeLabel(S.s,S.e)} so all ${nf(res.length)} matches show`}
+  if(!fixed&&ds.length&&(ds[0]<S.s||ds[ds.length-1]>S.e)){S.preset='custom';S.s=ds[0]<S.s?ds[0]:S.s;S.e=ds[ds.length-1]>S.e?ds[ds.length-1]:S.e;note=`Range set to ${P.rangeLabel(S.s,S.e)} so all ${nf(res.length)} matches show`}
   render();const qi=$('#q');gsFlash(qi?qi.closest('.card'):null);if(note)toast(note)}
 function gsOpen(q){if(!gsAvail())return;const s=$('#setp');if(s&&s.classList.contains('show'))closeSettings(false);if($('#sheet').classList.contains('show'))closeSheet();
-  gsWarm();$('#gs').classList.add('show');$('#gscrim').classList.add('show');$('#app').inert=true;$('#dock').inert=true;$('#gq').value=q||'';GS.open={};gsRender();setTimeout(()=>$('#gq').focus(),60)}
+  setRange();GSR.k=S.preset;if(S.preset==='custom'){GSR.s=S.s;GSR.e=S.e}gsWarm();$('#gs').classList.add('show');$('#gscrim').classList.add('show');$('#app').inert=true;$('#dock').inert=true;$('#gq').value=q||'';GS.open={};gsRender();setTimeout(()=>$('#gq').focus(),60)}
 function gsClose(nav){const g=$('#gs');if(!g||!g.classList.contains('show'))return;g.classList.remove('show');$('#gscrim').classList.remove('show');$('#app').inert=false;$('#dock').inert=false;if(!nav){const b=$('#gbtn');if(b)b.focus({preventScroll:true})}}
 $('#gscrim').onclick=()=>gsClose();$('#gdone').onclick=()=>gsClose();$('#gq').oninput=()=>{GS.open={};gsRender()};
 $('#gclr').onclick=e=>{e.preventDefault();$('#gq').value='';gsRender();$('#gq').focus()};
@@ -699,7 +709,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v53';
+const PULSE_V='v54';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();
