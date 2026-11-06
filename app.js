@@ -108,7 +108,7 @@ function header(accts,web,scope){
   return `<div class="ctl"><div class="range presets">${PRESETS.map(([k,l])=>`<button data-p="${k}" class="${S.preset===k?'on':''}">${l}</button>`).join('')}</div>
   <div class="rlabel">${P.rangeLabel(S.s,S.e)}</div>${scope||''}${freshPill(web?['web']:['fb','ig'])}
   ${web?'':`<div class="range plats">`}${web?'':[['all','All'],['fb','Facebook'],['ig','Instagram']].map(([k,l])=>`<button data-f="${k}" class="chip ${S.plat===k&&S.acct==='all'?'on':''}">${l}</button>`).join('')}${accts?`<label class="chip acctpick ${S.acct!=='all'?'on':''}"><select id="hAcct" aria-label="Account"><option value="all">All accounts</option>${accts.map(g=>`<option value="${g.plat}|${esc(g.page)}" ${S.acct===g.plat+'|'+g.page?'selected':''}>${g.plat.toUpperCase()} · ${esc(acctName(g.plat,g.page))}</option>`).join('')}</select></label>`:''}${web?'':'</div>'}</div>`}
-function topbar(){return `<div class="top"><button class="brandhome" data-nav="overview" aria-label="MCCS Pulse, go to Today" title="Go to Today">MCCS Pulse<small class="pver" title="App version">${esc(pulseVer())}</small></button><span class="tbtns">${gsAvail()?`<button class="icon" id="gbtn" aria-label="Search everything" title="Search everything (/ or ${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl+'}K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>`:''}<button class="icon" id="gear" aria-label="Settings">${ICON.gear}</button></span></div>`}
+function topbar(){return `<div class="top"><button class="brandhome" data-nav="overview" aria-label="MCCS Digital Pulse, go to Today" title="Go to Today">MCCS Digital Pulse<small class="pver" title="App version">${esc(pulseVer())}</small></button><span class="tbtns">${gsAvail()?`<button class="icon" id="gbtn" aria-label="Search everything" title="Search everything (/ or ${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl+'}K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>`:''}<button class="icon" id="gear" aria-label="Settings">${ICON.gear}</button></span></div>`}
 // ---- render ----
 function render(){const app=$('#app');if(TV.on)return TV.render();
   if(S.locked&&SYNC.meta){$('#dock').style.display='none';app.innerHTML=topbar()+lockScreen();bindTop();bindLock();return;}
@@ -414,7 +414,7 @@ const SET_GROUPS=[
    const c=$('#spCheck');if(c)c.onclick=()=>spCheckNow(c);
    const f=$('#spForget');if(f)f.onclick=()=>{delete localStorage.pulsePass;delete localStorage.pulseSynced;closeSettings(true);toast('Passcode forgotten on this device')}}},
  {id:'help',sec:3,title:'Help',icon:SI('help'),val:()=>'Staff guide',
-  page:()=>`<div class="sgt">Staff guide</div><div class="slist"><a class="srow" href="${SOP_URL}" target="_blank" rel="noopener"><span class="sic">${SI('doc')}</span><span class="slb">Open the Pulse SOP<small>What Pulse is, how the weekly update works, and what to do if the Admin is away</small></span>${SI('out','schev sout')}<span class="sr">(opens in a new tab)</span></a></div><p class="sprivacy">${SI('lock')}<span>MCCS Pulse never uploads your data. It lives only in this browser.</span></p>`}
+  page:()=>`<div class="sgt">Staff guide</div><div class="slist"><a class="srow" href="${SOP_URL}" target="_blank" rel="noopener"><span class="sic">${SI('doc')}</span><span class="slb">Open the Pulse SOP<small>What Pulse is, how the weekly update works, and what to do if the Admin is away</small></span>${SI('out','schev sout')}<span class="sr">(opens in a new tab)</span></a></div><p class="sprivacy">${SI('lock')}<span>MCCS Digital Pulse never uploads your data. It lives only in this browser.</span></p>`}
 ];
 const SP={stack:['root'],dirty:false,st:0,y0:null};
 const spDesk=()=>matchMedia('(min-width:1100px)').matches;
@@ -431,7 +431,7 @@ function spRoot(){const secs=[...new Set(SET_GROUPS.filter(g=>!g.parent).map(g=>
  return `<nav class="spane sroot" id="sp-root" aria-label="Settings groups"><div class="shealth" id="spHealth">${healthHTML(false)}</div>
  ${secs.map(s=>`<div class="slist">${SET_GROUPS.filter(g=>g.sec===s&&!g.parent).map(g=>`<button class="srow" data-go="${g.id}"><span class="sic">${g.icon}</span><span class="slb">${esc(g.title)}</span><span class="sval" data-v="${g.id}">${esc(g.val())}</span>${SI('chev','schev')}</button>`).join('')}</div>`).join('')}
  <div class="sgt sdgt">Danger zone</div><div class="slist sdanger"><button class="srow" id="spErRow"><span class="sic">${SI('trash')}</span><span class="slb">Erase all data on this device</span></button></div><p class="sfoot">Asks first, and offers a backup before anything is removed.</p>
- <p class="sprivacy">${SI('lock')}<span>MCCS Pulse never uploads your data. It lives only in this browser.</span></p></nav>`}
+ <p class="sprivacy">${SI('lock')}<span>MCCS Digital Pulse never uploads your data. It lives only in this browser.</span></p></nav>`}
 function spEraseHTML(){const pass=!!localStorage.pulsePass;return `<div class="sconf"><div class="swi" aria-hidden="true">${SI('warn')}</div><h2 id="spETitle">Erase all data on this device?</h2><p id="spEBody">This removes everything Pulse holds in this browser. It can’t be undone.</p>
  <ul><li><span>Posts</span><b>${nf(S.posts.length)}</b></li><li><span>Website, email and signage data</span><b>Removed</b></li><li><span>Saved passcode</span><b>${pass?'Forgotten':'None saved'}</b></li></ul>
  <p class="ssm">Data Hark publishes syncs back after you unlock again. CSV files imported only on this device do not.</p>
@@ -708,7 +708,7 @@ async function sync0(){let meta;try{const r=await fetch('data.enc.json?t='+Date.
    catch(e){console.warn('apply',e);if(e&&e.name==='OperationError'){delete localStorage.pulsePass;S.locked=!S.posts.length;render();return {ok:false,state:'locked',err:'The passcode has changed. Enter the new one.'}}
     return {ok:false,err:'The download was interrupted. Your saved data is still showing.'}}}
   else{S.locked=true;render();return {ok:false,state:'locked',err:'Enter the passcode to load data'}}}
-function lockScreen(){return `<div class="empty lock"><div class="orb"></div><h1>Marketing metrics,<br>at a glance.</h1><p>Enter your MCCS Pulse passcode to load the latest ${esc(CFG.rOrg)} metrics. You only do this once on each device.</p>
+function lockScreen(){return `<div class="empty lock"><div class="orb"></div><h1>Marketing metrics,<br>at a glance.</h1><p>Enter your MCCS Digital Pulse passcode to load the latest ${esc(CFG.rOrg)} metrics. You only do this once on each device.</p>
   <form id="unlock" class="unlock"><input id="pass" type="password" autocomplete="current-password" placeholder="Passcode" autocapitalize="none" spellcheck="false"><button class="btn" type="submit">Unlock</button></form><p class="mut sm" id="lockErr" style="min-height:20px"></p>
   ${S.posts.length?'<button class="more" id="skipLock" style="max-width:320px">Not now, use data on this device</button>':''}</div>`}
 function bindLock(){const f=$('#unlock');if(!f)return;f.onsubmit=async e=>{e.preventDefault();const p=$('#pass').value.trim();if(!p)return;$('#lockErr').textContent='Unlocking…';
@@ -821,7 +821,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v61';
+const PULSE_V='v62';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();

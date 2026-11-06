@@ -33,7 +33,7 @@ function bg(x,W,H){const t=th();x.fillStyle=t.s[t.s.length-1][1];x.fillRect(0,0,
 function tag(x,plat,X,Y,sz){if(!plat)return 0;const t=plat==='fb'?'FACEBOOK':'INSTAGRAM';font(x,sz,{w:600});const w=x.measureText(t).width+1.2*(t.length-1)+sz*1.7;
  rr(x,X,Y-sz*1.15,w,sz*1.75,sz*.9);x.strokeStyle=plat==='fb'?'rgba(143,180,255,.6)':'rgba(243,166,184,.6)';x.lineWidth=2;x.stroke();x.fillStyle=plat==='fb'?C.fb:C.ig;spaced(x,t,X+sz*.85,Y,1.2);return w+sz*.6}
 function header(x,m,X,Y,W,sz){const t=th();x.save();x.shadowColor=t.g;x.shadowBlur=sz;x.fillStyle=t.g;x.beginPath();x.arc(X+sz*.4,Y-sz*.36,sz*.32,0,7);x.fill();x.restore();
- font(x,sz,{w:600});x.fillStyle=C.txt;spaced(x,'MCCS PULSE',X+sz*1.3,Y,sz*.22);font(x,sz,{w:400});x.fillStyle=C.mut;x.textAlign='left';spaced(x,(m.range||'').toUpperCase(),X+W,Y,sz*.12,'right')}
+ font(x,sz,{w:600});x.fillStyle=C.txt;spaced(x,'MCCS DIGITAL PULSE',X+sz*1.3,Y,sz*.22);font(x,sz,{w:400});x.fillStyle=C.mut;x.textAlign='left';spaced(x,(m.range||'').toUpperCase(),X+W,Y,sz*.12,'right')}
 function footer(x,X,Y,W,sz){const t=th();x.strokeStyle=C.line;x.lineWidth=2;x.beginPath();x.moveTo(X,Y-sz*1.6);x.lineTo(X+W,Y-sz*1.6);x.stroke();
  font(x,sz,{w:500});x.fillStyle=C.mut;spaced(x,((typeof CFG!=='undefined'&&CFG.rOrg)||'MCCS Okinawa').toUpperCase()+'  ·  DIGITAL MARKETING',X,Y,sz*.14);
  const d=new Date().toLocaleDateString('en-US',{timeZone:'Asia/Tokyo',month:'short',day:'numeric',year:'numeric'});x.fillStyle=t.g;font(x,sz,{w:400});spaced(x,'MCCS Pulse · '+d,X+W,Y,sz*.08,'right')}
@@ -116,7 +116,7 @@ async function deliver(blob,name,type){const f=new File([blob],name,{type});
  download(blob,name);return 'saved'}
 const PPTX_PARTS=6;let pptxP=null;const loadPptx=()=>pptxP||(pptxP=(async()=>{if(window.PptxGenJS)return;try{const txt=(await Promise.all([...Array(PPTX_PARTS).keys()].map(i=>fetch('pptx.'+i+'.txt').then(r=>{if(!r.ok)throw 0;return r.text()})))).join('');
  await new Promise((ok,no)=>{const s=document.createElement('script');s.src=URL.createObjectURL(new Blob([txt],{type:'text/javascript'}));s.onload=ok;s.onerror=no;document.head.appendChild(s)});if(!window.PptxGenJS)throw 0}catch(e){pptxP=null;throw new Error('PowerPoint maker did not load. Check your connection.')}})());
-async function pptx(m,cv){await loadPptx();const p=new PptxGenJS();p.layout='LAYOUT_WIDE';p.author='MCCS Pulse';p.company=(typeof CFG!=='undefined'&&CFG.rOrg)||'MCCS Okinawa';p.title=m.title;
+async function pptx(m,cv){await loadPptx();const p=new PptxGenJS();p.layout='LAYOUT_WIDE';p.author='MCCS Digital Pulse';p.company=(typeof CFG!=='undefined'&&CFG.rOrg)||'MCCS Okinawa';p.title=m.title;
  const s=p.addSlide();s.background={color:'0E1420'};s.addImage({data:cv.toDataURL('image/png'),x:0,y:0,w:13.333,h:7.5});
  s.addNotes([m.title,m.range,m.big?`${m.big.v} ${m.big.l}`:'',...(m.stats||[]).map(t=>`${t.l}: ${t.v}${t.d?' ('+t.d.txt+(m.cmp?' vs '+m.cmp:'')+')':''}`),m.note?(m.note.hi||'')+(m.note.rest||''):'','Source: MCCS Pulse'].filter(Boolean).join('\n'));
  return await p.write({outputType:'blob'})}

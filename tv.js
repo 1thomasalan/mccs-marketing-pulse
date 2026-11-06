@@ -54,7 +54,7 @@ TV.all=function(){let soc='',web='',sg='';
 TV.render=function(){const app=$('#app');if(!SG.data&&!SG.loading&&localStorage.pulsePass&&(SG.err===''||SG.err==='locked')&&!TV._sgTry){TV._sgTry=1;sgLoad().then(()=>{TV._sgTry=0;render()})}$('#dock').style.display='none';document.body.classList.add('tvmode');
   if(S.locked&&SYNC.meta){app.innerHTML=`<div class="tvlock">${topbar()}${lockScreen()}</div>`;bindLock();return}
   const v=TV.cur();const sub=v==='social'&&updOf(['fb','ig'])?`Meta updated ${updOf(['fb','ig'])}`:v==='web'&&updOf(['web'])?`GA4 updated ${updOf(['web'])}`:'';
-  app.innerHTML=`<div class="tvst" id="tvst"><div class="tvtop"><span>MCCS Pulse &nbsp;·&nbsp; ${TV.title[v]}</span><span>${sub?sub+' &nbsp;·&nbsp; ':''}${TV.clock()} JST</span></div>${TV[v]()}${TV.v==='cycle'?`<div class="tvdots">${TV.order.map(k=>`<i class="${k===v?'on':''}"></i>`).join('')}</div>`:''}</div>`;
+  app.innerHTML=`<div class="tvst" id="tvst"><div class="tvtop"><span>MCCS Digital Pulse &nbsp;·&nbsp; ${TV.title[v]}</span><span>${sub?sub+' &nbsp;·&nbsp; ':''}${TV.clock()} JST</span></div>${TV[v]()}${TV.v==='cycle'?`<div class="tvdots">${TV.order.map(k=>`<i class="${k===v?'on':''}"></i>`).join('')}</div>`:''}</div>`;
   TV.fit();sgFill(app);app.querySelectorAll('img[data-th]').forEach(async im=>{const u=await thumbFor(im.dataset.th);if(u){im.src=u;im.classList.add('in')}else im.parentElement.classList.add('noimg')})};
 TV.fit=function(){const st=$('#tvst');if(!st)return;const k=Math.min(innerWidth/1920,innerHeight/1080);st.style.transform=`translate(${(innerWidth-1920*k)/2}px,${(innerHeight-1080*k)/2}px) scale(${k})`};
 TV.start=function(){addEventListener('resize',TV.fit);sgLoad().then(()=>render());
