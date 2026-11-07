@@ -30,5 +30,16 @@ jobs:
           git add -A signage.json signage.bin sg 2>/dev/null || true
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -qm "Signage sync"
-          for i in 1 2 3 4; do git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0; sleep 5; done
+          # This job owns these files: put them on top of the newest main instead of rebasing
+          # (a half-finished rebase blocks every retry).
+          T=$(mktemp -d); for f in signage.json signage.bin sg; do [ -e "$f" ] && cp -r "$f" "$T/"; done
+          for i in 1 2 3 4; do
+            git rebase --abort 2>/dev/null || true
+            git fetch -q origin main && git reset -q --hard origin/main
+            for f in signage.json signage.bin sg; do [ -e "$T/$f" ] && rm -rf "$f" && cp -r "$T/$f" .; done
+            git add -A signage.json signage.bin sg 2>/dev/null || true
+            if git diff --cached --quiet; then echo "nothing new after refresh"; exit 0; fi
+            git commit -qm "Signage sync" && git push -q origin HEAD:main && exit 0
+            sleep 5
+          done
           exit 1

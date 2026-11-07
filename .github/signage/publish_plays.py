@@ -147,9 +147,27 @@ def checkpoint_push():
         return
     run('git', '-c', 'user.name=Pulse Signage Bot', '-c', 'user.email=actions@users.noreply.github.com',
         'commit', '-qm', 'Signage plays checkpoint')
+    # This job owns the signage-plays.* files, so instead of rebasing (which can stop half-way and
+    # block every later git step), put our files on top of the newest main and push.
+    import shutil, tempfile
+    names = ['signage-plays.json', 'signage-plays.bin', 'signage-plays.state']
+    tmp = tempfile.mkdtemp()
+    for n in names:
+        if os.path.exists(os.path.join(ROOT, n)):
+            shutil.copy2(os.path.join(ROOT, n), tmp)
     for _ in range(4):
-        if run('git', 'pull', '-q', '--rebase', '-X', 'theirs', 'origin', 'main') == 0 and run('git', 'push', '-q', 'origin', 'HEAD:main') == 0:
-            print('checkpoint pushed'); return
+        run('git', 'rebase', '--abort')
+        if run('git', 'fetch', '-q', 'origin', 'main') == 0 and run('git', 'reset', '-q', '--hard', 'origin/main') == 0:
+            for n in names:
+                if os.path.exists(os.path.join(tmp, n)):
+                    shutil.copy2(os.path.join(tmp, n), ROOT)
+            run('git', 'add', '-A', *names)
+            if run('git', 'diff', '--cached', '--quiet') == 0:
+                print('checkpoint: nothing new'); return
+            run('git', '-c', 'user.name=Pulse Signage Bot', '-c', 'user.email=actions@users.noreply.github.com',
+                'commit', '-qm', 'Signage plays checkpoint')
+            if run('git', 'push', '-q', 'origin', 'HEAD:main') == 0:
+                print('checkpoint pushed'); return
         time.sleep(5)
     print('::warning::checkpoint push failed (will retry at next checkpoint)')
 
