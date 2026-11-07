@@ -607,5 +607,47 @@ P.connRuleGuess=function(it,tgt,why){if(!it)return null;tgt=tgt||{};const tags=n
   return null};
 // how many of the items a rule would match, by channel
 P.connRuleCount=function(rule,items,skipKey){const n={all:0,so:0,we:0,em:0,sg:0};for(const it of items||[]){if(!it||it.key===skipKey)continue;if(P.connRuleHit(rule,it)){n.all++;n[it.ch]=(n[it.ch]||0)+1}}return n};
+
+// ---------- PRODUCTION CALENDAR (Wrike "Event Calendar" export, v64) ----------
+// prodParse(values): values = rows (array of arrays) of the Wrike table export; header row has Event Date / Title / Description / Owner / Status.
+// Returns [{d,t,nm,desc,own,st,div,prog,camp}] sorted by date. Pure: used by the app and by the publisher.
+{const DIV={busops:'Business Operations',sf:'Semper Fit',ppr:'Personal & Professional Readiness',bh:'Behavioral Health',execoffice:'Executive Office',mfp:'Marine & Family Programs'},
+ CAMP={yhfth:'Home for the Holidays'},
+ PROG={'f&b':'Food & Beverage','clubs&restaurants':'Clubs & Restaurants',as:'Adult Sports',hp:'Health Promotion',library:'Library',retail:'Retail','tours+':'Tours+',bowling:'Bowling','a&c':'Arts & Crafts',artsandcrafts:'Arts & Crafts',
+  seent:'Entertainment & Special Events',spent:'Entertainment & Special Events',ent:'Entertainment & Special Events',fap:'Family Advocacy',education:'Education',habupit:'Habu Pit',bonsai:'Bonsai',tsunami:'Tsunami Scuba',taiyogolf:'Taiyo Golf',oceanbreeze:'Ocean Breeze',
+  'chesty\'ssncoclub':'Chesty\'s SNCO Club','multipleclubs':'Multiple Clubs','casualfoodconcepts':'Casual Food Concepts',mcftb:'Marine Corps Family Team Building',sumoburritos:'Sumo Burritos',lifejuice:'Life Juice',shisapizza:'Shisa Pizza'},
+ key=s=>String(s||'').toLowerCase().replace(/\s+/g,''),
+ xd=v=>{if(v==null||v==='')return '';if(v instanceof Date&&!isNaN(v))return v.toISOString().slice(0,10);const s=String(v).trim();let m;
+  if(/^\d{5}(\.\d+)?$/.test(s)){const d=new Date(Date.UTC(1899,11,30)+Math.floor(+s)*864e5);return d.toISOString().slice(0,10)}
+  if((m=s.match(/^(\d{4})-(\d{2})-(\d{2})/)))return `${m[1]}-${m[2]}-${m[3]}`;
+  if((m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/))){const y=m[3].length===2?'20'+m[3]:m[3];return `${y}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`}
+  const t=Date.parse(s);return isNaN(t)?'':new Date(t).toISOString().slice(0,10)};
+ P.prodCode=function(title){const raw=String(title||'').trim();let parts=raw.split('_').map(s=>s.trim()).filter(Boolean);if(!parts.length)return {nm:raw,div:'',prog:'',camp:'',codes:[]};
+  // "YHFTH PPR_LIBRARY Hand Turkeys": a first token with spaces whose first word is a code splits into two
+  const fw=parts[0].split(/\s+/);if(parts.length>1&&fw.length>1&&(CAMP[key(fw[0])]||DIV[key(fw[0])]))parts=[fw[0],fw.slice(1).join(' '),...parts.slice(1)];
+  let last=parts.length>1?parts.pop():parts[0];const codes=parts.length>1||raw.includes('_')?parts:[];
+  // peel code words off the front of the name ("HP Black Friday", "LIBRARY Hand Turkeys")
+  for(let g=0;g<2;g++){const w=last.split(/\s+/);if(w.length>1&&(PROG[key(w[0])]||DIV[key(w[0])]||CAMP[key(w[0])])&&/^[A-Z&+]{2,}$|^[A-Z][a-z]+[A-Z]/.test(w[0])){codes.push(w[0]);last=w.slice(1).join(' ')}}
+  let div='',prog='',camp='';for(const c of codes){const k=key(c);if(/^\d+$/.test(k))continue;if(CAMP[k])camp=CAMP[k];else if(DIV[k]&&!div)div=DIV[k];else if(k&&!DIV[k])prog=PROG[k]||c.replace(/&/g,' & ').replace(/\s+/g,' ').trim()}
+  let nm=last.replace(/\s+/g,' ').trim()||raw;if(prog&&nm.split(' ').length<2)nm=prog+' '+nm;return {nm,div,prog,camp,codes}};
+ P.prodParse=function(values){if(!values||values.length<2)return [];let hi=values.findIndex(r=>(r||[]).some(c=>/title/i.test(String(c||''))));if(hi<0)return [];
+  const h=values[hi].map(c=>String(c||'').toLowerCase()),ix=(...re)=>h.findIndex(c=>re.some(r=>r.test(c)));
+  const iD=ix(/event date/,/\bdate\b/),iT=ix(/^title$/,/title/),iDs=ix(/description/,/advertis/),iO=ix(/owner/,/assignee/,/\bae\b/),iS=ix(/status/);
+  const out=[];for(const r of values.slice(hi+1)){const t=String(r[iT]==null?'':r[iT]).trim();if(!t||/^all active \(\d+\)$|^total: ?\d+/i.test(t))continue;const d=iD>=0?xd(r[iD]):'';
+   const c=P.prodCode(t);let desc=iDs>=0?String(r[iDs]==null?'':r[iDs]).replace(/\u200b/g,'').trim():'';if(desc==='-')desc='';if(desc.length>420)desc=desc.slice(0,417).replace(/\s+\S*$/,'')+'…';
+   out.push({d,t,nm:c.nm,desc,own:iO>=0?String(r[iO]==null?'':r[iO]).trim():'',st:iS>=0?String(r[iS]==null?'':r[iS]).trim():'',div:c.div,prog:c.prog,camp:c.camp})}
+  return out.sort((a,b)=>(a.d||'9')<(b.d||'9')?-1:(a.d||'9')>(b.d||'9')?1:a.nm<b.nm?-1:1)};
+ // match production rows to strategic events: name/other-name words (or the initials, e.g. GPE) + the event date (14 days before to 3 after)
+ const STOP=new Set(['the','and','of','a','at','in','on','for','to','mccs','okinawa','camp','annual']);
+ const wl=s=>P.sNorm(s).split(' ').filter(w=>w&&!/^(19|20)\d\d$/.test(w));
+ P.prodMatch=function(events,rows,opt){opt=opt||{};const pre=opt.pre==null?14:opt.pre,post=opt.post==null?3:opt.post,TH=opt.th||0.66;const byRow=new Map();
+  const ev=(events||[]).filter(e=>e.s&&!/cancel/i.test(e.status||'')).map(e=>{const ph=[...P.evPhrases(e).values()].map(p=>{const w=wl(p.raw).filter(x=>!STOP.has(x));return {w,ac:w.length>=3?w.map(x=>x[0]).join(''):''}}).filter(p=>p.w.length);return {e,ph}});
+  (rows||[]).forEach((r,i)=>{if(!r.d)return;const rw=new Set([...wl(r.nm),...wl(r.t.replace(/_/g,' '))]);let best=null;
+   for(const {e,ph} of ev){if(r.d<P.addDays(e.s,-pre)||r.d>P.addDays(e.e||e.s,post))continue;let sc=0;
+    for(const p of ph){const hit=p.w.filter(x=>rw.has(x)).length/p.w.length;sc=Math.max(sc,hit,p.ac&&rw.has(p.ac)?1:0)}
+    if(sc>=TH){const dd=Math.abs(P.daysBetween(r.d,e.s)-1);if(!best||sc>best.sc||(sc===best.sc&&dd<best.dd))best={ev:e.id,sc,dd}}}
+   if(best)byRow.set(i,best)});
+  return byRow};
+}
 G.Pulse=P;
 })(typeof window!=='undefined'?window:globalThis);

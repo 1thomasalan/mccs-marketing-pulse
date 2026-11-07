@@ -152,6 +152,7 @@ function hubAttention(B){const out=[],wk=[],add=(ic,cls,t,s,nav,go,to)=>(to||out
  const M=evM();if(M){const today=P.todayKey();
   const nx=evList().filter(e=>e.s&&evStat(e).k==='promoting').sort((a,b)=>a.s<b.s?-1:1);
   for(const e of nx.slice(0,2)){const R=evRoll(e),s=evStat(e);if(!R.so.n)add('flag','warn',`${esc(e.name)}: no posts yet`,`${s.to} days out, promotion started ${hd(R.ws)}.`,'event:'+e.id,'Event');else if(d&&!R.sg.slides.length)add('screen','warn',`${esc(e.name)} has no signage slide`,`${s.to} days out. No slide in rotation mentions it.`,'event:'+e.id,'Event')}
+  if(typeof prodAttn==='function'){const g=prodAttn();if(g)add('flag','warn',g.t,g.s,'prod','Wrike')}
   if(M.review.length)add('link','',`${M.review.length} match${M.review.length>1?'es':''} to review`,'Posts, pages and slides that might belong to an event','review','Review');
   const soon=evList().filter(e=>e.s&&evStat(e).k==='upcoming'&&evStat(e).promoIn<=7&&!(e.paths||[]).length)[0];if(soon)add('flag','',`${esc(evShort(soon))} promotion starts in ${evStat(soon).promoIn} day${evStat(soon).promoIn===1?'':'s'}`,'No web page listed for it in the sheet yet','event:'+soon.id,'Event')}
  const lc=emCamps()[0],h=emHub();if(lc&&lc.openRate!=null&&lc.vs10&&lc.vs10.openRate<=-3)add('mail','down',`Open rate ${lc.openRate}% on ${esc(lc.name)}`,`${Math.abs(lc.vs10.openRate)} points below your last 10 sends.`,'email','Email');

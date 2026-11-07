@@ -414,7 +414,7 @@ const SET_GROUPS=[
    const c=$('#spCheck');if(c)c.onclick=()=>spCheckNow(c);
    const f=$('#spForget');if(f)f.onclick=()=>{delete localStorage.pulsePass;delete localStorage.pulseSynced;closeSettings(true);toast('Passcode forgotten on this device')}}},
  {id:'help',sec:3,title:'Help',icon:SI('help'),val:()=>'Staff guide',
-  page:()=>`<div class="sgt">Staff guide</div><div class="slist"><a class="srow" href="${SOP_URL}" target="_blank" rel="noopener"><span class="sic">${SI('doc')}</span><span class="slb">Open the Pulse SOP<small>What Pulse is, how the weekly update works, and what to do if the Admin is away</small></span>${SI('out','schev sout')}<span class="sr">(opens in a new tab)</span></a></div><p class="sprivacy">${SI('lock')}<span>MCCS Digital Pulse never uploads your data. It lives only in this browser.</span></p>`}
+  page:()=>`<div class="sgt">Staff guide</div><div class="slist"><a class="srow" href="${SOP_URL}" target="_blank" rel="noopener"><span class="sic">${SI('doc')}</span><span class="slb">Open the Pulse SOP<small>What Pulse is, how the weekly update works, and what to do if the Admin is away</small></span>${SI('out','schev sout')}<span class="sr">(opens in a new tab)</span></a></div><p class="sprivacy">${SI('lock')}<span>Published data is encrypted and readable only with the team passcode. This browser keeps a copy so Pulse opens fast. How Pulse works lists every source and link.</span></p>`}
 ];
 const SP={stack:['root'],dirty:false,st:0,y0:null};
 const spDesk=()=>matchMedia('(min-width:1100px)').matches;
@@ -431,7 +431,7 @@ function spRoot(){const secs=[...new Set(SET_GROUPS.filter(g=>!g.parent).map(g=>
  return `<nav class="spane sroot" id="sp-root" aria-label="Settings groups"><div class="shealth" id="spHealth">${healthHTML(false)}</div>
  ${secs.map(s=>`<div class="slist">${SET_GROUPS.filter(g=>g.sec===s&&!g.parent).map(g=>`<button class="srow" data-go="${g.id}"><span class="sic">${g.icon}</span><span class="slb">${esc(g.title)}</span><span class="sval" data-v="${g.id}">${esc(g.val())}</span>${SI('chev','schev')}</button>`).join('')}</div>`).join('')}
  <div class="sgt sdgt">Danger zone</div><div class="slist sdanger"><button class="srow" id="spErRow"><span class="sic">${SI('trash')}</span><span class="slb">Erase all data on this device</span></button></div><p class="sfoot">Asks first, and offers a backup before anything is removed.</p>
- <p class="sprivacy">${SI('lock')}<span>MCCS Digital Pulse never uploads your data. It lives only in this browser.</span></p></nav>`}
+ <p class="sprivacy">${SI('lock')}<span>Published data is encrypted and readable only with the team passcode. This browser keeps a copy so Pulse opens fast. How Pulse works lists every source and link.</span></p></nav>`}
 function spEraseHTML(){const pass=!!localStorage.pulsePass;return `<div class="sconf"><div class="swi" aria-hidden="true">${SI('warn')}</div><h2 id="spETitle">Erase all data on this device?</h2><p id="spEBody">This removes everything Pulse holds in this browser. It can’t be undone.</p>
  <ul><li><span>Posts</span><b>${nf(S.posts.length)}</b></li><li><span>Website, email and signage data</span><b>Removed</b></li><li><span>Saved passcode</span><b>${pass?'Forgotten':'None saved'}</b></li></ul>
  <p class="ssm">Data Hark publishes syncs back after you unlock again. CSV files imported only on this device do not.</p>
@@ -821,7 +821,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v63';
+const PULSE_V='v64';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();
