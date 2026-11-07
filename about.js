@@ -5,7 +5,7 @@ const ABOUT_BLUF=[
  ['Read-only','Pulse only reads. It can’t post, change or delete anything in Facebook, Instagram, Google Analytics, Constant Contact, ScreenCloud or Wrike.'],
  ['Real numbers','Every figure comes from the platform’s own export or report. Pulse adds them up and compares them. It doesn’t estimate, and every screen says which data it shows.'],
  ['When','Weekly on Mondays for social, website, email, events and Wrike. Signage refreshes itself every 15 minutes, and slide plays nightly.'],
- ['Who','Alan exports the files Monday morning. An automated publish run by Hark, Alan’s AI assistant, checks, encrypts and posts them at 13:00, 15:00 and 17:00 JST.'],
+ ['Who','Alan exports the files Monday morning into the MCCS Digital Pulse Drive folder. An automated publish run by Hark, Alan’s AI assistant, checks, encrypts and posts them at 13:00, 15:00 and 17:00 JST.'],
  ['Secure','Data is encrypted (AES-256) before it’s stored online, so only devices unlocked with the team passcode can read it. The app’s code is public; the numbers aren’t.'],
  ['On this device','A copy is kept in this browser so Pulse opens fast. Settings › Danger zone erases it.']];
 const ABOUT_SRC=[
@@ -13,18 +13,19 @@ const ABOUT_SRC=[
  ['Website','Google Analytics 4 reports (traffic and pages)','Alan, every Monday'],
  ['Email','Constant Contact newsletter reports','Alan, after each send'],
  ['Digital signage','ScreenCloud, read automatically','Every 15 minutes; slide plays nightly 01:20 JST'],
- ['Strategic events & programs','The MCCS Pulse Strategic Events Google Sheet','Alan edits it; read at each publish'],
+ ['Strategic events & programs','The Strategic Events and Programs list (Google Sheet)','Alan edits it; read at each publish'],
  ['Production calendar','Wrike Event Calendar export (Excel)','Alan, every Monday'],
  ['Event and program links','Strategic Events sheet, Links tab, plus your Review answers','Each publish; answers stay on your device']];
 const ABOUT_LINKS=[
- ['Uploads folder (Google Drive)','Where the weekly export files are dropped','https://drive.google.com/drive/folders/1BA0BGich-ufoqrud8vIAoP0TEHk0B96t','g'],
+ ['MCCS Digital Pulse folder (Google Drive)','Everything Pulse keeps in Drive, with a READ ME that explains each item','https://drive.google.com/drive/folders/1MAN-4ueWHP27gVIbaeYS9FUcJFKMFyOr','g'],
+ ['1 Weekly Uploads (Google Drive)','Where the weekly export files are dropped','https://drive.google.com/drive/folders/1BA0BGich-ufoqrud8vIAoP0TEHk0B96t','g'],
  ['Published archive (Google Drive)','Export files after they’re published','https://drive.google.com/drive/folders/1POAbNW3DaBBjG9fnAP4VUeq_TFFI5WnP','g'],
- ['Strategic Events sheet','Events, Programs, Links and Sponsors tabs','https://docs.google.com/spreadsheets/d/111L92g2RNN98E456XxGar0R07dRMYYTelQwjcwlgfRU/edit','g'],
- ['Weekly update checklist','Which exports arrived and were published each week','https://docs.google.com/spreadsheets/d/1vprplexiIP7lqkCeFwiatNAWHLRnaqAG4M9SuQOLTBQ/edit','g'],
+ ['2 Strategic Events and Programs list','Google Sheet: Events, Programs, Links and Sponsors tabs','https://docs.google.com/spreadsheets/d/111L92g2RNN98E456XxGar0R07dRMYYTelQwjcwlgfRU/edit','g'],
+ ['3 Weekly Update Checklist','Google Sheet: which exports arrived and were published each week','https://docs.google.com/spreadsheets/d/1vprplexiIP7lqkCeFwiatNAWHLRnaqAG4M9SuQOLTBQ/edit','g'],
  ['Published data (GitHub)','The encrypted files Pulse downloads. Public, but unreadable without the passcode','https://github.com/1thomasalan/mccs-marketing-pulse',''],
  ['Automatic jobs (GitHub Actions)','Signage updates and their run history','https://github.com/1thomasalan/mccs-marketing-pulse/actions',''],
  ['Pulse app','The live app','https://1thomasalan.github.io/mccs-marketing-pulse/',''],
- ['Staff guide (SOP)','Step-by-step weekly routine and backup plan',typeof SOP_URL!=='undefined'?SOP_URL:'',''],
+ ['4 Staff Guide (SOP)','Google Doc: step-by-step weekly routine and backup plan',typeof SOP_URL!=='undefined'?SOP_URL:'',''],
  ['Source platforms','Meta Business Suite · Google Analytics · Constant Contact · ScreenCloud · Wrike','https://business.facebook.com','']];
 const ABOUT_PLAT=[['Meta Business Suite','https://business.facebook.com'],['Google Analytics','https://analytics.google.com'],['Constant Contact','https://www.constantcontact.com'],['ScreenCloud','https://studio.screencloud.com'],['Wrike','https://www.wrike.com']];
 function aboutText(){return ['MCCS Digital Pulse: how it works','',...ABOUT_BLUF.map(([h,t])=>`• ${h}: ${t}`),'','Where the data comes from',...ABOUT_SRC.map(([a,b,c])=>`• ${a}: ${b} (${c})`),'','Where the data lives',...ABOUT_LINKS.filter(l=>l[2]&&l[0]!=='Source platforms').map(([a,b,u])=>`• ${a}: ${u}`),...ABOUT_PLAT.map(([a,u])=>`• ${a}: ${u}`)].join('\n')}
