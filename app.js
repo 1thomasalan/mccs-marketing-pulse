@@ -731,11 +731,15 @@ function gsApplyRange(){const r=gsRange();if(!r)return false;S.preset=GSR.k;if(G
 function gsWebPages(){if(!S.web.length)return null;const rr=gsRange()||{s:'2024-01-01',e:P.todayKey()};const wr=P.webRange(S.web,rr.s,rr.e);if(!webHas(wr))return null;const pg=wr.pages.filter(p=>!P.NOISE_PAGES.includes(p[0]));return {wr,pg,key:'w|'+rr.s+'|'+rr.e+'|'+pg.length+'|'+pg.slice(0,5).map(p=>p[1]).join()}}
 // signage: read-only view of SG.data (slides, playlists, locations, offline screens); signage.js is untouched
 const SGF={name:[1,s=>s.name],sub:[.6,s=>`${s.kind} ${s.sub}`]};const GSG=new WeakMap();
-function gsSign(){const d=SG.data;if(!d)return [];let l=GSG.get(d);if(l)return l;const pl=n=>(SGC[n]||[n])[0];l=[];
-  (d.items||[]).forEach(i=>l.push({k:'slide',name:sgName(i.name),raw:i.name,kind:i.kind==='video'?'Video':'Still',sub:i.playlist?pl(i.playlist)+' playlist':'In rotation'}));
+const GSGK={k:'',l:null};
+function gsSign(){const d=SG.data,all=sgAll();if(!d&&!all.length)return [];const kk=(d?d.checked:'')+'|'+SGA.k;if(GSGK.k===kk&&GSGK.l)return GSGK.l;const pl=n=>(SGC[n]||[n])[0];const l=[];
+  // v66: slides in rotation now + every slide that played before (first/last play days; search keeps the ones that overlap its date range)
+  all.forEach(i=>l.push({k:'slide',name:sgName(i.name),raw:i.name,first:i.first,last:i.last,now:i.now,hist:i.hist,p:i.p,kind:i.hist?'Slide':i.kind==='video'?'Video':'Still',sub:i.hist?sgSpanTxt(i)+(i.p?' · '+P.fmt(i.p)+' plays':''):(i.playlist?pl(i.playlist)+' playlist':'In rotation')+(i.first&&i.first<P.todayKey()?' · since '+P.fmtDate(i.first):'')}));
+  if(!d){GSGK.k=kk;GSGK.l=l;return l}
   (d.playlists||[]).forEach(p=>l.push({k:'pl',name:pl(p.name),kind:'Playlist',sub:`${p.count} pieces in rotation`}));
   (d.groups||[]).forEach(g=>{l.push({k:'loc',loc:g.name,name:g.name,kind:'Location',sub:`${g.total} screens${g.off.length?` · ${g.off.length} offline`:' · all online'}`});(g.off||[]).forEach(s=>l.push({k:'scr',loc:g.name,name:sgName(s.name),kind:'Screen',sub:`${g.name} · offline ${sgAgo(s.since)}`}))});
-  GSG.set(d,l);return l}
+  GSGK.k=kk;GSGK.l=l;return l}
+const gsInSpan=x=>{if(x.k!=='slide'||x.now)return true;const r=gsRange();return !r||sgOver(x,r.s,r.e)};
 const GS={open:{},warm:0};
 const GROUPS=[
  {k:'posts',label:'Posts',run:q=>{const it=gsPosts(),res=P.search(P.searchIndex(it,PF),q,{tie:r=>r.t,cap:1e5}),out=res.filter(x=>gsIn(x.item.d));out.fuzzy=res.fuzzy;out.all=res;return out},
@@ -747,12 +751,12 @@ const GROUPS=[
  {k:'email',label:'Email campaigns',run:q=>{if(!S.email.length)return [];const res=emSearch(q),out=res.filter(x=>gsIn(x.item.date));out.fuzzy=res.fuzzy;out.all=res;return out},
   rel:(q,res)=>{if(!S.email.length)return [];const cs=emCamps();return SM.related('email',cs,res.all||res,P.searchIndex(cs,EF,'em|'+cs.map(c=>c.id).join()),q,c=>c.date)},
   row:(c,h)=>{const all=emLinkNames(c),hit=x=>h&&h.size&&P.sNorm(x,1).split(/\s+/).some(w=>h.has(w)),lt=[...all.filter(hit),...all.filter(x=>!hit(x))].slice(0,2);return [GSI.email,P.hl(c.name,h,esc),`Sent ${c.date?P.fmtDate(c.date,{year:'numeric'}):'–'}${lt.length?' · links: '+P.hl(lt.join(', '),h,esc):''}`,c.openRate!=null?pct1(c.openRate):'',c.openRate!=null?'opened':'']}},
- {k:'sign',label:'Signage',run:q=>{const l=gsSign();return l.length?P.search(P.searchIndex(l,SGF),q,{cap:1e4}):[]},
-  rel:(q,res)=>{const l=gsSign();return l.length?SM.related('sign',l,res,P.searchIndex(l,SGF),q,null):[]},
+ {k:'sign',label:'Signage',run:q=>{const l=gsSign();return l.length?P.search(P.searchIndex(l,SGF,'gsg|'+GSGK.k),q,{cap:1e4}).filter(x=>gsInSpan(x.item)):[]},
+  rel:(q,res)=>{const l=gsSign();return l.length?SM.related('sign',l,res,P.searchIndex(l,SGF,'gsg|'+GSGK.k),q,null).filter(x=>gsInSpan(x.item)):[]},
   row:(s,h)=>[GSI.sign,P.hl(s.name,h,esc),`${esc(s.kind)} · ${esc(s.sub)}`,'','']}];
 // build the indexes one at a time in idle time (lazy: nothing is built until the search is about to be used)
 function gsWarm(){if(GS.warm||!gsAvail())return;GS.warm=1;const idle=window.requestIdleCallback||(f=>setTimeout(f,30));
-  const jobs=[()=>P.searchIndex(gsPosts(),PF),()=>{const w=gsWebPages();if(w)P.searchIndex(w.pg,WF,w.key)},()=>{if(S.email.length)emSearch('warm')},()=>{const l=gsSign();if(l.length)P.searchIndex(l,SGF)}];
+  const jobs=[()=>P.searchIndex(gsPosts(),PF),()=>{const w=gsWebPages();if(w)P.searchIndex(w.pg,WF,w.key)},()=>{if(S.email.length)emSearch('warm')},()=>{const l=gsSign();if(l.length)P.searchIndex(l,SGF,'gsg|'+GSGK.k)}];
   const next=()=>{const j=jobs.shift();if(!j){GS.warm=0;return}idle(()=>{try{j()}catch(e){}next()})};next();
   if(!SG.data&&localStorage.pulsePass&&typeof sgLoad==='function')sgLoad().then(ch=>{if(ch&&$('#gs').classList.contains('show'))gsRender()})}
 const gsHint=fz=>fz.length?`Includes close spellings: ${fz.slice(0,3).map(([a,b])=>`<b>${esc(b)}</b> for “${esc(a)}”`).join(', ')}`:'';
@@ -821,7 +825,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v65';
+const PULSE_V='v66';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();

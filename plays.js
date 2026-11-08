@@ -27,6 +27,19 @@ function spKick(view){if(!localStorage.pulsePass||typeof sgLoad!=='function')ret
   if(!SG.loading&&(!SG.meta||Date.now()-new Date(SG.meta.checked)>10*6e4))jobs.push(sgLoad());
   if(!SPL.loading&&Date.now()-SPL.at>30*6e4)jobs.push(spLoad());
   if(jobs.length)Promise.all(jobs).then(r=>{if(r.some(Boolean)&&S.view===view&&!document.querySelector('.sheet.show'))render()})}
+// v66: every slide the play log has ever seen, with its first and last play day and totals (cached per pull)
+const SPC={k:'',m:null},SGA={k:'',l:[]};
+function spCat(){const D=SPL.data;if(!D||!D.days)return null;const k=(D.through||'')+'|'+(SPL.meta&&SPL.meta.pulled||'')+'|'+Object.keys(D.days).length;if(SPC.k===k)return SPC.m;
+  const m=new Map();for(const day of Object.keys(D.days).sort()){const s=D.days[day].s||{};for(const n in s){const v=s[n];let o=m.get(n);if(!o)m.set(n,o={name:n,first:day,last:day,p:0,days:0,sc:0});o.last=day;o.p+=v[0]||0;o.days++;o.sc=Math.max(o.sc,v[1]||0)}}
+  SPC.k=k;SPC.m=m;return m}
+// v66: slides for matching, programs, search and reports = what is in rotation now (now:1, last = today) + every slide that played before (hist:1)
+// each item keeps the ScreenCloud fields when in rotation, plus first/last play days so callers can test overlap with a date range
+function sgAll(){const items=(SG.data&&SG.data.items)||[],cat=spCat(),today=P.todayKey(),k=(SG.data?SG.data.checked+'|'+items.length:'')+'|'+SPC.k+'|'+today;if(SGA.k===k)return SGA.l;
+  const out=[],seen=new Set();for(const it of items){if(seen.has(it.name))continue;seen.add(it.name);const c=cat&&cat.get(it.name);out.push(Object.assign({},it,{now:1,first:c&&c.first<today?c.first:today,last:today,p:c?c.p:0,days:c?c.days:0,sc:c?c.sc:0}))}
+  if(cat)for(const [n,c] of cat){if(seen.has(n))continue;out.push({name:n,hist:1,first:c.first,last:c.last,p:c.p,days:c.days,sc:c.sc})}
+  SGA.k=k;SGA.l=out;return out}
+const sgSpanTxt=x=>x?(x.now?(x.first&&x.first<P.todayKey()?`On screens since ${P.fmtDate(x.first,{year:'numeric'})}`:'In rotation now'):`Played ${P.fmtDate(x.first)} – ${P.fmtDate(x.last,{year:'numeric'})}`):'';
+const sgOver=(x,s,e)=>!!x&&(x.first||P.todayKey())<=e&&(x.last||P.todayKey())>=s;
 // range rollup. Returns null when no plays data covers any of [s,e].
 function spRange(s,e){const D=SPL.data;if(!D||!D.days)return null;const from=D.from||Object.keys(D.days).sort()[0],thru=D.through||Object.keys(D.days).sort().pop();
   const a=s<from?from:s,b=e>thru?thru:e;if(a>b)return null;
@@ -66,11 +79,11 @@ function spSlide(name,s,e){const D=SPL.data;if(!D||!D.days)return null;const fro
   for(let k=a;k<=b;k=P.addDays(k,1)){const d=D.days[k],v=d&&d.s&&d.s[name];all+=d?d.t||0:0;daily.push(v?v[0]:0);if(d&&d.sg)hasG=true;if(!v)continue;if(!d.sg)noG++;p+=v[0];sc=Math.max(sc,v[1]||0);days++;if(!first)first=k;last=k;
     const gg=d.sg&&d.sg[name];if(gg)for(const x in gg)g.set(x,(g.get(x)||0)+gg[x])}
   return {s:a,e:b,since:s<from?from:null,p,all,share:all?p/all:0,sc,days,span:Math.round((new Date(b)-new Date(a))/864e5)+1,first,last,daily,hasG,noG,groups:[...g].sort((x,y)=>y[1]-x[1])}}
-function spSlideSheet(name){setRange();const R=spSlide(name,S.s,S.e),C=SPL.data&&S.cs>=(SPL.data.from||'9')?spSlide(name,S.cs,S.ce):null;
+function spSlideSheet(name,rs,re){setRange();const s0=rs||S.s,e0=re||S.e,own=!!rs;const R=spSlide(name,s0,e0),C=!own&&SPL.data&&S.cs>=(SPL.data.from||'9')?spSlide(name,S.cs,S.ce):null;
   const it=SG.data&&SG.data.items&&SG.data.items.find(i=>i.name===name),pl=it&&(SGC[it.playlist]||[it.playlist])[0];
   const evs=typeof evOf==='function'?evOf('sg:'+name).map(x=>evGet(x.ev)).filter(Boolean):[];
   const img=it&&it.t?`<div class="spsh"><img data-sg="${it.t}" alt=""></div>`:'';
-  const thru=SPL.data&&SPL.data.through;const top=`${img}<div class="mut sm">${esc(P.rangeLabel(S.s,S.e))}${R&&R.since?` · plays since ${P.fmtDate(R.since,{year:'numeric'})}`:''}</div><h3 style="margin-top:6px">${esc(sgName(name))}</h3>${scopeLine(['ScreenCloud play logs','plays = slide starts, not people',C?'vs '+esc(cmpLabel()):{t:'no comparison (play history too short)',w:1},thru?(R&&R.e<S.e?{t:'plays through '+fYr(thru),w:1}:'plays through '+fYr(thru)):''])}<p class="mut sm" style="margin:-6px 0 12px">${it?`In rotation now${pl?' · '+esc(pl):''}${it.kind==='video'?' · video':''}`:'No longer in rotation'}</p>`;
+  const thru=SPL.data&&SPL.data.through;const top=`${img}<div class="mut sm">${esc((own?'Every day it played: ':'')+P.rangeLabel(s0,e0))}${R&&R.since?` · plays since ${P.fmtDate(R.since,{year:'numeric'})}`:''}</div><h3 style="margin-top:6px">${esc(sgName(name))}</h3>${scopeLine(['ScreenCloud play logs','plays = slide starts, not people',own?'':C?'vs '+esc(cmpLabel()):{t:'no comparison (play history too short)',w:1},thru?(R&&R.e<e0?{t:'plays through '+fYr(thru),w:1}:'plays through '+fYr(thru)):''])}<p class="mut sm" style="margin:-6px 0 12px">${it?`In rotation now${pl?' · '+esc(pl):''}${it.kind==='video'?' · video':''}`:'No longer in rotation'}</p>`;
   if(!R||!R.p){openSheet(top+`<div class="card"><p class="mut" style="margin:0">${SPL.data?'No plays logged for this slide in this range.':esc(spEmptyTxt())}</p></div>`);sgFill($('#sheetBody'));return}
   const dlt=C&&C.p?dl(R.p,C.p,true):C?'<span class="mut">new this period</span>':'';
   const gmx=R.groups[0]?R.groups[0][1]:1;

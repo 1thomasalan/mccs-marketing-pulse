@@ -26,7 +26,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-acmiss]');
 // refresh scores after a connect (the drawer closes back to the page)
 if(typeof cnCloseDrawer==='function'){const _c=cnCloseDrawer;cnCloseDrawer=function(){_c.apply(this,arguments);AC.k='';const sh=$('#sheet');if(!sh||!sh.classList.contains('show'))return;const h=$('#sheetBody h3');if(h&&/^Not connected/.test(h.textContent)){const ch=/posts/.test(h.textContent)?'so':/newsletters/.test(h.textContent)?'em':'sg';acMissSheet(ch)}else if(sh.dataset.acslide)spSlideSheet(sh.dataset.acslide)}}
 // slide sheet: what it's connected to + Connect button
-if(typeof spSlideSheet==='function'){const _s=spSlideSheet;spSlideSheet=function(name){_s(name);const body=$('#sheetBody'),sh=$('#sheet');if(!body||!sh.classList.contains('show'))return;sh.dataset.acslide=name;
+if(typeof spSlideSheet==='function'){const _s=spSlideSheet;spSlideSheet=function(name){_s.apply(this,arguments);const body=$('#sheetBody'),sh=$('#sheet');if(!body||!sh.classList.contains('show'))return;sh.dataset.acslide=name;
   const c=acHas('sg:'+name),w=document.createElement('div');w.className='cn-sheetbtn acsl';
   w.innerHTML=`${c.length?`<div class="acon"><span class="mut sm">Connected to</span>${c.slice(0,6).map(x=>x.tt==='sponsor'?`<span class="acpd" style="margin:0">${hic('tag',11)}Paid ad · ${esc(x.label||x.tid)}</span>`:`<span class="chip sm">${esc(x.label||x.tid)}</span>`).join('')}</div>`:'<div class="acon"><span class="acwarn">Not connected yet</span></div>'}<button class="hbtn ghost sm" data-cn="sg:${esc(name)}">${hic('link',14)}${c.length?'Edit connections':'Connect to programs, events…'}</button>`;
   const p=body.querySelector('h3+p')||body.querySelector('h3');if(p)p.after(w);else body.prepend(w)}}

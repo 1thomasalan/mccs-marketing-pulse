@@ -427,7 +427,7 @@ P.evMatch=function(o){const evs=(o.events||[]).filter(e=>e.s),posts=o.posts||[],
       for(const x of ph)if(x.b>best&&nm.includes(' '+x.t+' ')){best=Math.min(97,x.b+1);why='“'+x.raw.trim()+'” in the issue name'}
       for(const tt of Object.values(c.titles||{})){const tn=' '+P.sNorm(tt)+' ';for(const x of ph)if(x.b>best&&tn.includes(' '+x.t+' ')){best=x.b;why='story “'+tt+'”'}}
       if(best)put('em:'+c.id,'em',ev,best,why)}
-    if(o.signage&&today>=ws&&today<=we)for(const it of o.signage){const nm=' '+P.sNorm(it.name,1)+' '+P.slideOcr(it);let best=0,why='';for(const x of ph)if(x.b>best&&nm.includes(' '+x.t+' ')){best=x.b;why='“'+x.raw.trim()+'” in the slide'}if(best)put('sg:'+it.name,'sg',ev,best,why)}}
+    if(o.signage)for(const it of o.signage){if((it.first||today)>we||(it.last||today)<ws)continue;const nm=' '+P.sNorm(it.name,1)+' '+P.slideNorm(it.name)+P.slideOcr(it);let best=0,why='';for(const x of ph)if(x.b>best&&nm.includes(' '+x.t+' ')){best=x.b;why='“'+x.raw.trim()+'” in the slide'}if(best)put('sg:'+it.name,'sg',ev,best,why)}}
   // v38 Connections: an enabled rule links at 95% (a person's answer, applied after the Links tab, still wins)
   const CN=o.conn,evIds=new Set(evs.map(e=>e.id));
   if(CN)for(const [k,m] of CN.byItem)for(const c of m.values()){if(c.ttype!=='event'||c.state!=='rule'||!evIds.has(c.tid))continue;let a=byItem.get(k);if(!a)byItem.set(k,a=[]);let x=a.find(y=>y.ev===c.tid);
@@ -527,8 +527,10 @@ P.progChannels=function(o){const rows=(o.cov&&o.cov.rows)||[],today=o.today||P.t
   // email
   for(const c of o.email||[]){if(c.kind!=='camp'||!c.date)continue;const t=' '+P.sNorm([c.name,c.subject||'',...Object.values(c.titles||{})].join(' | ').replace(/[|]/g,' '),1)+' ';
     const ek='em:'+c.id;for(const r of rows){if(!(hasKw(r.id,t)&&!blk(ek,r.id)||lnk(ek,r.id)))continue;const R=out.get(r.id);if(inR(c.date)){R.em.opens+=c.opens||0;R.em.clicks+=c.clicks||0;R.em.camps.push(c)}if(inC(c.date))R.em.po+=c.opens||0;day(R,c.date,'em',c.opens||0)}}
-  // signage (what is in rotation now)
-  for(const it of o.signage||[]){const t=P.slideNorm(it.name)+P.slideOcr(it),sk='sg:'+it.name;for(const r of rows)if(hasKw(r.id,t)&&!blk(sk,r.id)||lnk(sk,r.id))out.get(r.id).sg.slides.push(it.name)}
+  // signage: slides that played in the range (v66: history included) · sg.now = in rotation right now
+  for(const R of out.values())R.sg.now=[];
+  for(const it of o.signage||[]){const a=it.first||today,b=it.last||today,inr=a<=o.e&&b>=o.s,now=it.now||(!it.hist&&!it.first);if(!inr&&!now)continue;const t=P.slideNorm(it.name)+P.slideOcr(it),sk='sg:'+it.name;
+    for(const r of rows)if(hasKw(r.id,t)&&!blk(sk,r.id)||lnk(sk,r.id)){const R=out.get(r.id);if(inr)R.sg.slides.push(it.name);if(now)R.sg.now.push(it.name)}}
   // events
   for(const e of o.events||[]){if(!e.s)continue;const t=' '+P.sNorm([e.name,...(e.aka||[])].join(' '),1)+' ',lead=P.sNorm(e.lead||'',1);
     for(const r of rows){const nm=[r.p.program,r.p.facility].filter(Boolean).map(x=>P.sNorm(x,1));if(hasKw(r.id,t)||lead&&nm.includes(lead))out.get(r.id).ev.push(e)}}
