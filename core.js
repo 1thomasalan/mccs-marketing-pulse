@@ -634,10 +634,10 @@ P.connRuleCount=function(rule,items,skipKey){const n={all:0,so:0,we:0,em:0,sg:0}
   let nm=last.replace(/\s+/g,' ').trim()||raw;if(prog&&nm.split(' ').length<2)nm=prog+' '+nm;return {nm,div,prog,camp,codes}};
  P.prodParse=function(values){if(!values||values.length<2)return [];let hi=values.findIndex(r=>(r||[]).some(c=>/title/i.test(String(c||''))));if(hi<0)return [];
   const h=values[hi].map(c=>String(c||'').toLowerCase()),ix=(...re)=>h.findIndex(c=>re.some(r=>r.test(c)));
-  const iD=ix(/event date/,/\bdate\b/),iT=ix(/^title$/,/title/),iDs=ix(/description/,/advertis/),iO=ix(/owner/,/assignee/,/\bae\b/),iS=ix(/status/);
+  const iD=ix(/event date/,/\bdate\b/),iT=ix(/^title$/,/title/),iDs=ix(/description/,/advertis/),iO=ix(/owner/,/assignee/,/\bae\b/),iS=ix(/status/),iU=ix(/wrike link/);
   const out=[];for(const r of values.slice(hi+1)){const t=String(r[iT]==null?'':r[iT]).trim();if(!t||/^all active \(\d+\)$|^total: ?\d+/i.test(t))continue;const d=iD>=0?xd(r[iD]):'';
    const c=P.prodCode(t);let desc=iDs>=0?String(r[iDs]==null?'':r[iDs]).replace(/\u200b/g,'').trim():'';if(desc==='-')desc='';if(desc.length>420)desc=desc.slice(0,417).replace(/\s+\S*$/,'')+'…';
-   out.push({d,t,nm:c.nm,desc,own:iO>=0?String(r[iO]==null?'':r[iO]).trim():'',st:iS>=0?String(r[iS]==null?'':r[iS]).trim():'',div:c.div,prog:c.prog,camp:c.camp})}
+   out.push({d,t,nm:c.nm,desc,own:iO>=0?String(r[iO]==null?'':r[iO]).trim():'',st:iS>=0?String(r[iS]==null?'':r[iS]).trim():'',url:iU>=0&&/^https:\/\/www\.wrike\.com\/open\.htm\?id=\d+$/.test(String(r[iU]||''))?String(r[iU]):'',div:c.div,prog:c.prog,camp:c.camp})}
   return out.sort((a,b)=>(a.d||'9')<(b.d||'9')?-1:(a.d||'9')>(b.d||'9')?1:a.nm<b.nm?-1:1)};
  // match production rows to strategic events: name/other-name words (or the initials, e.g. GPE) + the event date (14 days before to 3 after)
  const STOP=new Set(['the','and','of','a','at','in','on','for','to','mccs','okinawa','camp','annual']);
