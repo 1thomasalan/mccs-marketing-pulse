@@ -25,7 +25,7 @@ TV.social=function(){TV.sRange();const {L,C,t,c}=ctx();const has=c.n>0,f=fairCmp
     <div class="tvk2">${TV.k('Engagement',P.fmt(t.e),dl(t.e,c.e,has))}${(()=>{const lc=l=>l.filter(r=>r.plat==='fb').reduce((a,r)=>a+(r.lc||0),0);return TV.k('Link clicks · FB',nf(lc(L)),dl(lc(L),lc(C),has))})()}${TV.k('Eng. per 1K',t.epk.toFixed(1),dl(t.epk,c.epk,has))}${TV.k('IG follows',nf(t.fo),dl(t.fo,c.fo,has))}</div>${TV.split(t)}</div>
    <div class="tvm"><div class="card tvchart"><h2>Views over time<small>by ${ser.step} · Facebook and Instagram</small></h2>${chartSVG(ser,1000,400,{both:1,fs:18,id:'tv'})}<div class="legend tvleg"><span><i style="background:var(--fb)"></i>Facebook ${P.fmt(t.fb.v)}</span><span><i style="background:var(--ig)"></i>Instagram ${P.fmt(t.ig.v)}</span></div></div>
     <div class="card tvacc"><h2>Top accounts<small>views</small></h2>${pages.map(g=>`<div class="tvbar"><span>${esc(acctName(g.plat,g.page))}</span><div><i style="width:${(g.v/mx*100).toFixed(1)}%;background:var(--${g.plat})"></i></div><b>${P.fmt(g.v)}</b></div>`).join('')}</div></div>
-   <div class="card tvr"><h2>Top posts<small>by views</small></h2>${TV.posts(L,6)}</div></div>`};
+   <div class="tvrc">${typeof folTV==='function'?folTV():''}<div class="card tvr"><h2>Top posts<small>by views</small></h2>${TV.posts(L,typeof folRows==='function'&&folRows().length?3:6)}</div></div></div>`};
 TV.web=function(){if(!S.web.length)return `<div class="card tvmsg">No website data on this device yet.</div>`;const wEnd=TV.wRange();
   const {wr,wc}=wctx();const has=webHas(wr),ok=wcmp(wr,wc),t=has?wr.t:null,ct=ok?wc.t:{};
   if(!has)return `<div class="card tvmsg">Website data for this period arrives with the next weekly update.</div>`;
@@ -92,7 +92,7 @@ body.tvmode{overflow:hidden;height:100vh}body.tvmode .wrap{max-width:none;paddin
 .tvo h3{font-family:var(--serif);font-weight:400;font-size:20px;margin:22px 0 6px}
 .tvrow{display:flex;justify-content:space-between;gap:12px;font-size:17px;padding:9px 0;border-bottom:1px solid var(--line)}.tvrow span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mut)}.tvrow b{font-weight:400;white-space:nowrap}
 .tvo .tvpost{grid-template-columns:84px 1fr auto;padding:8px 0}.tvo .tvpi{width:84px;height:84px}.tvo .tvpt .t{font-size:15px;-webkit-line-clamp:2}
-.tvsoc .tvl,.tvweb .tvl{grid-template-rows:auto auto 1fr}.tvweb .tvm{grid-template-rows:1fr auto}
+.tvrc{display:flex;flex-direction:column;gap:16px;min-height:0}.tvrc .tvr{flex:1;min-height:0;overflow:hidden}.tvsoc .tvl,.tvweb .tvl{grid-template-rows:auto auto 1fr}.tvweb .tvm{grid-template-rows:1fr auto}
 .tvmini{grid-template-columns:repeat(4,1fr);gap:8px}
 .tvmsg{grid-column:1/-1;font-size:24px;color:var(--mut);display:grid;place-items:center}
 .tvdots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px}.tvdots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25)}.tvdots i.on{background:var(--glow)}`;document.head.appendChild(st)}
