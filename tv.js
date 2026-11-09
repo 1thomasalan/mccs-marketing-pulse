@@ -59,6 +59,8 @@ TV.render=function(){const app=$('#app');if(!SG.data&&!SG.loading&&localStorage.
 TV.fit=function(){const st=$('#tvst');if(!st)return;const k=Math.min(innerWidth/1920,innerHeight/1080);st.style.transform=`translate(${(innerWidth-1920*k)/2}px,${(innerHeight-1080*k)/2}px) scale(${k})`};
 TV.start=function(){addEventListener('resize',TV.fit);sgLoad().then(()=>render());
   setInterval(async()=>{await sync();const ch=await sgLoad();render()},5*6e4);
+// v70: self-update. Every 10 min, read the live sw.js version; if it differs from this page's PULSE_V, reload (keeps URL and #k=).
+setInterval(async()=>{try{const t=await (await fetch('sw.js?u='+Date.now(),{cache:'no-store'})).text(),m=t.match(/C='pulse-(v\d+)'/);if(m&&typeof PULSE_V!=='undefined'&&m[1]!==PULSE_V){console.info('Pulse TV: new version',m[1],'- reloading');location.reload()}}catch(e){}},10*6e4);
   if(TV.v==='cycle')setInterval(()=>{TV.i++;render()},45e3);
   setInterval(()=>{if(TV.v!=='cycle')render()},6e4);// keep the clock fresh
   setTimeout(()=>location.reload(),6*3600e3);
