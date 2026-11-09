@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>MCCS Pulse · Search report mockup (sample data)</title>
+<style>
+:root{--txt:#eef1f6;--mut:rgba(238,241,246,.6);--line:rgba(255,255,255,.12);--glow:#f3d9a4;--card:rgba(255,255,255,.055);
+--so:#f3a6b8;--we:#8fb4ff;--em:#c7b3ff;--sg:#9ee6b4;--good:#9ee6b4;--bad:#ffb0a8;--warn:#f3c860;
+--serif:"Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box}html,body{margin:0;background:#0b0f18;color:var(--txt);font-family:var(--sans)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.page{padding:28px 32px 40px}
+.cap{font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:var(--mut);margin:0 0 6px}
+.note{font-size:13px;color:var(--mut);margin:0 0 14px;max-width:420px;line-height:1.45}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;align-items:start}
+.panel{background:#121827;border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.sbox{display:flex;align-items:center;gap:10px;border:1px solid rgba(243,217,164,.55);border-radius:14px;padding:12px 14px;font-size:16px}
+.sbox svg,.ic svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:16px 0 6px;font-size:13px;color:var(--mut)}
+.meta b{color:var(--txt)}
+.cta{display:inline-flex;align-items:center;gap:7px;background:var(--glow);color:#1a1408;font-weight:600;font-size:13px;padding:9px 14px;border-radius:999px;white-space:nowrap}
+.cta.ghost{background:transparent;color:var(--txt);border:1px solid var(--line2,rgba(255,255,255,.22))}
+.cta svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+.grp{display:flex;justify-content:space-between;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin:18px 0 6px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.grp a{color:var(--glow)}
+.row{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.row .ic{width:34px;height:34px;border:1px solid var(--line);border-radius:9px;display:grid;place-items:center;flex:none}
+.row .t{flex:1;min-width:0;font-size:14px}.row .t small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.row .n{text-align:right;font-size:15px}.row .n small{display:block;font-size:10px;letter-spacing:1.5px;color:var(--mut)}
+mark{background:rgba(243,217,164,.22);color:inherit;border-radius:3px;padding:0 2px}
+.evbar{display:flex;gap:10px;align-items:center;background:rgba(243,217,164,.08);border:1px solid rgba(243,217,164,.35);border-radius:14px;padding:12px;margin-top:10px;font-size:13px}
+.evbar .t{flex:1}.evbar small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+h3{font-family:var(--serif);font-weight:400;font-size:26px;margin:4px 0 2px}
+.sub{color:var(--mut);font-size:13px;margin:0 0 12px}
+.opt{border-top:1px solid var(--line);padding:12px 0}
+.opt h4{margin:0 0 8px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.chip.on{border-color:rgba(243,217,164,.7);background:rgba(243,217,164,.12)}
+.chip.off{opacity:.38}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.tog{display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:4px 0}
+.tog small{display:block;color:var(--mut);font-size:12px}
+.sw{width:40px;height:24px;border-radius:999px;background:rgba(255,255,255,.18);position:relative;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff}
+.sw.on{background:#7fc796}.sw.on::after{left:19px}
+.link{color:var(--glow);font-size:13px}
+.foot{display:flex;gap:8px;margin-top:14px}.foot .cta{flex:1;justify-content:center}
+/* report */
+.rep{background:#f7f5f0;color:#1d2433;border-radius:14px;padding:22px;font-family:var(--sans)}
+.rep .k{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#7a7f8c}
+.rep h2{font-family:var(--serif);font-weight:400;font-size:26px;margin:4px 0 0}
+.rep .rng{font-size:12px;color:#5c6270;margin-top:2px}
+.big{display:flex;align-items:baseline;gap:10px;margin:14px 0 4px}.big b{font-family:var(--serif);font-weight:400;font-size:52px;line-height:1}
+.big span{font-size:13px;color:#5c6270}.up{color:#2f8a52;font-size:13px;font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.tile{border:1px solid #e1ddd3;border-radius:10px;padding:9px;font-size:11px;color:#5c6270}
+.tile b{display:block;font-size:19px;color:#1d2433;font-weight:500;margin:3px 0 1px}
+.tile.z{opacity:.5}
+.chart{border:1px solid #e1ddd3;border-radius:10px;padding:10px 10px 4px}
+.chart .k{margin-bottom:4px}
+.lg{display:flex;gap:12px;font-size:11px;color:#5c6270;margin-top:4px}
+.toplist{margin-top:12px;font-size:12px}.toplist div{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #e9e5dc}
+.badge{display:inline-block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;background:#f3c860;color:#1a1408;border-radius:6px;padding:3px 7px;margin-bottom:10px}
+.sample{position:fixed;right:18px;bottom:14px;font-size:11px;color:var(--mut);letter-spacing:1.5px;text-transform:uppercase}
+@media(max-width:700px){.page{padding:18px 14px}.grid{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,1fr)}}
+</style></head><body>
+<div class="page">
+<div class="grid">
+
+<!-- 1 search -->
+<section>
+<p class="cap">1 · Search</p><p class="note">A Create report button sits next to the match count. If the search matches a Strategic Event, an offer for that event's report appears just under the box.</p>
+<div class="panel">
+ <div class="sbox"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Hansen Fest<span style="flex:1"></span><span style="color:var(--mut)">✕</span></div>
+ <div class="evbar"><span class="ic" style="color:var(--glow)"><svg viewBox="0 0 24 24"><path d="M5 21V4h11l-2 4 2 4H5"/></svg></span><div class="t"><b>Hansen Fest 2026</b> is a Strategic Event<small>Feb 14–15 · 41 hand-checked connections</small></div><button class="cta ghost">Event report</button></div>
+ <div class="meta"><span><b>39</b> matches · 3 close spellings</span><button class="cta"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>Create report</button></div>
+ <div class="grp"><span>Posts 38</span><a>See all in Social</a></div>
+ <div class="row"><span class="ic">▣</span><div class="t">We still can't get over <mark>Hansen Fest</mark> this past weekend!<small>Instagram · Feb 20</small></div><div class="n">5.7K<small>VIEWS</small></div></div>
+ <div class="row"><span class="ic">▣</span><div class="t"><mark>Hansen Fest</mark> is almost here<small>Instagram · Feb 13</small></div><div class="n">45K<small>VIEWS</small></div></div>
+ <div class="grp"><span>Web pages 1</span><a>See all in Web</a></div>
+ <div class="row"><span class="ic">◎</span><div class="t"><mark>Hansen Festival</mark><small>/…/festivals/hansen-festival/</small></div><div class="n">2.1K<small>VIEWS</small></div></div>
+</div></section>
+
+<!-- 2 options -->
+<section>
+<p class="cap">2 · Report options</p><p class="note">One sheet, already set up. Tap Create, or change any choice first. Pulse remembers your last choices.</p>
+<div class="panel">
+ <h3>“Hansen Fest”</h3><p class="sub">Report built from your search</p>
+ <div class="opt"><h4>Channels</h4><div class="chips">
+  <span class="chip on"><i class="dot" style="background:var(--so)"></i>Social 35</span>
+  <span class="chip on"><i class="dot" style="background:var(--we)"></i>Web 1</span>
+  <span class="chip on"><i class="dot" style="background:var(--em)"></i>Email 2</span>
+  <span class="chip off"><i class="dot" style="background:var(--sg)"></i>Signage 0</span></div></div>
+ <div class="opt"><h4>Matches</h4>
+  <div class="tog"><span>Exact matches only<small>Leaves out 3 close spellings (“west” for “fest”)</small></span><span class="sw on"></span></div>
+  <a class="link">Review the 38 matches · remove any that don't belong ›</a></div>
+ <div class="opt"><h4>Dates</h4><div class="chips">
+  <span class="chip on">Around the matches</span><span class="chip">Current range</span><span class="chip">Custom</span></div>
+  <p class="sub" style="margin:8px 0 0">Jan 15 – Feb 27, 2026 · 30 days before, 7 after</p></div>
+ <div class="opt"><h4>Compare</h4>
+  <div class="tog"><span>vs. last year<small>Hansen Fest 2025 · 31 matches</small></span><span class="sw on"></span></div></div>
+ <div class="opt"><h4>Detail</h4><div class="chips"><span class="chip on">Highlights · 1 page</span><span class="chip">Full detail</span></div></div>
+ <div class="foot"><button class="cta ghost">Print</button><button class="cta ghost">Share</button><button class="cta">Create report</button></div>
+</div></section>
+
+<!-- 3 report -->
+<section>
+<p class="cap">3 · The report</p><p class="note">Clean style. Every channel on one timeline, with last year beside it. The same report replaces today's Social-only Campaign report.</p>
+<div class="rep">
+ <span class="badge">Sample data</span>
+ <div class="k">Search report · 3 channels · 38 items</div>
+ <h2>Hansen Fest</h2><div class="rng">Jan 15 – Feb 27, 2026 · exact matches</div>
+ <div class="big"><b>184K</b><span>total touchpoints</span><span class="up">▲ 22% vs 2025</span></div>
+ <div class="tiles">
+  <div class="tile"><i class="dot" style="background:var(--so)"></i> Social<b>171K</b>views · 35 posts</div>
+  <div class="tile"><i class="dot" style="background:var(--we)"></i> Web<b>2.1K</b>views · 1 page</div>
+  <div class="tile"><i class="dot" style="background:var(--em)"></i> Email<b>11K</b>opens · 2 sends</div>
+  <div class="tile z"><i class="dot" style="background:var(--sg)"></i> Signage<b>–</b>no slide</div></div>
+ <div class="chart"><div class="k">Activity by day</div>
+  <svg viewBox="0 0 300 90" width="100%" height="90">
+   <line x1="0" y1="80" x2="300" y2="80" stroke="#e1ddd3"/>
+   <polyline fill="none" stroke="#cfcac0" stroke-dasharray="3 3" stroke-width="1.5" points="0,78 30,76 60,74 90,70 120,62 150,50 170,38 185,30 200,48 230,66 260,74 300,77"/>
+   <polyline fill="none" stroke="#e07a95" stroke-width="2.2" points="0,77 30,74 60,70 90,64 120,52 150,36 170,20 185,10 200,34 230,58 260,70 300,75"/>
+   <polyline fill="none" stroke="#5b86e0" stroke-width="2" points="0,79 30,78 60,77 90,75 120,71 150,66 170,60 185,58 200,68 230,75 260,78 300,79"/>
+   <g fill="#9a7fe0"><circle cx="110" cy="80" r="4"/><circle cx="165" cy="80" r="4"/></g>
+   <line x1="185" y1="4" x2="185" y2="80" stroke="#1d2433" stroke-width=".6" stroke-dasharray="2 2"/><text x="189" y="10" font-size="8" fill="#5c6270">Event</text>
+  </svg>
+  <div class="lg"><span style="color:#e07a95">● Social</span><span style="color:#5b86e0">● Web</span><span style="color:#9a7fe0">● Email sends</span><span>┄ 2025</span></div></div>
+ <div class="toplist"><div class="k" style="margin-bottom:4px">Top items</div>
+  <div><span>“Hansen Fest is almost here” · IG</span><b>45K</b></div>
+  <div><span>Recap video · FB</span><b>6.4K</b></div>
+  <div><span>Feb Weekender email</span><b>6.2K opens</b></div></div>
+</div></section>
+
+</div></div><div class="sample">Mockup · sample data</div>
+</body></html>

@@ -1,0 +1,65 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--so:#f3a6b8;--we:#8fb4ff;--em:#c7b3ff;--sg:#9ee6b4;--mut:rgba(238,241,246,.6);--mut2:rgba(238,241,246,.78);--line:rgba(255,255,255,.14);--serif:Georgia,"Times New Roman",serif;--sans:-apple-system,"Helvetica Neue",Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:#0f1420;color:#eef1f6;font-family:var(--sans)}
+.ph{width:390px;min-height:0;padding:22px 18px 30px;background:radial-gradient(120% 60% at 50% 105%,#6a5a7e 0,#2a3150 45%,#0f1420 75%)}
+.top{display:flex;justify-content:space-between;align-items:center;letter-spacing:4px;font-size:12px;color:var(--mut);margin-bottom:18px}
+.tag{letter-spacing:0;font-size:10.5px;border:1px solid var(--line);border-radius:999px;padding:3px 8px}
+.eyebrow{font-family:var(--serif);font-style:italic;font-size:18px;color:var(--mut2);text-align:center}
+.big{font-weight:200;font-size:84px;text-align:center;line-height:1;margin:6px 0 2px}
+.what{text-align:center;color:var(--mut2);font-size:15px}
+.delta{display:block;width:fit-content;margin:12px auto 0;border:1px solid var(--line);border-radius:999px;padding:5px 12px;color:var(--sg);font-size:13px}
+.blend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 12px;margin-top:14px;font-size:13px;color:var(--mut2)}
+.blend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.sgn{width:100%;display:flex;justify-content:center;margin-top:2px}
+.sgn span:not(.call){border:1px solid rgba(158,230,180,.4);background:rgba(158,230,180,.08);border-radius:999px;padding:5px 12px;color:#dff7e7}
+.note{font-size:12px;color:var(--mut);text-align:center;margin:10px 6px 0;line-height:1.45}
+.hl{outline:2px dashed #f3c860;outline-offset:4px;border-radius:12px;position:relative}
+.call{position:absolute;right:-6px;top:-12px;background:#f3c860;color:#1a1a1a;font-size:10px;font-weight:700;border-radius:999px;width:18px;height:18px;display:grid;place-items:center}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.tile{border:1px solid var(--line);border-radius:18px;padding:14px;background:rgba(255,255,255,.04)}
+.tile h4{margin:0 0 8px;font-weight:500;font-size:15px}.tile b{font-size:30px;font-weight:300;display:block}.tile p{margin:3px 0 0;font-size:12px;color:var(--mut2)}
+.up{color:var(--sg)}.warn{color:#f3c860}
+h2{font-family:var(--serif);font-weight:400;font-size:24px;margin:4px 0 2px}
+.card{border:1px solid var(--line);border-radius:18px;padding:14px 14px 10px;background:rgba(255,255,255,.04);margin-top:14px}
+.card h3{margin:0 0 10px;font-size:14px;font-weight:600}.card h3 small{font-weight:400;color:var(--mut)}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.kv b{display:block;font-size:22px;font-weight:300}.kv span{font-size:11px;color:var(--mut2)}
+.row{display:grid;grid-template-columns:38px 1fr auto;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
+.row:first-of-type{border-top:0}.th{width:38px;height:24px;border-radius:5px}
+.bar{height:4px;border-radius:2px;background:var(--sg);margin-top:5px;opacity:.85}
+.row em{font-style:normal;color:var(--mut);font-size:11px;display:block}
+.loc{display:grid;grid-template-columns:110px 1fr 54px;gap:8px;align-items:center;font-size:12.5px;padding:5px 0}
+.loc .bar{margin:0}
+.leg{font-size:11px;color:var(--mut);margin-top:8px;line-height:1.4}
+</style></head><body>
+<div style="display:flex;gap:24px;padding:20px;background:#0b0f18;width:max-content">
+<div class="ph" id="a">
+ <div class="top">MCCS PULSE <span class="tag">Sample data</span></div>
+ <div class="eyebrow">Jan 1 – Nov 1, 2026, every channel</div>
+ <div class="big">17M</div><div class="what">total digital reach</div>
+ <span class="delta">▲ 8.7% vs same period last year</span>
+ <div class="blend"><span><i style="background:var(--so)"></i>16M social views</span>+<span><i style="background:var(--we)"></i>766K web users</span>+<span><i style="background:var(--em)"></i>11K email opens</span>
+ <div class="sgn hl"><span class="call">1</span><span><i style="background:var(--sg)"></i>1.4M slide plays on 70 screens</span></div></div>
+ <div class="note">Views, users and opens are added as-is for trend. Slide plays count each time a slide showed on a screen, not people, so they sit beside the total.</div>
+ <div class="tiles">
+  <div class="tile"><h4>Social</h4><b>16M</b><p>views · FB + IG</p></div>
+  <div class="tile hl"><span class="call">2</span><h4>Signage</h4><b>1.4M</b><p>slide plays · <span class="up">▲ 12%</span></p><p>42 in rotation now</p><p class="warn">2 screens offline</p></div>
+ </div>
+</div>
+<div class="ph" id="b">
+ <div class="top">MCCS PULSE <span class="tag">Sample data</span></div>
+ <div class="eyebrow" style="text-align:left">Jan 1 – Nov 1, 2026</div><h2>Signage</h2>
+ <div class="card hl"><span class="call">3</span><h3>In this range</h3><div class="kv"><div><b>1.4M</b><span>slide plays</span></div><div><b>66</b><span>per screen daily</span></div><div><b>318</b><span>slides played</span></div></div></div>
+ <div class="card hl"><span class="call">4</span><h3>Most played <small>· this range</small></h3>
+  <div class="row"><div class="th" style="background:linear-gradient(135deg,#f3a6b8,#8f5f9e)"></div><div>Comic Con 2026<em>Dec 6 · 64 screens</em><div class="bar" style="width:100%"></div></div><b>48.2K</b></div>
+  <div class="row"><div class="th" style="background:linear-gradient(135deg,#8fb4ff,#3d5c9e)"></div><div>Gold Pass sale<em>Dec 5 · 58 screens</em><div class="bar" style="width:81%"></div></div><b>39.1K</b></div>
+  <div class="row"><div class="th" style="background:linear-gradient(135deg,#9ee6b4,#3c7f62)"></div><div>Fitness: Turkey Trot<em>Nov 26 · 41 screens</em><div class="bar" style="width:62%"></div></div><b>29.9K</b></div>
+  <div class="row"><div class="th" style="background:linear-gradient(135deg,#c7b3ff,#6c56a8)"></div><div>Library story time<em>weekly · 22 screens</em><div class="bar" style="width:44%"></div></div><b>21.3K</b></div>
+ </div>
+ <div class="card hl"><span class="call">5</span><h3>Plays by location</h3>
+  <div class="loc">Camp Foster<div class="bar" style="width:100%"></div><b>412K</b></div>
+  <div class="loc">Kadena<div class="bar" style="width:78%"></div><b>321K</b></div>
+  <div class="loc">Camp Courtney<div class="bar" style="width:41%"></div><b>169K</b></div>
+  <div class="loc">Camp Hansen<div class="bar" style="width:33%"></div><b>136K</b></div>
+  <div class="leg">From ScreenCloud's play logs, synced daily. Counts start from whatever history ScreenCloud keeps.</div></div>
+</div></div></body></html>

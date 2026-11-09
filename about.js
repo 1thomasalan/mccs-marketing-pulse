@@ -3,7 +3,7 @@
 const ABOUT_BLUF=[
  ['What it is','One place for MCCS Okinawa marketing results and event plans: social media, website, email, digital signage, strategic events and the Wrike production calendar.'],
  ['Read-only','Pulse only reads. It can’t post, change or delete anything in Facebook, Instagram, Google Analytics, Constant Contact, ScreenCloud or Wrike.'],
- ['Real numbers','Every figure comes from the platform’s own export or report. Pulse adds them up and compares them. It doesn’t estimate, and every screen says which data it shows.'],
+ ['Real numbers','Every figure comes from the platform’s own export or report. Pulse adds them up and compares them. It doesn’t estimate, with one labeled exception: website visitors on days with no GA4 Reports snapshot are estimated from visits until the snapshot is uploaded. Every screen says which data it shows.'],
  ['When','Weekly on Mondays for social, website, email, events and Wrike. Signage refreshes itself every 15 minutes, and slide plays nightly.'],
  ['Who','Alan exports the files Monday morning into the MCCS Digital Pulse Drive folder. An automated publish run by Hark, Alan’s AI assistant, checks, encrypts and posts them at 13:00, 15:00 and 17:00 JST.'],
  ['Secure','Data is encrypted (AES-256) before it’s stored online, so only devices unlocked with the team passcode can read it. The app’s code is public; the numbers aren’t.'],

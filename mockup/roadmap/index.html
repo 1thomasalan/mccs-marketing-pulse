@@ -1,0 +1,51 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pulse roadmap mockup</title>
+<style>
+:root{--txt:#eef1f6;--mut:rgba(238,241,246,.58);--mut2:rgba(238,241,246,.78);--line:rgba(255,255,255,.12);--glow:#f3d9a4;--good:#9ee6b4;--warn:#f3c860;--so:#f3a6b8;--we:#8fb4ff;--em:#c7b3ff;--sg:#9ee6b4}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(120% 70% at 50% 0,#1c2340,#0b0f1c 70%);color:var(--txt);font:15px/1.45 -apple-system,Segoe UI,Inter,sans-serif;min-height:100vh}
+.top{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(11,15,28,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);z-index:2}
+.top a{color:var(--glow);text-decoration:none;font-size:15px}.top b{font-weight:600}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+.eb{font:600 11px sans-serif;letter-spacing:1.8px;text-transform:uppercase;color:var(--mut)}h1{font:400 38px Georgia,serif;margin:6px 0 6px}.lede{color:var(--mut2);margin:0 0 18px;max-width:640px}
+.ask{display:inline-flex;gap:8px;align-items:center;padding:9px 16px;border-radius:999px;border:1px solid var(--glow);color:var(--glow);font-weight:600;font-size:14px;margin-bottom:22px}
+.cols{display:grid;gap:22px}@media(min-width:1000px){.cols{grid-template-columns:repeat(3,1fr)}}
+.colh{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}.colh h2{font:400 22px Georgia,serif;margin:0}.colh span{color:var(--mut);font-size:13px}
+.card{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:18px;padding:14px 16px;margin-bottom:10px}
+.card h3{margin:0 0 4px;font-size:16px;font-weight:600}.card p{margin:0;color:var(--mut2);font-size:13.5px}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.t{font-size:11.5px;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.07);color:var(--mut2)}
+.t.so{color:var(--so)}.t.we{color:var(--we)}.t.em{color:var(--em)}.t.sg{color:var(--sg)}.t.st{color:var(--warn);background:rgba(243,200,96,.12)}.t.new{color:#0b0f1c;background:var(--glow);font-weight:600}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:2px}.now .dot{background:var(--warn)}.next .dot{background:var(--we)}.later .dot{background:var(--mut)}
+.shipped{margin-top:30px}.shipped h2{font:400 22px Georgia,serif;margin:0 0 10px}
+.sr{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}.sr span{color:var(--mut)}.sr b{font-weight:600}.sr i{font-style:normal;color:var(--mut2)}
+.foot{margin-top:26px;color:var(--mut);font-size:12.5px}
+</style></head><body>
+<div class="top"><a>‹ Settings</a><b>Roadmap</b><span style="width:60px"></span></div>
+<div class="wrap">
+<div class="eb">MCCS Pulse</div><h1>What’s coming</h1>
+<p class="lede">What we’re building next, and what just shipped. Updated whenever plans change.</p>
+<span class="ask">+ Suggest a feature</span>
+<div class="cols">
+ <div class="now"><div class="colh"><span class="dot"></span><h2>Now</h2><span>being built</span></div>
+  <div class="card"><h3>Print any view in the Clean style</h3><p>Print a campaign, a channel, or anything you share, laid out for paper in the same Clean style as the monthly report.</p><div class="meta"><span class="t new">New</span><span class="t">Reports</span><span class="t">Sharing</span></div></div>
+  <div class="card"><h3>Share highlights or full detail</h3><p>When you share or print, choose: just the highlights (like today), or add the full detail, including every post that makes up the numbers.</p><div class="meta"><span class="t new">New</span><span class="t">Sharing</span></div></div>
+  <div class="card"><h3>Every website page, not just the top ones</h3><p>Website numbers will include every page that had a visit, so small program pages show up too.</p><div class="meta"><span class="t we">Web</span><span class="t">Data</span></div></div>
+ </div>
+ <div class="next"><div class="colh"><span class="dot"></span><h2>Next</h2><span>planned</span></div>
+  <div class="card"><h3>Team Connections</h3><p>Link a post, email, or page to an event once, and everyone on the team sees the same links.</p><div class="meta"><span class="t">Events</span><span class="t st">Waiting on setup</span></div></div>
+  <div class="card"><h3>Program pages</h3><p>One page per program showing its social, web, email, and signage together.</p><div class="meta"><span class="t">Programs</span><span class="t so">Social</span><span class="t we">Web</span><span class="t em">Email</span></div></div>
+  <div class="card"><h3>Email follows your date range</h3><p>Email totals that change with the dates you pick, the same as Social and Web.</p><div class="meta"><span class="t em">Email</span></div></div>
+ </div>
+ <div class="later"><div class="colh"><span class="dot"></span><h2>Later</h2><span>ideas we’re weighing</span></div>
+  <div class="card"><h3>Data check</h3><p>An automatic second count of every upload, so you know the numbers match the source files.</p><div class="meta"><span class="t">Data</span></div></div>
+  <div class="card"><h3>Signage slides linked to programs</h3><p>See which programs each slide promoted and how those programs did that week.</p><div class="meta"><span class="t sg">Signage</span><span class="t">Programs</span></div></div>
+  <div class="card"><h3>Year-round event pages</h3><p>Flag events that need a permanent web page so their history and links don’t disappear.</p><div class="meta"><span class="t we">Web</span><span class="t">Events</span></div></div>
+ </div>
+</div>
+<div class="shipped"><h2>Recently shipped</h2>
+ <div class="sr"><span>Nov 2, 2026</span><div><b>“Last updated” notice</b> <i>shows which sources are behind</i></div></div>
+ <div class="sr"><span>Oct 31, 2026</span><div><b>Connections</b> <i>link posts, emails, and pages to events</i></div></div>
+ <div class="sr"><span>Oct 30, 2026</span><div><b>Programs and Strategic Events</b> <i>with the new Today view</i></div></div>
+ <div class="sr"><span>Oct 30, 2026</span><div><b>Search everything</b> <i>posts, web pages, email, and signage in one box</i></div></div>
+ <div class="sr"><span>Oct 30, 2026</span><div><b>New Settings</b> <i>grouped, with a data health check</i></div></div>
+</div>
+<p class="foot">Opened from Settings › Help › Roadmap. Anyone with Pulse access can see it.</p>
+</div></body></html>
