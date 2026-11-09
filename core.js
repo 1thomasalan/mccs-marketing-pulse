@@ -139,6 +139,11 @@ P.parseGA4=function(text,opt){opt=opt||{};const maxPages=opt.maxPages||500,maxSr
     else if(h[0]==='Nth day'){W.daily=body.map(r=>[P.addDays(start,+r[0]),n(r[1]),n(r[2])]).filter(r=>r[0]<=end);while(W.daily.length&&W.daily[W.daily.length-1][0]===end&&!W.daily[W.daily.length-1][1]&&!W.daily[W.daily.length-1][2])W.daily.pop()}
     else if(h[0]==='Platform'&&h[1]==='Key events')W.keyEvents=body.reduce((a,r)=>a+n(r[1]),0);
     else if(h[0]==='City')W.cities=body.map(r=>[r[0],n(r[1])]).slice(0,maxCity);}
+  // v74: GA4 Tech overview (Reports > Tech > Overview): active users by device, OS, browser and screen size for one period
+  if(!W.totals){const TK={'Device category':'dev','Operating system':'os','Browser':'br','Screen resolution':'res','Device model':'model'},T={};
+    for(const s of secs){const h=P.parseCSV(s[0]+'\n')[0].map(x=>x.trim());const k=TK[h[0]];if(!k||h[1]!=='Active users'||h.length!==2)continue;
+      const b=P.parseCSV(s.slice(1).join('\n')+'\n').filter(r=>r.length>=2&&r[0]!=='').map(r=>[String(r[0]).trim(),+r[1]||0]).sort((a,c)=>c[1]-a[1]);T[k]=b.slice(0,k==='res'||k==='model'?20:15);T[k+'All']=b.reduce((x,r)=>x+r[1],0)}
+    if(T.dev||T.os||T.br){const sum=a=>(a||[]).reduce((x,r)=>x+r[1],0);return {v:1,kind:'tech',start,end,prop,...T,devTotal:sum(T.dev)}}}
   if(!W.totals)throw new Error('GA4 file has no summary totals');
   return W};
 P.srcGroup=s=>{s=String(s||'').toLowerCase().trim();

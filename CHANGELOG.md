@@ -2,6 +2,12 @@
 
 Newest first. Every version is a git tag; see Settings › Version history in the app.
 
+## v74 (2026-11-09)
+Web tab: new Devices and browsers card from the GA4 Tech overview export
+- Shows phone vs computer vs tablet, top systems, browsers and screen sizes, with the export's own dates
+- Calls out how many visits open inside the Facebook or Instagram app
+- The weekly publish no longer stops if a Tech overview file is dropped in
+
 ## v73 (2026-11-09)
 Version history in Settings; phone fixes: Web page list and Events filters no longer push the screen sideways; web visitors marked when estimated
 - New: Settings › Version history lists every version and what changed

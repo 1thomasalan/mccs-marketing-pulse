@@ -1,6 +1,6 @@
 // MCCS Digital Pulse version history (v73). Newest first. pulse_release.py refuses to release a version without an entry here.
 // Public file: plain words only. No data, names, IDs or links.
-const PULSE_LOG=[
+const PULSE_LOG=[{"v": "v74", "d": "2026-11-09", "t": "Web tab: new Devices and browsers card from the GA4 Tech overview export", "c": ["Shows phone vs computer vs tablet, top systems, browsers and screen sizes, with the export's own dates", "Calls out how many visits open inside the Facebook or Instagram app", "The weekly publish no longer stops if a Tech overview file is dropped in"]},
 {
 "v": "v73",
 "d": "2026-11-09",
