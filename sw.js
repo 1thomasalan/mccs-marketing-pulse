@@ -1,4 +1,4 @@
-const C='pulse-v70',AI='pulse-ai-v1';const F=['./','index.html','core.js','app.js','hub.js','programs.js','connections.js','autoconn.js','prod.js','about.js','brief.js','fol.js','share.js','searchrep.js','smart.js','signage.js','plays.js','loader.js','tv.js','manifest.webmanifest','icon-192.png','icon-512.png'];
+const C='pulse-v71',AI='pulse-ai-v1';const F=['./','index.html','core.js','app.js','hub.js','programs.js','connections.js','autoconn.js','prod.js','about.js','brief.js','fol.js','share.js','searchrep.js','smart.js','signage.js','plays.js','loader.js','tv.js','manifest.webmanifest','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C&&x!==AI).map(x=>caches.delete(x)))));self.clients.claim()});
 self.addEventListener('fetch',e=>{

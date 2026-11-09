@@ -340,7 +340,7 @@ P.evParseSheet=function(values){if(!values||values.length<2)return [];const c=co
     const goal=+String(g(r,'Goal')).replace(/[^\d.]/g,'')||null;
     return {id:g(r,'Event ID'),year:+g(r,'Year')||(s?+s.slice(0,4):null),name:g(r,'Event'),type:g(r,'Type'),status:g(r,'Status'),s,e:e<s?s:e,listed:g(r,'Date as listed'),prev:g(r,'Previous dates'),
       loc:g(r,'Location'),hours:g(r,'Hours'),lead:g(r,'Lead section'),ps:P.evDate(g(r,'Promo start')),pe:P.evDate(g(r,'Promo end')),aka:splitList(g(r,'Also known as')),
-      tags:splitList(g(r,'Hashtags')).map(t=>t.replace(/^#/,'')),paths:splitList(g(r,'Web pages')).map(p=>p.replace(/^https?:\/\/[^/]+/,'')),goal,notes:g(r,'Notes')}})};
+      tags:splitList(g(r,'Hashtags')).map(t=>t.replace(/^#/,'')),paths:splitList(g(r,'Web pages')).map(p=>p.replace(/^https?:\/\/[^/]+/,'')),goal,notes:g(r,'Notes'),pri:+String(g(r,'Priority')).replace(/[^1-9]/g,'').slice(0,1)||null}})};
 P.evLinksParse=function(values){if(!values||values.length<2)return [];const c=cols(values[0]),g=(r,n)=>{const i=c(n);return i<0?'':String(r[i]==null?'':r[i]).trim()};
   return values.slice(1).map(r=>({ev:g(r,'Event ID'),ch:g(r,'Channel').toLowerCase(),item:g(r,'Item'),act:/not/i.test(g(r,'Action'))?'no':'link',note:g(r,'Notes')}))
     .filter(x=>x.ev&&x.item&&!/^\(example\)/i.test(x.item))};
