@@ -177,20 +177,29 @@ P.webDaily=function(all){if(DCACHE.has(all))return DCACHE.get(all);const ch=new 
   for(const x of all){if(x.kind==='ch'){const by=new Map();for(const r of x.rows){(by.get(r[0])||by.set(r[0],[]).get(r[0])).push(r)}for(const [d,a] of by)ch.set(d,a)}
     else if(x.kind==='pg'){const by=new Map();for(const r of x.rows){const d=P.addDays(x.start,r[0]);(by.get(d)||by.set(d,[]).get(d)).push([x.paths[r[1]],r[2],r[3],r[4],r[5]])}for(const [d,a] of by)pg.set(d,a)}}
   const ks=[...ch.keys()].sort();const o={ch,pg,min:ks[0]||'',max:ks[ks.length-1]||''};DCACHE.set(all,o);return o};
+const URC=new WeakMap();
+P.userRatio=function(all,snaps,D){if(URC.has(all))return URC.get(all);let out=null;const sd=new Map();for(const x of snaps)for(const r of (x.daily||[]))if(r[1]+r[2]>0)sd.set(r[0],r);
+  const both=[...sd.keys()].filter(d=>D.ch.has(d)).sort().slice(-28);if(both.length>=7){let u=0,n=0,ss=0;for(const d of both){const r=sd.get(d);u+=r[1]+r[2];n+=r[1];ss+=D.ch.get(d).reduce((a,x)=>a+x[2],0)}
+    if(ss>0&&u>0)out={r:u/ss,nw:n/u,basis:both[0]+'..'+both[both.length-1]}}URC.set(all,out);return out};
 P.webRange=function(all,s,e){if(!all||!all.length)return null;const snaps=all.filter(x=>!x.kind),D=P.webDaily(all);
   const chDays=[];for(let k=s;k<=e;k=P.addDays(k,1))if(D.ch.has(k))chDays.push(k);
   if(!chDays.length||snaps.some(x=>x.start===s&&x.end===e))return P.snapRange(snaps,s,e);
   const base=P.snapRange(snaps,s,e)||{daily:[]};const dm=new Map(base.daily.map(d=>[d[0],d]));
   const out=snaps.filter(x=>x.end<D.min||x.start>D.max);const pk=out.length?P.webPick(out,s,e):{set:[],covered:0};
   const t={users:0,newUsers:0,engW:0,events:0,sessions:0,engaged:0,keyEvents:0,pageViews:0},g={},pg=new Map();let pgDays=0;
-  for(const d of chDays){const u=dm.get(d);if(u){t.users+=u[1]+u[2];t.newUsers+=u[1]}
+  // v72: GA4 users come only from Reports snapshot exports. Days the weekly daily exports cover but no snapshot does get users
+  // estimated from that day's sessions (users per session over the last 28 days that have both), flagged t.usersEst / est rows.
+  const UR=P.userRatio(all,snaps,D);let estD=0,estFirst='';const daily=base.daily.slice();
+  for(const d of chDays){const u=dm.get(d);if(u&&u[1]+u[2]>0){t.users+=u[1]+u[2];t.newUsers+=u[1]}
+    else if(UR){const ss=D.ch.get(d).reduce((a,r)=>a+r[2],0),eu=Math.round(ss*UR.r),en=Math.round(eu*UR.nw);t.users+=eu;t.newUsers+=en;estD++;if(!estFirst)estFirst=d;
+      const row=[d,en,eu-en,1];const i=daily.findIndex(x=>x[0]===d);if(i>=0)daily[i]=row;else daily.push(row)}
     for(const r of D.ch.get(d)){const k=P.chGroup(r[1]);g[k]=(g[k]||0)+r[2];t.sessions+=r[2];t.engaged+=r[3];t.engW+=r[4]*r[2];t.events+=r[5];t.keyEvents+=r[6]}}
   for(let k=s;k<=e;k=P.addDays(k,1)){const a=D.pg.get(k);if(!a)continue;pgDays++;for(const r of a){const o=pg.get(r[0])||[r[0],0,0,0];o[1]+=r[1];o[2]+=r[2];o[3]+=r[3]*r[2];pg.set(r[0],o);t.pageViews+=r[1]}}
   for(const x of pk.set){t.users+=x.totals.users;t.newUsers+=x.totals.newUsers;t.events+=x.totals.events;t.sessions+=x.sessionTotal||0;t.keyEvents+=x.keyEvents||0;t.engW+=x.totals.eng*(x.sessionTotal||0);
     for(const k in (x.groups||{})){const c=SNAP2CH[k]||'other';g[c]=(g[c]||0)+x.groups[k]}}
   t.eng=t.sessions?t.engW/t.sessions:0;t.social=g.social||0;const days=P.daysBetween(s,e),covered=chDays.length+pk.covered;
   return {src:'daily',srcList:P.CH,set:[{daily:1},...pk.set],exact:covered>=days,coverage:covered/days,covered,days,pgDays,start:chDays[0],end:pk.set.length?pk.set[pk.set.length-1].end:chDays[chDays.length-1],
-    t,pages:[...pg.values()].map(o=>[o[0],o[1],o[2],o[2]?+(o[3]/o[2]).toFixed(1):0]).sort((a,b)=>b[1]-a[1]),groups:g,sources:[],daily:base.daily}};
+    t,pages:[...pg.values()].map(o=>[o[0],o[1],o[2],o[2]?+(o[3]/o[2]).toFixed(1):0]).sort((a,b)=>b[1]-a[1]),groups:g,sources:[],daily:daily.sort((a,b)=>a[0]<b[0]?-1:1),usersEst:estD?{days:estD,from:estFirst,ratio:UR.r,basis:UR.basis}:null}};
 // social account -> website page match, for "who follows through"
 P.PROGRAMS=[['Tsunami Scuba',/tsunami scuba/i,/scuba/i],['Taiyo Golf',/golf/i,/golf/i],['Libraries',/librar/i,/librar/i],['Aquatics',/aquatic/i,/aquatic|pools?\b/i],['Semper Fit',/semper fit/i,/fitness|semper fit/i],['Tours+',/tours\+/i,/tour/i],['School Liaison',/school liaison/i,/school liaison/i],['Marine & Family',/marine & family/i,/family|relocation|single marine|transition readiness/i]];
 P.webInsights=function(posts,wr,s,e){const out={};if(!wr)return out;

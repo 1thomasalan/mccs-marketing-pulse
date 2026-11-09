@@ -44,7 +44,7 @@ function bindFol(){const b=$('#folMore');if(b)b.onclick=()=>{FOL.open=!FOL.open;
 // place cards after render (Today: under the channel tiles; Social: above "Every account")
 function folPlace(){if(TV.on)return;const app=$('#app');if(!app||$('#folCard'))return;
   if(S.view==='overview'){const t=app.querySelector('.tiles');if(t){const h=folToday();if(h){t.insertAdjacentHTML('afterend',h);bindFol()}}}
-  else if(S.view==='explore'&&S.mode==='social'&&S.socSub!=='programs'){const h2=[...app.querySelectorAll('.card h2')].find(h=>/^Every account/.test(h.textContent));const h=folSocial();if(h){if(h2)h2.closest('.card').insertAdjacentHTML('beforebegin',h);else app.insertAdjacentHTML('beforeend',h)}}}
+  else if(S.view==='explore'&&S.mode==='social'&&S.socSub!=='programs'){const h2=[...app.querySelectorAll('.card h2')].find(h=>/^Every account/.test(h.textContent));const h=folSocial();if(h){if(h2){const c=h2.closest('.card'),g=c.parentElement&&c.parentElement.classList.contains('cols')?c.parentElement:c;g.insertAdjacentHTML('beforebegin',h)}else app.insertAdjacentHTML('beforeend',h)}}}
 (function(){const st=document.createElement('style');st.textContent=`
 .folc{grid-column:1/-1}.folc .folts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:6px 0 8px}
 .folt{border:1px solid var(--line,rgba(255,255,255,.12));border-radius:14px;padding:12px 14px}.folt .l{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);display:flex;gap:6px;align-items:center}

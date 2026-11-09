@@ -552,13 +552,15 @@ function wNear(s,e){let best=null,bo=0;for(const x of S.web){if(x.kind||!x.start
 const wMatch=wr=>!!wr&&!wr.near&&(wr.src==='daily'?wr.coverage>=1&&(wr.set||[]).length<=1:(wr.set||[]).length===1&&wr.start===S.s&&wr.end===S.e);
 const wSnaps=wr=>(wr&&wr.set||[]).filter(x=>x.start);
 // the dates the web numbers really cover: "Oct 6 – Nov 2 snapshot", "2 snapshots, Sep 8 – Nov 2", "daily, Oct 6 – Nov 4"
+// v72: users estimated for days with no GA4 Reports snapshot (see P.userRatio)
+function wEst(wr){const x=wr&&wr.t&&wr.usersEst;return x?{t:`visitors from ${fYr(x.from)} estimated from visits (${x.days} day${x.days>1?'s':''} with no GA4 Reports snapshot yet; add one to the weekly upload for exact counts)`,w:1}:''}
 function wDates(wr){if(!wr)return '';const sn=wSnaps(wr);if(wr.src==='daily')return `daily${sn.length?` + ${sn.length} snapshot${sn.length>1?'s':''}`:''}, ${P.rangeLabel(wr.start||S.s,wr.end||S.e)}`;
   return sn.length===1?`${P.rangeLabel(sn[0].start,sn[0].end)} snapshot`:sn.length?`${sn.length} snapshots, ${P.rangeLabel(sn[0].start,sn[sn.length-1].end)}`:''}
 function wCmpWhy(wr,wc){return !webHas(wc)?`no website data for ${P.rangeLabel(wr._cs||S.cs,wr._ce||S.ce)}`:wr.src!==wc.src?'earlier data is a different GA4 export':'earlier data doesn\'t line up with these dates'}
 // web scope: dates (amber when the data's own dates differ) · GA4 · counting rule · vs · data through · updated
 function webScope(wr,wc,o){o=o||{};const ok=wcmp(wr,wc),m=wMatch(wr),sn=wSnaps(wr),wEnd=srcSpan('we').b,up=updOf(['web']);
   const dt=m?esc(P.rangeLabel(S.s,S.e)):{t:`Web: ${esc(wDates(wr))}${o.noRange?'':` (range ${esc(P.rangeLabel(S.s,S.e))})`}`,w:1,tip:'Website figures are GA4 snapshots and only cover the dates shown'};
-  return scopeLine([dt,o.src===0?'':'Google Analytics 4',sn.length>1?'visitors summed across '+sn.length+' snapshot periods, not unique':'',wr.near?{t:`nearest snapshot: GA4 snapshots are ${P.daysBetween(sn[0].start,sn[0].end)}-day totals and can't be re-cut`,w:1}:!m&&wr.days&&wr.covered<wr.days?{t:`covers ${wr.covered} of ${wr.days} days`,w:1}:'',
+  return scopeLine([dt,o.src===0?'':'Google Analytics 4',wEst(wr),sn.length>1?'visitors summed across '+sn.length+' snapshot periods, not unique':'',wr.near?{t:`nearest snapshot: GA4 snapshots are ${P.daysBetween(sn[0].start,sn[0].end)}-day totals and can't be re-cut`,w:1}:!m&&wr.days&&wr.covered<wr.days?{t:`covers ${wr.covered} of ${wr.days} days`,w:1}:'',
     o.noCmp?'':ok?'vs '+esc(wDates(wc)):{t:'no comparison ('+esc(wCmpWhy(wr,wc))+')',w:1},wEnd?`data through ${fYr(wEnd)}`:'',up&&!o.noUpd?'updated '+up:''],o.cls)}
 const wdl=(a,b,ok)=>ok?dl(a,b,true):'<span class="mut">no comparison data</span>';
 const webHas=wr=>!!(wr&&wr.t&&wr.set&&wr.set.length);
@@ -825,7 +827,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v71';
+const PULSE_V='v72';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();
