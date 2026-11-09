@@ -1,4 +1,4 @@
-// MCCS Pulse v68: follower totals (weekly counts the team enters on the Followers tab; published encrypted as payload.followers)
+// MCCS Pulse v68/v69: follower totals (weekly counts the team enters on the Followers tab; published encrypted as payload.followers)
 // rows: [{d:'YYYY-MM-DD', pl:'fb'|'ig', page, n}]
 const FOL={open:false};
 function folRows(){const d=typeof evData==='function'&&evData();const r=d&&d.followers&&Array.isArray(d.followers.rows)?d.followers.rows:[];
@@ -35,9 +35,11 @@ function folToday(){const F=folSum(null,S.s);if(!F){return ''}
 // Social: full card, follows the Facebook / Instagram filter
 function folSocial(){const F=folSum(null,S.s,S.plat);if(!F)return '';
   return `<div class="card folc" id="folCard"><h2>Followers<small>${F.pages.length} page${F.pages.length>1?'s':''}</small></h2><div class="folts">${folTile(F.fb,F,'Facebook')}${folTile(F.ig,F,'Instagram')}</div>${folPeriod(F)}${folList(F)}<p class="scope sm mut">${esc(folScope(F))}</p></div>`}
-// TV social: totals plus the biggest pages
+// TV social: totals plus every page, Facebook then Instagram, highest to lowest (v69)
 function folTV(){const F=folSum();if(!F)return '';const t=x=>x?`<div class="foltv1"><span class="tag ${x.pl}">${x.pl.toUpperCase()}</span><b>${nf(x.n)}</b>${x.gain!=null?folG(x.gain):''}</div>`:'';
-  return `<div class="card tvfol"><h2>Followers<small>counted ${folD(F.asOf)}</small></h2><div class="foltvt">${t(F.fb)}${t(F.ig)}</div>${F.pages.slice(0,6).map(p=>`<div class="foltvr"><span>${esc(folPageName(p))}</span><b>${nf(p.n)}</b>${p.prev?folG(p.n-p.prev.n):'<i class="mut">first</i>'}</div>`).join('')}</div>`}
+  const grp=pl=>{const L=F.pages.filter(p=>p.pl===pl).sort((a,b)=>b.n-a.n);if(!L.length)return '';
+    return `<div class="foltvh"><span class="tag ${pl}">${pl.toUpperCase()}</span>${pl==='fb'?'Facebook':'Instagram'} · ${L.length} page${L.length>1?'s':''}</div>${L.map(p=>`<div class="foltvr"><span>${esc(folPageName(p))}</span><b>${nf(p.n)}</b>${p.prev?folG(p.n-p.prev.n):'<i class="mut">first</i>'}</div>`).join('')}`};
+  return `<div class="card tvfol"><h2>Followers<small>counted ${folD(F.asOf)}</small></h2><div class="foltvt">${t(F.fb)}${t(F.ig)}</div>${grp('fb')}${grp('ig')}</div>`}
 function bindFol(){const b=$('#folMore');if(b)b.onclick=()=>{FOL.open=!FOL.open;const pg=$('#folCard .folpg');if(pg)pg.hidden=!FOL.open;b.setAttribute('aria-expanded',FOL.open);b.textContent=FOL.open?'Hide pages':'Show all '+b.dataset.n+' pages'}}
 // place cards after render (Today: under the channel tiles; Social: above "Every account")
 function folPlace(){if(TV.on)return;const app=$('#app');if(!app||$('#folCard'))return;
@@ -47,9 +49,10 @@ function folPlace(){if(TV.on)return;const app=$('#app');if(!app||$('#folCard'))r
 .folc{grid-column:1/-1}.folc .folts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:6px 0 8px}
 .folt{border:1px solid var(--line,rgba(255,255,255,.12));border-radius:14px;padding:12px 14px}.folt .l{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);display:flex;gap:6px;align-items:center}
 .folt .v{font-size:32px;font-weight:300;margin:4px 0;font-variant-numeric:tabular-nums}.folt .d{font-size:13.5px}.folt .s{font-size:12px;margin-top:3px}
-.folg{font-weight:600;font-variant-numeric:tabular-nums}.folg.up{color:var(--good,#5fd39a)}.folg.dn{color:var(--bad,#ff7a7a)}.folg.eq{color:var(--mut)}
+.folg.sm{font-size:11px}.folg{font-weight:600;font-variant-numeric:tabular-nums}.folg.up{color:var(--good,#5fd39a)}.folg.dn{color:var(--bad,#ff7a7a)}.folg.eq{color:var(--mut)}
 .folp{margin:4px 0 6px}.folc .scope{margin:6px 0 8px}.folt2 td .tag{margin-right:6px}.folt2 td:nth-child(2){font-variant-numeric:tabular-nums}
 .tvfol .foltvt{display:flex;gap:28px;margin:6px 0 12px}.foltv1{display:flex;gap:10px;align-items:baseline}.foltv1 b{font-size:40px;font-weight:250}.foltv1 .folg{font-size:18px}
-.foltvr{display:grid;grid-template-columns:1fr auto 70px;gap:12px;font-size:17px;padding:5px 0;border-top:1px solid rgba(255,255,255,.07)}.foltvr b{font-weight:400;font-variant-numeric:tabular-nums}.foltvr .folg,.foltvr i{text-align:right}
+.tvfol{flex:none}.tvrs .tvpost{grid-template-columns:64px 1fr auto;gap:12px;padding:7px 0}.tvrs .tvpi{width:64px;height:64px;border-radius:10px}.tvrs .tvpi .tag{left:4px;top:4px;transform:scale(.85);transform-origin:top left}.tvrs .tvpt .t{font-size:15px;-webkit-line-clamp:2}.tvrs .tvpt .m{margin-top:3px}.tvrs .tvpn b{font-size:21px}.tvrs{flex:none!important}.tvfol .foltvt{margin:4px 0 8px}.foltvh{display:flex;gap:8px;align-items:center;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut);margin:10px 0 2px}
+.foltvr{display:grid;grid-template-columns:1fr auto 64px;gap:12px;font-size:15px;line-height:1.25;padding:3px 0;border-top:1px solid rgba(255,255,255,.07)}.foltvr b{font-weight:400;font-variant-numeric:tabular-nums}.foltvr .folg,.foltvr i{text-align:right}
 `;document.head.appendChild(st)})();
 if(typeof render==='function'){const _r=render;render=function(){const x=_r.apply(this,arguments);try{folPlace()}catch(e){console.warn('followers',e)}return x}}
