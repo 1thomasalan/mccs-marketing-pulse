@@ -2,6 +2,10 @@
 
 Newest first. Every version is a git tag; see Settings › Version history in the app.
 
+## v77 (2026-11-10)
+Big screens: pop-up panels fit and scroll
+- On very wide screens, a slide's detail panel (and other pop-ups) ran off the top and bottom and couldn't scroll. They now fit inside the window and scroll
+
 ## v76 (2026-11-10)
 Today: Email shows Subscribers
 - The Email tile on Today now shows subscribers from the newest newsletter, with its date
