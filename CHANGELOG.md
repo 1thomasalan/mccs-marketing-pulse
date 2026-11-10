@@ -2,6 +2,12 @@
 
 Newest first. Every version is a git tag; see Settings › Version history in the app.
 
+## v75 (2026-11-10)
+Email: Subscribers replaces Emails sent
+- Subscribers shows how many people the newest newsletter went to, with the date and how many reached an inbox
+- Shows the change since the first newsletter of the year
+- The PDF report uses Subscribers too
+
 ## v74 (2026-11-09)
 Web tab: new Devices and browsers card from the GA4 Tech overview export
 - Shows phone vs computer vs tablet, top systems, browsers and screen sizes, with the export's own dates

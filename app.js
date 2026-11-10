@@ -503,10 +503,10 @@ function buildReport(){setRange();const wEnd=srcSpan('we').b,eEnd=srcSpan('em').
  const wband=wHas?`<div class="wc wband"><span class="pill" style="min-width:40%">Website at a Glance</span><div class="w5"><div><b>${P.fmt(wr.t.users)}</b><small>visitors</small></div><div><b>${P.fmt(wr.t.sessions)}</b><small>visits</small></div><div><b>${secs(wr.t.eng)}</b><small>avg time on site</small></div><div><b>${P.fmt(wr.t.social)}</b><small>visits from social</small></div><div class="wins" contenteditable>${insL?`<b>Insight:</b> ${esc(insL)}`:`<b>Top page:</b> ${esc(wTitle((wp[0]||['—'])[0]))}`}</div></div>${scopeLine([wMatch(wr)?'Web: '+esc(rl):{t:'Web: '+esc(wDates(wr)),w:1},wSnaps(wr).length>1?'visitors summed across snapshots':'',!wMatch(wr)&&wr.days&&wr.covered<wr.days?{t:`covers ${wr.covered} of ${wr.days} days`,w:1}:'','no comparison in this band',wEnd?'data through '+P.fmtDate(wEnd):''],'bscope')}</div>`:'';
  const eH=emHub(),eIn=emCamps().filter(x=>x.date>=S.s&&x.date<=S.e),eHas=R.email&&(eIn.length||eH);let eband='';
  if(eHas){const sum=k=>eIn.reduce((a,x)=>a+(x[k]||0),0);let cells,ins,note;
-  if(eIn.length){const dl=sum('delivered'),best=[...eIn].sort((a,b)=>b.openRate-a.openRate)[0];cells=[[nf(sum('sends')),'emails sent'],[pct1(dl?eIn.reduce((a,x)=>a+x.openRate*(x.delivered||0),0)/dl:null),'open rate'],[pct1(dl?eIn.reduce((a,x)=>a+x.clickRate*(x.delivered||0),0)/dl:null),'click rate'],[nf(sum('clicks')),'clicks']];
+  if(eIn.length){const dl=sum('delivered'),best=[...eIn].sort((a,b)=>b.openRate-a.openRate)[0];const sx=emSubs(S.e);cells=[sx?[nf(sx.n),'subscribers ('+P.fmtDate(sx.date)+')']:[nf(sum('sends')),'emails sent'],[pct1(dl?eIn.reduce((a,x)=>a+x.openRate*(x.delivered||0),0)/dl:null),'open rate'],[pct1(dl?eIn.reduce((a,x)=>a+x.clickRate*(x.delivered||0),0)/dl:null),'click rate'],[nf(sum('clicks')),'clicks']];
    ins=eIn.length>1?`<b>Best send:</b> ${esc(best.name)}, ${pct1(best.openRate)} opened`:`<b>${esc(best.name)}</b> (${P.fmtDate(best.date)}): ${pct1(best.openRate)} opened${best.links&&best.links.length?`, top link ${esc(((best.titles||{})[best.links[0][0]])||'clicked '+best.links[0][1]+'x')}`:''}`;
    note=scopeLine([`${eIn.length} campaign${eIn.length>1?'s':''} sent ${esc(rl)}`,'rates weighted by emails delivered','no comparison in this band'],'bscope')}
-  else{const lc=emCamps()[0];cells=[[P.fmt(eH.sent),'emails sent'],[eH.openRate+'%','open rate'],[eH.clickRate+'%','click rate'],[nf(eH.unsubs),'unsubscribes']];
+  else{const lc=emCamps()[0];const sx=emSubs(S.e);cells=[sx?[nf(sx.n),'subscribers ('+P.fmtDate(sx.date)+')']:[P.fmt(eH.sent),'emails sent'],[eH.openRate+'%','open rate'],[eH.clickRate+'%','click rate'],[nf(eH.unsubs),'unsubscribes']];
    ins=lc?`<b>Latest:</b> ${esc(lc.name)}, ${pct1(lc.openRate)} opened`:`<b>Opens:</b> ${eH.dev.openMobile}% on mobile`;note=scopeLine([{t:`year to date, ${esc(P.rangeLabel(eH.start,eH.end))} (doesn't follow the report range)`,w:1},'no campaign sent in this range','no comparison in this band'],'bscope')}
   eband=`<div class="wc wband eband"><span class="pill" style="min-width:40%">Email at a Glance</span><div class="w5">${cells.map(([v,l])=>`<div><b>${v}</b><small>${l}</small></div>`).join('')}<div class="wins" contenteditable>${ins}</div></div>${note}</div>`}
  const pair=(a,b,cls)=>a&&b?`<div class="${cls}">${a}${b}</div>`:(a||b?`<div class="r1">${a||b}</div>`:'');
@@ -638,6 +638,11 @@ const pct1=v=>v==null||!isFinite(+v)?'—':(Math.round(v*10)/10)+'%';
 const emD=(v,unit,good)=>{if(v==null||!isFinite(+v))return '<span class="mut">no comparison data</span>';const up=v>=0,ok=good==null?up:(good?up:!up);return `<span class="${ok?'up':'down'}">${up?'▲':'▼'} ${unit==='n'?nf(Math.abs(v)):Math.abs(v)+' pts'}</span>`};
 const emLink=(u,c)=>{const tt=c&&c.titles&&c.titles[u];if(tt)return tt+' (event page)';try{const x=new URL(u);const h=x.hostname.replace(/^www\./,'');if(/facebook/.test(h))return 'Facebook page';if(/instagram/.test(h))return 'Instagram profile';if(/youtube/.test(h))return 'YouTube channel';if(/^careers\./.test(h))return 'MCCS Careers';
   if(/okinawa\.usmc-mccs/.test(h))return wTitle(x.pathname.replace(/\/$/,'')||'/');return h}catch(e){return u}};
+// v75: Subscribers = contacts the newest newsletter went to (Constant Contact 'Sends' on the original send). Alan 11-10: use in place of Emails sent.
+function emSubs(upTo){const cs=emCamps().filter(c=>c.sends&&(!upTo||c.date<=upTo));if(!cs.length)return null;const c=cs[0],yr=c.date.slice(0,4),f=[...cs].reverse().find(x=>x.date.slice(0,4)===yr);
+  return {n:c.sends,del:c.delivered,date:c.date,name:c.name,first:f&&f!==c?f:null}}
+function emSubsSub(x){return `on the list for ${esc(x.name)} (${fYr(x.date)})${x.del?` · ${nf(x.del)} reached an inbox`:''}`}
+function emSubsD(x){if(!x.first)return '';const d=x.n-x.first.sends;return `<span class="${d>0?'up':d<0?'down':'mut'}">${d>0?'+':''}${nf(d)} since ${P.fmtDate(x.first.date)}</span>`}
 function emFunnel(rows){const mx=Math.max(1,...rows.map(r=>r[1]));return rows.map(([l,v,s])=>`<div class="hbar"><span class="nm">${l}</span><span class="tr"><span style="width:${Math.max(1.5,v/mx*100)}%;background:${EMC};box-shadow:0 0 10px ${EMC}"></span></span><b>${P.fmt(v)}${s?`<small class="mut"> ${s}</small>`:''}</b></div>`).join('')}
 function emSplit(a,b,la,lb){return `<div class="wstack"><i style="flex:${a};background:${EMC}"></i><i style="flex:${b};background:var(--fb)"></i></div><div class="wleg"><span><i style="background:${EMC}"></i>${la}<b>${a}%</b><em></em></span><span><i style="background:var(--fb)"></i>${lb}<b>${b}%</b><em></em></span></div>`}
 function emRateList(L,mx){return L.map(c=>`<div class="hbar"><span class="nm" title="${esc(c.full||c.name)}">${esc(c.name)} <small class="mut">· ${c.date?P.fmtDate(c.date):''}</small></span><span class="tr"><span style="width:${c.rate/mx*100}%;background:${EMC}"></span></span><b>${c.rate}%</b></div>`).join('')}
@@ -652,7 +657,7 @@ function exploreEmail(){setRange();const h=emHub(),cs=emCamps();const end=[h&&h.
   let o=head;
   if(h){const mxT=Math.max(...h.top.map(c=>c.rate),...h.low.map(c=>c.rate),1);
     o+=`<div class="rlabel">Year to date</div>
-    <div class="grid g4">${mini('Emails sent',P.fmt(h.sent),emD(h.vsPrev.sent,'n'),`${P.fmt(h.delivered)} delivered (${Math.round(h.delivered/h.sent*100)}%)`)
+    <div class="grid g4">${(()=>{const x=emSubs();return x?mini('Subscribers',nf(x.n),emSubsD(x),emSubsSub(x)):mini('Emails sent',P.fmt(h.sent),emD(h.vsPrev.sent,'n'),`${P.fmt(h.delivered)} delivered (${Math.round(h.delivered/h.sent*100)}%)`)})()
       +mini('Open rate',h.openRate+'%',emD(h.vsPrev.openRate),h.vsInd.openRate!=null?`${h.vsInd.openRate>=0?h.vsInd.openRate+' pts above':Math.abs(h.vsInd.openRate)+' pts below'} industry average`:'')
       +mini('Click rate',h.clickRate+'%',emD(h.vsPrev.clickRate),`${h.ctor}% of openers clicked`)
       +mini('Unsubscribed',nf(h.unsubs),emD(h.vsPrev.unsubs,'n',false),`${P.fmt(h.bounced)} bounced`)}</div>
@@ -843,7 +848,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v74';
+const PULSE_V='v75';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();
