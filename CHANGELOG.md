@@ -2,6 +2,11 @@
 
 Newest first. Every version is a git tag; see Settings › Version history in the app.
 
+## v76 (2026-11-10)
+Today: Email shows Subscribers
+- The Email tile on Today now shows subscribers from the newest newsletter, with its date
+- Opens and newsletters in your dates are still listed under it
+
 ## v75 (2026-11-10)
 Email: Subscribers replaces Emails sent
 - Subscribers shows how many people the newest newsletter went to, with the date and how many reached an inbox
