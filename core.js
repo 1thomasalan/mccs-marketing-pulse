@@ -154,7 +154,7 @@ P.srcGroup=s=>{s=String(s||'').toLowerCase().trim();
   if(/organic|^(google|bing|yahoo|duckduckgo|baidu|yandex|naver|ecosia|yahoo\.co\.jp)\b/.test(s))return 'search';
   return 'other'};
 P.SRC=[['search','Search','#9fe3c4'],['direct','Direct','#f3d9a4'],['facebook','Facebook','#8fb4ff'],['instagram','Instagram','#f3a6b8'],['other','Other sites','#c4a7e7'],['unlabeled','Unlabeled (192.0.2.1)','rgba(255,255,255,.28)']];
-P.NOISE_PAGES=['fb','/more/fb','/robots.txt'];
+P.NOISE_PAGES=['fb','/more/fb','/robots.txt','/more/recnet','/more/recnet/'];// v78: /more/recnet = base Wi-Fi accept screen (Alan 11-12), not a real page
 P.CH=[['search','Search','#9fe3c4'],['direct','Direct','#f3d9a4'],['social','Social media','#8fb4ff'],['referral','Other sites','#c4a7e7'],['ai','AI assistants','#f3a6b8'],['other','Unassigned & other','rgba(255,255,255,.28)']];
 P.chGroup=c=>{c=String(c||'');if(/Search/.test(c))return 'search';if(c==='Direct')return 'direct';if(/Social/.test(c))return 'social';if(c==='Referral')return 'referral';if(/AI Assistant/.test(c))return 'ai';return 'other'};
 const SNAP2CH={search:'search',direct:'direct',facebook:'social',instagram:'social',other:'referral',unlabeled:'referral'};

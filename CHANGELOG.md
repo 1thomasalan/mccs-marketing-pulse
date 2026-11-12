@@ -2,6 +2,12 @@
 
 Newest first. Every version is a git tag; see Settings › Version history in the app.
 
+## v78 (2026-11-12)
+Web: Wi-Fi sign-in screen hidden
+- The RecNet Wi-Fi accept screen no longer shows in the top pages, on Today, on TV or in reports, because it isn't a real page
+- The Pages list says it was left out and how many views it had
+- Visitor and visit totals don't change
+
 ## v77 (2026-11-10)
 Big screens: pop-up panels fit and scroll
 - On very wide screens, a slide's detail panel (and other pop-ups) ran off the top and bottom and couldn't scroll. They now fit inside the window and scroll

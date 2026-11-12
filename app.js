@@ -618,7 +618,7 @@ function exploreWeb(){const {wr,wc,ins}=wctx();const hd0=sc=>`<div class="xlead"
     :mini('Daily visitors',P.fmt(dailySum(wr)),'','sum of daily visitors')}</div>
   <div class="cols"><div class="card nt"><h2>Visitors over time<small>by ${ser.step}</small></h2>${wr.daily.length?lineSVG([{pts:ser.pts,c:WEBC,fill:1}],640,170):noDaily}</div>
    <div class="card nt"><h2>Where visits come from<small>share of all visits</small></h2>${has?srcStack(wr.groups,wr.srcList,wr.t.sessions)+(wr.src==='daily'?`<p class="mut sm">Other sites includes the 192.0.2.1 placeholder address, which sends a large share of referral visits. Worth a look with the web team.</p>`:`<p class="mut sm">192.0.2.1 is a placeholder address, not a real site, so it's kept apart. Worth a look with the web team.</p>`):'<p class="mut">Arrives with an upload covering this range.</p>'}</div></div>
-  ${has?`<div class="card nt" style="margin-top:14px"><h2>Pages<small>${nf(pages.length)} shown · search</small></h2><div class="filters"><input id="wq" type="search" placeholder="Search pages" value="${esc(S.wq||'')}"></div><div id="evfwe"></div><div id="wplist"></div><p class="mut sm">${(()=>{const nz=wr.pages.find(p=>P.NOISE_PAGES.includes(p[0]));return nz&&nz[1]?`The “fb” page (${P.fmt(nz[1])} views) looks like a tracking artifact and is left out.`:''})()}${wr.src==='daily'&&wr.pgDays<wr.days?` Pages cover ${wr.pgDays} of ${wr.days} days.`:''}</p></div>`:''}
+  ${has?`<div class="card nt" style="margin-top:14px"><h2>Pages<small>${nf(pages.length)} shown · search</small></h2><div class="filters"><input id="wq" type="search" placeholder="Search pages" value="${esc(S.wq||'')}"></div><div id="evfwe"></div><div id="wplist"></div><p class="mut sm">${(()=>{const v=k=>wr.pages.filter(p=>P.NOISE_PAGES.includes(p[0])&&(k?/recnet/.test(p[0]):!/recnet/.test(p[0]))).reduce((s,p)=>s+(p[1]||0),0),rn=v(1),fb=v(0);return [rn?`Left out: the base Wi-Fi sign-in screen (RecNet, ${P.fmt(rn)} views). It's not a real page.`:'',fb?`The “fb” page (${P.fmt(fb)} views) looks like a tracking artifact and is left out.`:''].filter(Boolean).join(' ')})()}${wr.src==='daily'&&wr.pgDays<wr.days?` Pages cover ${wr.pgDays} of ${wr.days} days.`:''}</p></div>`:''}
   ${techCard()}
   <div class="sec" style="margin-top:28px">Social × Web</div>
   <div class="cols"><div class="card nt"><h2>Social vs website<small>by ${ser.step}</small></h2>${wr.daily.length?lineSVG([{pts:soc.pts,c:'var(--fb)'},{pts:ser.pts,c:WEBC}],640,150):noDaily}<div class="legend"><span><i style="background:var(--fb)"></i>Social views</span><span><i style="background:${WEBC}"></i>Website visitors</span></div></div>
@@ -848,7 +848,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v77';
+const PULSE_V='v78';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();
