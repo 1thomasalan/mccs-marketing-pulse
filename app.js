@@ -23,7 +23,7 @@ const shPost=r=>({rank:0,title:P.label(r),meta:`${r.plat==='fb'?'FB':'IG'} · ${
 const shShow=both=>({fb:both||S.plat==='all'||S.plat==='fb',ig:both||S.plat==='all'||S.plat==='ig'});$('#scrim').onclick=closeSheet;
 function topMix(L,n){const s=[...L].sort((a,b)=>b.v-a.v);const pick=[];['fb','ig'].forEach(p=>{const r=s.find(x=>x.plat===p);if(r)pick.push(r)});for(const r of s){if(pick.length>=n)break;if(!pick.includes(r))pick.push(r)}return pick.slice(0,n).sort((a,b)=>b.v-a.v)}
 const dataEnd=()=>S.posts.reduce((m,r)=>r.d>m?r.d:m,'');
-const PRESETS=[['lastweek','Last week'],['7','7 days'],['30','30 days'],['month','This month'],['lastmonth','Last month'],['ytd','Year to date'],['custom','Custom']];
+const PRESETS=[['lastweek','Last week'],['7','7 days'],['30','30 days'],['90','90 days'],['month','This month'],['lastmonth','Last month'],['ytd','Year to date'],['custom','Custom']];
 function setRange(){if(!(S.preset==='custom'&&S.s)){const r=P.preset(S.preset);S.s=r.s;S.e=r.e;S.cs=r.cs;S.ce=r.ce;}
   if(CFG.compare==='yoy'){const c=yoyR(S.s,S.e);S.cs=c.cs;S.ce=c.ce}else if(S.preset==='custom'||!['month','lastmonth','ytd'].includes(S.preset)){const c=P.compareFor(S.s,S.e);S.cs=c.cs;S.ce=c.ce}
   else if(S.preset==='ytd'){const c=yoyR(S.s,S.e);S.cs=c.cs;S.ce=c.ce}}
@@ -789,7 +789,7 @@ function gsWarm(){if(GS.warm||!gsAvail())return;GS.warm=1;const idle=window.requ
   const next=()=>{const j=jobs.shift();if(!j){GS.warm=0;return}idle(()=>{try{j()}catch(e){}next()})};next();
   if(!SG.data&&localStorage.pulsePass&&typeof sgLoad==='function')sgLoad().then(ch=>{if(ch&&$('#gs').classList.contains('show'))gsRender()})}
 const gsHint=fz=>fz.length?`Includes close spellings: ${fz.slice(0,3).map(([a,b])=>`<b>${esc(b)}</b> for “${esc(a)}”`).join(', ')}`:'';
-const GSRP=[['7','7 days'],['30','30 days'],['lastweek','Last week'],['month','This month'],['lastmonth','Last month'],['ytd','Year to date'],['all','All time'],['custom','Custom']];
+const GSRP=[['7','7 days'],['30','30 days'],['90','90 days'],['lastweek','Last week'],['month','This month'],['lastmonth','Last month'],['ytd','Year to date'],['all','All time'],['custom','Custom']];
 function gsRngHtml(){const r=gsRange()||{};return `<div class="grng" role="radiogroup" aria-label="Search dates">${GSRP.map(([k,l])=>`<button class="chip sm ${GSR.k===k?'on':''}" role="radio" aria-checked="${GSR.k===k}" data-gr="${k}">${l}</button>`).join('')}</div>${GSR.k==='custom'?`<div class="grc"><label>From<input type="date" id="grS" value="${esc(r.s||'')}"></label><label>To<input type="date" id="grE" value="${esc(r.e||'')}"></label></div>`:''}`}
 function gsRngBind(){const g=$('.grng'),on=g&&g.querySelector('.on');if(on&&g.scrollWidth>g.clientWidth)g.scrollLeft=Math.max(0,on.offsetLeft-g.clientWidth/2+on.offsetWidth/2);$$('[data-gr]').forEach(b=>b.onclick=()=>{const k=b.dataset.gr;if(k==='custom'&&GSR.k!=='custom'){const r=gsRange()||P.preset('30');GSR.s=r.s;GSR.e=r.e}GSR.k=k;GS.open={};gsRender()});
   const f=()=>{const a=$('#grS').value,b=$('#grE').value;if(!a||!b)return;if(a>b){toast('The From date is after the To date.',{type:'err'});return}GSR.s=a;GSR.e=b;GS.open={};gsRender()};if($('#grS')){$('#grS').onchange=f;$('#grE').onchange=f}}
@@ -854,7 +854,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v79';
+const PULSE_V='v80';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();

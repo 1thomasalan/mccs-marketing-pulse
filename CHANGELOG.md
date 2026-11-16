@@ -2,6 +2,17 @@
 
 Newest first. Every version is a git tag; see Settings › Version history in the app.
 
+## v80 (2026-11-16)
+90 days date choice
+- Every date picker now has a 90 days choice: the main range on Today, Social, Web, Events and Programs, and the dates in search and search reports
+- 90 days runs from yesterday back 90 days and compares with the 90 days before that
+
+## v79 (2026-11-16)
+Refresh now button
+- A small refresh button sits next to the "Updated" line on Today, Social, Web and Programs
+- Tap it to get the newest published data without opening Settings. It spins while it checks, then says if anything new came in
+- It only gets data Hark has already published. Files dropped in Drive show up after the Monday publish run
+
 ## v78 (2026-11-12)
 Web: Wi-Fi sign-in screen hidden
 - The RecNet Wi-Fi accept screen no longer shows in the top pages, on Today, on TV or in reports, because it isn't a real page

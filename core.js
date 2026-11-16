@@ -61,6 +61,7 @@ P.preset=function(name,today){today=today||P.todayKey();const d=toD(today);const
   if(name==='lastweek'){const dow=(d.getUTCDay()+6)%7;e=P.addDays(today,-dow-1);s=P.addDays(e,-6);}
   else if(name==='7'){e=P.addDays(today,-1);s=P.addDays(e,-6);}
   else if(name==='30'){e=P.addDays(today,-1);s=P.addDays(e,-29);}
+  else if(name==='90'){e=P.addDays(today,-1);s=P.addDays(e,-89);}
   else if(name==='month'){s=toK(new Date(Date.UTC(y,m,1)));e=today;cs=toK(new Date(Date.UTC(y,m-1,1)));ce=toK(new Date(Date.UTC(y,m,0)));}
   else if(name==='lastmonth'){s=toK(new Date(Date.UTC(y,m-1,1)));e=toK(new Date(Date.UTC(y,m,0)));cs=toK(new Date(Date.UTC(y,m-2,1)));ce=toK(new Date(Date.UTC(y,m-1,0)));}
   else if(name==='ytd'){s=y+'-01-01';e=today;cs=(y-1)+'-01-01';ce=(y-1)+e.slice(4);}
