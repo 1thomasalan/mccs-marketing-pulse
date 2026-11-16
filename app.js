@@ -334,8 +334,14 @@ function behindTxt(bh){if(!bh.length)return 'update due';const nm=x=>x.short==='
 function freshPill(keys){const f=freshInfo(keys||['fb','ig']);if(!f)return '';
  const ks=keys||['fb','ig'],soc=ks.every(k=>k==='fb'||k==='ig'),thr=f.thr?(soc?' · posts through ':' · data through ')+P.fmtDate(f.thr):'';
  const lab=f.when?`Updated ${fDayJ(f.when)}${ks.length<=2?thr:''}`:'Update date unknown';
- return `<button class="fresh ${f.due?'due':''}" data-fresh title="See every source in Data &amp; sync"><i></i><span>${lab}${f.due?' <b class="fbh">· '+esc(behindTxt(f.behind))+'</b>':''}</span></button>`}
-document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fresh]');if(b){e.preventDefault();settings('data')}});
+ return `<span class="freshw"><button class="fresh ${f.due?'due':''}" data-fresh title="See every source in Data &amp; sync"><i></i><span>${lab}${f.due?' <b class="fbh">· '+esc(behindTxt(f.behind))+'</b>':''}</span></button><button class="frbtn" data-refresh title="Refresh now: get the newest published data" aria-label="Refresh now"><svg class="si" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/></svg></button></span>`}
+// v79 Refresh now: same check as Settings > Check now, from the freshness pill. Pulls published data only; it does not publish new uploads.
+let FR_BUSY=false;async function refreshNow(b){if(FR_BUSY)return;FR_BUSY=true;document.querySelectorAll('[data-refresh]').forEach(x=>{x.classList.add('spin');x.disabled=true});
+ let r;try{r=await sync();try{await sgLoad(true)}catch(e){}}finally{FR_BUSY=false;document.querySelectorAll('[data-refresh]').forEach(x=>{x.classList.remove('spin');x.disabled=false})}
+ if(r&&r.ok){if(r.state==='updated'){toast('Updated with the newest data'+(r.through?' · through '+P.fmtDate(r.through):''),{type:'ok'});try{render()}catch(e){}}
+  else toast('Already up to date · nothing new published yet',{type:'ok'})}
+ else if(!r||r.state!=='locked')toast((r&&r.err)||"Couldn't check for updates",{type:'err',act:'Try again',undo:()=>refreshNow()})}
+document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('[data-refresh]');if(r){e.preventDefault();e.stopPropagation();refreshNow(r);return}const b=e.target.closest&&e.target.closest('[data-fresh]');if(b){e.preventDefault();settings('data')}});
 const fdtJ=t=>new Date(t).toLocaleString('en-US',{timeZone:'Asia/Tokyo',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
 const fTimeJ=t=>{const d=new Date(t),k=x=>x.toLocaleDateString('en-CA',{timeZone:'Asia/Tokyo'});return k(d)===k(new Date())?d.toLocaleTimeString('en-US',{timeZone:'Asia/Tokyo',hour:'numeric',minute:'2-digit'}):fdtJ(t)};
 const agoTxt=x=>{if(x.a==null)return '';if(x.auto){const h=x.a*24;return h<1?'under an hour ago':h<36?Math.round(h)+(Math.round(h)===1?' hour ago':' hours ago'):Math.round(x.a)+' days ago'}return x.a===0?'today':x.a===1?'1 day ago':x.a+' days ago'};
@@ -848,7 +854,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v78';
+const PULSE_V='v79';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();
