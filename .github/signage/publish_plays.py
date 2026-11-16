@@ -19,7 +19,7 @@ Outputs (repo root):
   signage-plays.json   plaintext status {v, file, from, through, pulled, checked, err, done} (signage.json is not touched)
 PUBLIC LOGS: print counts and dates only, never content or screen names.
 """
-import base64, datetime, hashlib, json, os, subprocess, sys, time, urllib.request
+import base64, datetime, gzip, hashlib, json, os, subprocess, sys, time, urllib.request
 
 ROOT = os.environ.get('PULSE_ROOT', os.getcwd())
 API = 'https://graphql.eu.screencloud.com/graphql'
@@ -130,8 +130,9 @@ def write_out(days, pl, err, remaining):
         state_save(days)
         keys = sorted(days)
         body = {'v': 1, 'from': keys[0], 'through': keys[-1], 'pulled': now, 'days': {k: days[k] for k in keys}}
-        open(os.path.join(ROOT, 'signage-plays.bin'), 'wb').write(seal(json.dumps(body, separators=(',', ':')).encode()))
-        pl.update({'v': 1, 'file': 'signage-plays.bin', 'from': keys[0], 'through': keys[-1], 'pulled': now})
+        raw = gzip.compress(json.dumps(body, separators=(',', ':')).encode(), compresslevel=9, mtime=0)
+        open(os.path.join(ROOT, 'signage-plays.bin'), 'wb').write(seal(raw))
+        pl.update({'v': 1, 'file': 'signage-plays.bin', 'from': keys[0], 'through': keys[-1], 'pulled': now, 'gzip': True})
     pl['checked'] = now
     pl['err'] = err
     pl['done'] = not remaining
