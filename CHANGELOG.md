@@ -2,6 +2,14 @@
 
 Newest first. Every version is a git tag; see Settings › Version history in the app.
 
+## v81 (2026-11-16)
+Meeting brief for a department
+- New Meeting brief: one page for a department meeting. Open it from the Programs page (it uses the branch you picked) or from any program
+- Pick a whole branch, a group of programs or one program, then pick dates
+- Shows social views, web users, emails and signage slides for those programs, a table of every program, talking points (what worked, gaps, what is coming up with its production status), top content and events
+- Print A4 makes a clean two-page version to print or save as PDF
+- Search report: web pages and newsletters now sit in two labelled tables, users for web pages and opens for newsletters, and pages with the same title show a short hint so you can tell them apart
+
 ## v80 (2026-11-16)
 90 days date choice
 - Every date picker now has a 90 days choice: the main range on Today, Social, Web, Events and Programs, and the dates in search and search reports
