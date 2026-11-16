@@ -54,7 +54,8 @@ P.merge=function(existing,incoming){const m=new Map(existing.map(r=>[r.id,r]));l
 // date keys
 const toD=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(Date.UTC(y,m-1,d))};
 const toK=d=>d.toISOString().slice(0,10);
-P.addDays=(k,n)=>{const d=toD(k);d.setUTCDate(d.getUTCDate()+n);return toK(d)};
+const ADM=new Map();// v82: addDays is called in tight loops (event windows, daily series); memoize
+P.addDays=(k,n)=>{const c=k+'|'+n;let r=ADM.get(c);if(r!==undefined)return r;const d=toD(k);d.setUTCDate(d.getUTCDate()+n);r=toK(d);if(ADM.size>60000)ADM.clear();ADM.set(c,r);return r};
 P.daysBetween=(a,b)=>Math.round((toD(b)-toD(a))/864e5)+1;
 P.preset=function(name,today){today=today||P.todayKey();const d=toD(today);const y=d.getUTCFullYear(),m=d.getUTCMonth();
   let s,e,cs,ce;
@@ -309,10 +310,12 @@ function termMap(ix,t,S,fz){const m=new Map();m.s=new Set();const st=stem(t),Q=S
 // P.search(index, query, opts) -> [{item, i (its position in the indexed list), score, hit:Set(matched words)}] best first; .fuzzy = [[typed, matched]]
 // Commas or | separate alternatives (OR). Within one, every word must match (AND). Stopwords drop out unless they are all you typed.
 // opts: {stop:Set of extra words to ignore, all:true to skip the relative cut-off, cap, tie:item=>number for equal scores, sens:{...P.SEARCH overrides}}
+// v82: with the default sensitivity, a word's matches are remembered on the index (event matching asks for the same words many times)
+function termMapC(ix,t,S,fz,cache){if(!cache)return termMap(ix,t,S,fz);const c=ix._tm||(ix._tm=new Map());let e=c.get(t);if(!e){const f=[];e={m:termMap(ix,t,S,f),f};c.set(t,e)}for(const x of e.f)fz.push(x);return e.m}
 P.search=function(ix,query,opts){opts=opts||{};const S=Object.assign({},P.SEARCH,opts.sens),best=new Map(),fzAll=[],X=opts.stop;
   for(const alt of String(query||'').split(/[,|]/)){const raw=toks(P.sNorm(alt)).filter(t=>!(X&&X.has(t)));if(!raw.length)continue;
     let ts=raw.filter(t=>!P.STOP.has(t));if(!ts.length)ts=raw;
-    const fz=[],maps=ts.map(t=>termMap(ix,t,S,fz)),joins=ts.length>1?[...new Set([raw.join(''),ts.join('')])]:[];fzAll.push(...fz);
+    const fz=[],maps=ts.map(t=>termMapC(ix,t,S,fz,!opts.sens)),joins=ts.length>1?[...new Set([raw.join(''),ts.join('')])]:[];fzAll.push(...fz);
     // candidates: docs that hold a match for every word, or a joined form of the whole phrase
     const docsOf=m=>{const s=new Set();for(const v of m.keys())for(const i of ix.post.get(v))s.add(i);return s};
     const sets=maps.map(docsOf),jm=new Map();for(const [v] of ix.post)if(joins.some(j=>v.startsWith(j)))jm.set(v,S.q.join);
@@ -413,6 +416,10 @@ const campOff=(evC,t)=>{if(!evC.size)return 0;const c=campsIn(t);if(!c.size)retu
 const lowerSorted=a=>{let lo=0,hi=a.length;return (k)=>{lo=0;hi=a.length;while(lo<hi){const m=(lo+hi)>>1;if(a[m].d<k)lo=m+1;else hi=m}return lo}};
 // item keys: so:<post id> · we:<path> · em:<campaign id> · sg:<slide name>
 // returns {byEvent: Map(evId -> [{key,ch,score,why,state}]), byItem: Map(key -> [{ev,score,why,state}]), review:[...], manual:n}
+// v82: memos shared across evMatch calls (the same paths, titles and phrases come up for every event and every launch-time call)
+const PATHN=new Map(),TXTN=new Map();const pathN=lp=>{let v=PATHN.get(lp);if(v===undefined){v=' '+P.sNorm(lp.replace(/[-_/]+/g,' '))+' ';if(PATHN.size>50000)PATHN.clear();PATHN.set(lp,v)}return v};
+const txtN=t=>{let v=TXTN.get(t);if(v===undefined){v=' '+P.sNorm(t)+' ';if(TXTN.size>20000)TXTN.clear();TXTN.set(t,v)}return v};
+const evSearch=(ix,q)=>{const c=ix._evq||(ix._evq=new Map());let r=c.get(q);if(!r){r=P.search(ix,q,{all:true,cap:2e4});c.set(q,r)}return r};
 P.evMatch=function(o){const evs=(o.events||[]).filter(e=>e.s),posts=o.posts||[],today=o.today||P.todayKey(),links=o.links||[],titles=o.titles||{};
   const byItem=new Map(),put=(key,ch,ev,score,why)=>{let a=byItem.get(key);if(!a)byItem.set(key,a=[]);const x=a.find(y=>y.ev===ev.id);if(x){if(score>x.score){x.score=score;x.why=why}}else a.push({ev:ev.id,ch,score,why})};
   const sorted=posts.slice().sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0),lb=lowerSorted(sorted);
@@ -429,15 +436,15 @@ P.evMatch=function(o){const evs=(o.events||[]).filter(e=>e.s),posts=o.posts||[],
         if(best){const off=campOff(evC,n.t);if(off){best-=off;why+=' · other camp'}put('so:'+r.id,'so',ev,best,why)}}
       // looser tier: every word of a multi-word phrase somewhere in the caption (any order, typo-tolerant) -> review
       ix=ix||P.searchIndex(posts,EVF);
-      for(const x of ph){if(words(x.t).filter(w=>!EVGEN.has(w)).length<2||x.b<80)continue;for(const h of P.search(ix,x.t,{all:true,cap:2e4})){const r=h.item;if(!winSet.has(r))continue;const k='so:'+r.id,cur=byItem.get(k);if(cur&&cur.some(y=>y.ev===ev.id))continue;
+      for(const x of ph){if(words(x.t).filter(w=>!EVGEN.has(w)).length<2||x.b<80)continue;for(const h of evSearch(ix,x.t)){const r=h.item;if(!winSet.has(r))continue;const k='so:'+r.id,cur=byItem.get(k);if(cur&&cur.some(y=>y.ev===ev.id))continue;
         put(k,'so',ev,h.strong?72:58,(h.strong?'words of “':'close to “')+x.raw.trim()+'”')}}
       // web pages seen in the window: sheet paths, pages linked from the event's posts, newsletter link titles, or the phrase in the path
       if(D){const linkedPaths=new Map();for(const [k,a] of byItem){if(k.slice(0,3)!=='so:')continue;const it=a.find(y=>y.ev===ev.id&&y.score>=P.EV.auto);if(!it)continue;const r=o.postById&&o.postById.get(k.slice(3));if(r)postNorm(r).paths.forEach(p=>linkedPaths.set(p.replace(/\/$/,''),1))}
         for(const path of pathsIn(ws,we)){const lp=path.toLowerCase().replace(/\/$/,'');let best=0,why='';const h=pats.length&&pathHit(lp,pats);if(h){best=96;why='page '+h}
-          const tt=titles[lp];if(tt){const tn=' '+P.sNorm(tt)+' ';for(const x of ph)if(x.b>best&&tn.includes(' '+x.t+' ')){best=Math.min(97,x.b+1);why='titled “'+tt+'”'}}
+          const tt=titles[lp];if(tt){const tn=txtN(tt);for(const x of ph)if(x.b>best&&tn.includes(' '+x.t+' ')){best=Math.min(97,x.b+1);why='titled “'+tt+'”'}}
           if(linkedPaths.has(lp)&&lp.length>1&&91>best){best=91;why='linked from an event post'}
-          const pn=' '+P.sNorm(lp.replace(/[-_/]+/g,' '))+' ';for(const x of ph)if(x.b>best&&!(x.kind==='part'&&words(x.t).length<2)&&pn.includes(' '+x.t+' ')){best=x.b;why='“'+x.raw.trim()+'” in the address'}
-          if(best){const off=campOff(evC,pn+(tt?' '+P.sNorm(tt)+' ':''));if(off){best-=off;why+=' · other camp'}put('we:'+path,'we',ev,best,why)}}}}
+          const pn=pathN(lp);for(const x of ph)if(x.b>best&&!(x.kind==='part'&&words(x.t).length<2)&&pn.includes(' '+x.t+' ')){best=x.b;why='“'+x.raw.trim()+'” in the address'}
+          if(best){const off=campOff(evC,pn+(tt?txtN(tt):''));if(off){best-=off;why+=' · other camp'}put('we:'+path,'we',ev,best,why)}}}}
     for(const c of o.email||[]){if(c.kind!=='camp'||!c.date||c.date<ws||c.date>we)continue;let best=0,why='';const nm=' '+P.sNorm(c.name+' '+(c.subject||''))+' ';
       for(const x of ph)if(x.b>best&&nm.includes(' '+x.t+' ')){best=Math.min(97,x.b+1);why='“'+x.raw.trim()+'” in the issue name'}
       for(const tt of Object.values(c.titles||{})){const tn=' '+P.sNorm(tt)+' ';for(const x of ph)if(x.b>best&&tn.includes(' '+x.t+' ')){best=x.b;why='story “'+tt+'”'}}
@@ -475,21 +482,35 @@ P.evRoll=function(ev,items,c){const {ws,we}=P.evWindow(ev),R={so:{n:0,v:0,e:0,lc
 // same event a year earlier: a row with the same name in the prior year, else the dates moved back 364 days (same weekday)
 P.evPrior=function(ev,events){const nm=P.sNorm(ev.name),y=(ev.year||+String(ev.s).slice(0,4))-1;const row=(events||[]).find(e=>e!==ev&&e.s&&P.sNorm(e.name)===nm&&+String(e.s).slice(0,4)===y);
   if(row)return Object.assign({},row,{approx:false});if(!ev.s)return null;const sh=k=>k?P.addDays(k,-364):'';return Object.assign({},ev,{id:ev.id+'~prior',s:sh(ev.s),e:sh(ev.e),ps:sh(ev.ps),pe:sh(ev.pe),approx:true})};
+// ---- v82 keyword phrase index: which ids have a keyword phrase inside a normalized text (' word word ').
+// Same result as t.includes(' '+k+' ') for every k, but reads each text once instead of scanning every keyword.
+// pairs: [[id,[normalized phrase,...]],...]. Results are remembered per text, so later calls on the same posts are free.
+P.kwIndex=function(pairs){const first=new Map();for(const [id,ks] of pairs)for(const k of ks){if(!k)continue;const t=k.split(' ');let a=first.get(t[0]);if(!a)first.set(t[0],a=[]);a.push([t,id])}
+  const memo=new Map(),E=new Set();
+  const f=text=>{let r=memo.get(text);if(r)return r;r=E;const w=String(text).trim().split(' ');for(let i=0;i<w.length;i++){const a=first.get(w[i]);if(!a)continue;
+      for(const [t,id] of a){if(r.has(id))continue;let ok=true;for(let j=1;j<t.length;j++)if(w[i+j]!==t[j]){ok=false;break}if(ok){if(r===E)r=new Set();r.add(id)}}}
+    if(memo.size>40000)memo.clear();memo.set(text,r);return r};
+  f.size=first.size;return f};
+const KWI=new WeakMap();// programs array -> {sig, cov, ch}
+function progIdx(programs,kind){let c=KWI.get(programs);const sig=(programs||[]).map(p=>p.id+':'+(p.kw||[]).join(';')+':'+(p.facility||p.program)).join('|');
+  if(!c||c.sig!==sig){c={sig};KWI.set(programs,c)}
+  if(!c[kind]){const ps=(programs||[]).filter(p=>!isShared(p));c[kind]=P.kwIndex(ps.map(p=>[p.id,kind==='cov'?p.kw.map(k=>P.sNorm(k,1)).filter(k=>k.length>=3):P.progKw(p)]))}return c[kind]}
+P.progIdx=progIdx;
 // ---- program coverage ("weak spots")
 const isShared=p=>/^\(/.test(p.branch||'');
 P.progPages=function(programs){const own=new Map(),shared=new Set();for(const p of programs||[]){const keys=[...p.fb.map(x=>'fb|'+x.toLowerCase()),...p.ig.map(x=>'ig|'+x.toLowerCase())];
   for(const k of keys){if(isShared(p)){shared.add(k);continue}(own.get(k)||own.set(k,[]).get(k)).push(p)}}return {own,shared}};
 // o: {programs, posts (already account-filtered as needed), s, e, cs, ce, ref (date key for "days since"), days (N for 'no posts in N days')}
 P.progCoverage=function(o){const progs=(o.programs||[]).filter(p=>!isShared(p)),{own,shared}=P.progPages(o.programs),N=o.days||45;let ref=o.ref;if(!ref){ref='';for(const r of o.posts||[])if(r.d>ref)ref=r.d}ref=ref||P.todayKey();const today=o.today||P.todayKey();
-  const kw=new Map(progs.map(p=>[p.id,p.kw.map(k=>P.sNorm(k,1)).filter(k=>k.length>=3)]));
+  
   const st=new Map(progs.map(p=>[p.id,{p,own:[],men:[],last:'',lastAll:'',prev:0,prevV:0}]));const general=new Map(),unmapped=new Map();
-  const hit=(n,p)=>kw.get(p.id).some(k=>n.t.includes(' '+k+' '));
+  const KI=progIdx(o.programs,'cov'),hit=(n,p)=>KI(n.t).has(p.id);const byId=new Map(progs.map(p=>[p.id,p]));
   for(const r of o.posts||[]){const pk=r.plat+'|'+String(r.page).toLowerCase(),owners=own.get(pk)||[],n=postNorm(r);const inR=r.d>=o.s&&r.d<=o.e,inC=o.cs&&r.d>=o.cs&&r.d<=o.ce;
     if(!owners.length&&!shared.has(pk)){const u=unmapped.get(pk)||{plat:r.plat,page:r.page,n:0,v:0};if(inR){u.n++;u.v+=r.v}unmapped.set(pk,u)}
     let ownBy=owners.length===1?owners:owners.filter(p=>hit(n,p));
     if(!ownBy.length&&owners.length>1){const pn=' '+P.sNorm(r.page)+' ',nm=owners.filter(p=>pn.includes(' '+P.sNorm(p.facility||p.program)+' '));if(nm.length===1)ownBy=nm;else{const g=general.get(pk)||{plat:r.plat,page:r.page,n:0,v:0,list:[],branches:new Set(owners.map(p=>p.branch))};if(inR){g.n++;g.v+=r.v;g.list.push(r)}general.set(pk,g)}}
     const tagged=new Set(ownBy.map(p=>p.id));
-    for(const p of progs){const isOwn=tagged.has(p.id),isMen=!isOwn&&hit(n,p);if(!isOwn&&!isMen)continue;const s=st.get(p.id);if(r.d>s.lastAll)s.lastAll=r.d;
+    const mk=KI(n.t);const cands=mk.size?new Set([...tagged,...mk]):tagged;for(const id of cands){const p=byId.get(id);if(!p)continue;const isOwn=tagged.has(p.id),isMen=!isOwn&&mk.has(p.id);if(!isOwn&&!isMen)continue;const s=st.get(p.id);if(r.d>s.lastAll)s.lastAll=r.d;
       if(inR)(isOwn?s.own:s.men).push(r);if(inC){s.prev++;s.prevV+=r.v}}}
   // festival-type programs ("Strategic Event" in the Programs tab's Notes) are judged by their event (keyword inside the event's name / other names), not by silence
   const evPh=(o.events||[]).filter(e=>e.s).map(e=>({e,t:' '+P.sNorm([e.name,...(e.aka||[])].join(' | ').replace(/[|]/g,' '))+' ',ph:new Set(P.evPhrases(e).map(x=>x.t))}));
@@ -520,7 +541,7 @@ P.slideOcr=x=>x&&typeof x==='object'&&x.ocr?' '+P.sNorm(String(x.ocr),1)+' ':'';
 P.progKw=p=>[...new Set([...(p.kw||[]),p.facility||p.program].map(k=>P.sNorm(k,1)).filter(k=>k.length>=3))];
 P.progChannels=function(o){const rows=(o.cov&&o.cov.rows)||[],today=o.today||P.todayKey(),ds=o.ds||o.s,inR=d=>d>=o.s&&d<=o.e,inC=d=>o.cs&&d>=o.cs&&d<=o.ce,inD=d=>d>=ds&&d<=o.e;
   const kwOf=p=>{const a=[...(p.kw||[]),p.facility||p.program].map(k=>P.sNorm(k,1)).filter(k=>k.length>=3);return [...new Set(a)]};
-  const K=new Map(rows.map(r=>[r.id,kwOf(r.p)])),hasKw=(id,t)=>K.get(id).some(k=>t.includes(' '+k+' '));
+  const KI=P.kwIndex(rows.map(r=>[r.id,kwOf(r.p)])),hasKw=(id,t)=>KI(t).has(id);
   const out=new Map(rows.map(r=>[r.id,{id:r.id,so:{n:0,v:0,e:0,pv:0,pn:0,list:[]},we:{users:0,views:0,pu:0,pages:[]},em:{opens:0,clicks:0,po:0,camps:[]},sg:{slides:[]},ev:[],daily:new Map()}]));
   const day=(R,d,k,v)=>{if(!inD(d))return;const x=R.daily.get(d)||{so:0,we:0,em:0};x[k]+=v;R.daily.set(d,x)};
   // v38 Connections: team links add an item to a program, a person's unlink / not-this (or blocked rule) takes it out

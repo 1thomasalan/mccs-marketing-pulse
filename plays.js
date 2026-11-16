@@ -19,7 +19,8 @@ async function spLoad(force){if(SPL.loading)return SPL.loading;SPL.loading=(asyn
     const c=await DB.get('spl:data');
     if(c&&c.key===key){SPL.data=c.d;SPL.meta=m;SPL.err='';return true}
     const b=await fetch((m.file||'signage-plays.bin')+'?c='+encodeURIComponent(key),{cache:'no-store'});if(!b.ok)throw new Error('bin '+b.status);
-    SPL.data=JSON.parse(new TextDecoder().decode(await sgOpen(await b.arrayBuffer())));SPL.meta=m;SPL.err='';await DB.set('spl:data',{key,d:SPL.data});return true}
+    let pt=await sgOpen(await b.arrayBuffer());if(m.gzip)pt=await new Response(new Blob([pt]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();// v82: gzip flag from the publisher
+    SPL.data=JSON.parse(new TextDecoder().decode(pt));SPL.meta=m;SPL.err='';await DB.set('spl:data',{key,d:SPL.data});return true}
   catch(e){console.warn('signage plays',e);if(!SPL.data){const c=await DB.get('spl:data');if(c){SPL.data=c.d;return true}}SPL.err=e.message==='locked'?'locked':'fail';return false}
   finally{SPL.loading=null}})();return SPL.loading}
 // keep both signage feeds fresh from any view; re-render only when something new arrived

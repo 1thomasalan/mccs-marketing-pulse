@@ -542,7 +542,7 @@ window.addEventListener('resize',()=>{if($('#report').classList.contains('show')
 window.addEventListener('beforeprint',()=>$$('.a4').forEach(a=>{a.style.transform='';a.style.marginBottom='0'}));window.addEventListener('afterprint',fit);
 $('#rBack').onclick=()=>$('#report').classList.remove('show');$('#rPrint').onclick=()=>window.print();
 // ---- dock ----
-$$('#dock [data-v]').forEach(b=>b.onclick=()=>{if(b.dataset.dm){S.mode=b.dataset.dm;localStorage.pulseMode=S.mode;if(S.mode==='social'){S.socSub='posts';localStorage.pulseSocSub='posts'}}if(b.dataset.v==='events')S.evSub='list';if(b.dataset.v==='programs')S.progSub='list';S.view=b.dataset.v;render();scrollTo({top:0,behavior:'smooth'})});
+$$('#dock [data-v]').forEach(b=>b.onclick=()=>{if(b.dataset.dm){S.mode=b.dataset.dm;localStorage.pulseMode=S.mode;if(S.mode==='social'){S.socSub='posts';localStorage.pulseSocSub='posts'}}if(b.dataset.v==='events')S.evSub='list';if(b.dataset.v==='programs')S.progSub='list';S.view=b.dataset.v;$$('#dock [data-v]').forEach(x=>x.classList.toggle('on',x===b));const go=()=>{render();scrollTo({top:0,behavior:'smooth'})};if(typeof paintThen==='function'&&viewCold(S.view))paintThen('prep',S.view==='programs'?'Matching posts to programs':'Matching posts to events',go);else go()});
 {const bc=$('#bChan');if(bc)bc.onclick=()=>hubChannels()}
 $('#bReport').onclick=buildReport;
 // ---- website (GA4) ----
@@ -717,15 +717,30 @@ async function thumbFor(id){if(TH.mem.has(id))return TH.mem.get(id);const cached
 const EXCLUDE_BUILTIN=['mccs_hq','starsandstripespacific','okilivingmag'];// collaborator accounts, hidden even before the first sync
 function dropExcluded(a){let x=[];try{x=JSON.parse(localStorage.pulseExclude||'[]')}catch(e){}x=[...new Set([...EXCLUDE_BUILTIN,...x])].map(v=>String(v).toLowerCase());return a.filter(r=>!x.includes(String(r.page).toLowerCase()))}
 const SYNC={meta:null};
+// v82: the passcode key (PBKDF2, 250k rounds) is worked out once per passcode and salt, not once per source
+const KEYC=new Map();
 async function decryptRemote(meta,pass){const b=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));const enc=new TextEncoder();
-  const base=await crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveKey']);
-  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b(meta.kdf.salt),iterations:meta.kdf.iterations,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+  const kk=pass+'\u0001'+meta.kdf.salt+'\u0001'+meta.kdf.iterations;let kp=KEYC.get(kk);if(!kp){kp=(async()=>{const base=await crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveKey']);
+    return crypto.subtle.deriveKey({name:'PBKDF2',salt:b(meta.kdf.salt),iterations:meta.kdf.iterations,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt'])})();KEYC.set(kk,kp);kp.catch(()=>KEYC.delete(kk))}
+  const key=await kp;
   let ct;if(meta.parts){const bufs=await Promise.all(meta.parts.map(n=>fetch(n+'?u='+encodeURIComponent(meta.updated),{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('missing part');return r.arrayBuffer()})));ct=new Uint8Array(bufs.reduce((a,x)=>a+x.byteLength,0));let o=0;for(const x of bufs){ct.set(new Uint8Array(x),o);o+=x.byteLength}}else ct=b(meta.data);
   let pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b(meta.iv)},key,ct);
   if(meta.gzip)pt=await new Response(new Blob([pt]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
   return JSON.parse(new TextDecoder().decode(pt))}
 async function applyRemote(meta,pass){LD.go('data','Social posts',1+(meta.web&&meta.web.parts?1:0)+(meta.email&&meta.email.parts?1:0)+(meta.events&&meta.events.parts?1:0));try{return await applyRemote0(meta,pass)}finally{LD.end('data')}}
-async function applyRemote0(meta,pass){SYNC.fail=[];const arr=await decryptRemote(meta,pass);LD.step('data',meta.web&&meta.web.parts?'Website':'Saving');if(meta.web&&meta.web.parts){try{const wl=await decryptRemote(Object.assign({},meta,{iv:meta.web.iv,parts:meta.web.parts,gzip:true}),pass);for(const w of wl)S.web=P.mergeWeb(S.web,w);await DB.set('web',S.web);localStorage.pulseWebSynced=meta.web.iv}catch(e){console.warn('web data',e);SYNC.fail.push('Website')}}if(meta.email&&meta.email.parts){LD.step('data','Email');try{const el=await decryptRemote(Object.assign({},meta,{iv:meta.email.iv,parts:meta.email.parts,gzip:true}),pass);S.email=P.mergeEmail(S.email,el);delete S.email.note;await DB.set('email',S.email);localStorage.pulseEmailSynced=meta.email.iv}catch(e){console.warn('email data',e);SYNC.fail.push('Email')}}if(meta.events&&meta.events.parts){LD.step('data','Events');try{const ev=await decryptRemote(Object.assign({},meta,{iv:meta.events.iv,parts:meta.events.parts,gzip:true}),pass);if(ev&&Array.isArray(ev.events)){S.ev=ev;await DB.set('events',ev);localStorage.pulseEventsSynced=meta.events.iv}}catch(e){console.warn('events data',e);SYNC.fail.push('Events')}}if(meta.exclude)localStorage.pulseExclude=JSON.stringify(meta.exclude);S.posts=dropExcluded(P.merge(S.posts,arr).posts);await DB.set('posts',S.posts);localStorage.pulsePass=pass;localStorage.pulseSynced=meta.updated;localStorage.pulseSrc=JSON.stringify(meta.sources||{});localStorage.pulseThrough=meta.through;if(meta.thumbs)localStorage.pulseThumbs=JSON.stringify(meta.thumbs);S.locked=false}
+async function applyRemote0(meta,pass){SYNC.fail=[];
+  // v82: only download what changed (each source has its own iv; the publisher keeps it when a source did not change), and fetch all changed sources at once
+  const same=pass===localStorage.pulsePass,sub=x=>Object.assign({},meta,{iv:x.iv,parts:x.parts,gzip:true}),soft=p=>p.catch(e=>({__err:e}));
+  const need={posts:!(same&&S.posts.length&&localStorage.pulsePostsSynced===meta.iv),web:!!(meta.web&&meta.web.parts)&&!(same&&localStorage.pulseWebSynced===meta.web.iv),
+    email:!!(meta.email&&meta.email.parts)&&!(same&&localStorage.pulseEmailSynced===meta.email.iv),events:!!(meta.events&&meta.events.parts)&&!(same&&localStorage.pulseEventsSynced===meta.events.iv&&S.ev)};
+  const jp=need.posts?decryptRemote(meta,pass):null,jw=need.web?soft(decryptRemote(sub(meta.web),pass)):null,je=need.email?soft(decryptRemote(sub(meta.email),pass)):null,jv=need.events?soft(decryptRemote(sub(meta.events),pass)):null;
+  if(jp)jp.catch(()=>{});
+  const arr=jp?await jp:null;LD.step('data',jw?'Website':'Saving');
+  if(jw){const wl=await jw;if(wl&&wl.__err){console.warn('web data',wl.__err);SYNC.fail.push('Website')}else{for(const w of wl)S.web=P.mergeWeb(S.web,w);await DB.set('web',S.web);localStorage.pulseWebSynced=meta.web.iv}}
+  if(je){LD.step('data','Email');const el=await je;if(el&&el.__err){console.warn('email data',el.__err);SYNC.fail.push('Email')}else{S.email=P.mergeEmail(S.email,el);delete S.email.note;await DB.set('email',S.email);localStorage.pulseEmailSynced=meta.email.iv}}
+  if(jv){LD.step('data','Events');const ev=await jv;if(ev&&ev.__err){console.warn('events data',ev.__err);SYNC.fail.push('Events')}else if(ev&&Array.isArray(ev.events)){S.ev=ev;await DB.set('events',ev);localStorage.pulseEventsSynced=meta.events.iv}}
+  if(meta.exclude)localStorage.pulseExclude=JSON.stringify(meta.exclude);if(arr){S.posts=dropExcluded(P.merge(S.posts,arr).posts);await DB.set('posts',S.posts);localStorage.pulsePostsSynced=meta.iv}else if(meta.exclude)S.posts=dropExcluded(S.posts);
+  localStorage.pulsePass=pass;localStorage.pulseSynced=meta.updated;localStorage.pulseSrc=JSON.stringify(meta.sources||{});localStorage.pulseThrough=meta.through;if(meta.thumbs)localStorage.pulseThumbs=JSON.stringify(meta.thumbs);S.locked=false}
 // v51: sync reports what really happened. {ok,state:'same'|'updated'|'locked',err,partial}. Success is only reported after the server's file was read and matched or applied.
 async function sync(){LD.go('chk','Checking for updates');let r;try{r=await sync0()||{ok:false,err:"Couldn't check for updates"}}catch(e){console.warn('sync',e);r={ok:false,err:"Couldn't check for updates"}}finally{LD.end('chk')}
   SYNC.last=r;LD.err=r.ok?'':(r.state==='locked'?'':r.err);LD.paint();if(r.ok)localStorage.pulseChecked=new Date().toISOString();return r}
@@ -837,7 +852,11 @@ window.addEventListener('keydown',e=>{if(TV.on)return;const open=$('#gs').classL
   if((e.key==='k'||e.key==='K')&&(e.metaKey||e.ctrlKey)&&!e.altKey){if(!gsAvail())return;e.preventDefault();open?$('#gq').focus():gsOpen('');return}
   if(e.key==='/'&&!typing&&!open&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&gsAvail()){e.preventDefault();gsOpen('')}},true);
 // ---- boot ----
-(async()=>{try{const hk=new URLSearchParams(location.hash.slice(1)).get('k');if(hk){localStorage.pulsePass=hk;history.replaceState(null,'',location.pathname+location.search)}}catch(e){}document.body.dataset.theme=CFG.theme;S.posts=dropExcluded((await DB.get('posts'))||[]);S.web=(await DB.get('web'))||[];S.email=(await DB.get('email'))||[];S.ev=(await DB.get('events'))||null;if(typeof spWarm==='function')await spWarm();if(document.readyState==='loading')await new Promise(r=>addEventListener('DOMContentLoaded',r,{once:true}));render();sync();if(TV.on)TV.start();if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{})})();
+(async()=>{try{const hk=new URLSearchParams(location.hash.slice(1)).get('k');if(hk){localStorage.pulsePass=hk;history.replaceState(null,'',location.pathname+location.search)}}catch(e){}document.body.dataset.theme=CFG.theme;const [p0,w0,e0,v0,m0]=await Promise.all([DB.get('posts'),DB.get('web'),DB.get('email'),DB.get('events'),DB.get('evm'),typeof spWarm==='function'?spWarm():0]);if(m0&&typeof EVC!=='undefined')EVC.disk=m0;S.posts=dropExcluded(p0||[]);S.web=w0||[];S.email=e0||[];S.ev=v0||null;if(document.readyState==='loading')await new Promise(r=>addEventListener('DOMContentLoaded',r,{once:true}));
+  // v82 paint first: show the frame and a clear 'Preparing' pill at once, check the server in parallel, then build the full view
+  const heavy=S.posts.length&&!TV.on&&!(S.locked&&SYNC.meta)&&['overview','events','programs'].includes(S.view);
+  if(heavy&&typeof bootSkel==='function'){try{$('#app').innerHTML=topbar()+bootSkel();$('#dock').style.display='flex'}catch(e){}}
+  sync();if(heavy&&typeof paintThen==='function')await paintThen('prep','Preparing your dashboard',render);else render();if(TV.on)TV.start();if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{})})();
 
 // v51 Check now: success only after the server's data file was read and matches (or was applied); a failure keeps the data on screen, says so in red, and offers Try again
 async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…';c.disabled=true}
@@ -854,7 +873,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v81';
+const PULSE_V='v82';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();

@@ -12,6 +12,8 @@ const BF_STOP=new Set(['the','and','of','a','an','at','in','on','for','to','with
 const bfWords=s=>[...new Set(P.sNorm(String(s||''),1).split(' ').filter(w=>w.length>=3&&!BF_STOP.has(w)&&!/^\d+$/.test(w)))];
 // how many of the words must appear: all of 1-2, two-thirds of more
 const bfNeed=w=>w.length<=2?w.length:Math.ceil(w.length*.66);
+const BFIX=new WeakMap();function bfIx(posts){let c=BFIX.get(posts);if(c&&c.n===posts.length)return c.m;const m=new Map();
+  posts.forEach((r,i)=>{for(const t of new Set(P.postNorm(r).t.split(' ')))if(t.length>=3){const a=m.get(t);if(a)a.push(i);else m.set(t,[i])}});BFIX.set(posts,{n:posts.length,m});return m}
 const bfHit=(t,w,need)=>{let n=0;for(const x of w)if(t.includes(' '+x+' '))n++;return n>=need};
 const bfLoad=()=>{try{return JSON.parse(localStorage.pulseBriefHide||'{}')}catch(e){return {}}};
 const bfDoneAll=()=>{try{return JSON.parse(localStorage.pulseBriefDone||'{}')}catch(e){return {}}};
@@ -20,7 +22,9 @@ function bfEnds(){const t=P.todayKey();let pe='';for(const r of gsPosts())if(r.d
   const pEnd=pe&&pe<t?pe:t,eEnd=em&&em.date?(em.date<t?em.date:t):'';return {t,pe,pEnd,eEnd,hasEm:!!eEnd,pFrom:P.addDays(pEnd,-(BF_BACK-1)),eFrom:eEnd?P.addDays(eEnd,-29):'9',sFrom:P.addDays(t,-(BF_BACK-1))}}
 // content found for a set of words: posts (recent + last ever), slides playing now or recently, emails in the last 30 days of email data
 function bfFind(w,E,posts){const need=bfNeed(w);const o={so:0,last:'',sg:0,sgNow:0,em:0};if(!w.length)return o;
-  for(const r of posts){const n=P.postNorm(r).t;if(!bfHit(n,w,need))continue;if(r.d>=E.pFrom)o.so++;if(r.d>o.last)o.last=r.d}
+  // v82: word -> posts index (same result as bfHit on every post, without reading every caption for every gap)
+  const ix=bfIx(posts),cnt=new Map();for(const x of w)for(const i of ix.get(x)||[])cnt.set(i,(cnt.get(i)||0)+1);
+  for(const [i,c] of cnt){if(c<need)continue;const r=posts[i];if(r.d>=E.pFrom)o.so++;if(r.d>o.last)o.last=r.d}
   for(const it of sgAll()){if(!it.now&&!(it.last>=E.sFrom))continue;const t=P.slideNorm(it.name)+P.slideOcr(it);if(!bfHit(t,w,need))continue;o.sg++;if(it.now)o.sgNow++}
   for(const c of emCamps()){if(!c.date||c.date<E.eFrom)continue;const t=' '+P.sNorm([c.name,c.subject||'',...Object.values(c.titles||{})].join(' '),1)+' ';if(bfHit(t,w,need))o.em++}
   return o}

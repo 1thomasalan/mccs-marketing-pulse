@@ -1104,7 +1104,24 @@ a.cn-btn:visited{color:var(--txt)}
 .tile .v .skel.sknum{display:inline-block;height:28px;margin:4px 0 0;vertical-align:middle}
 .skgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:12px}
 @keyframes skm{from{background-position:100% 0}to{background-position:-200% 0}}
-@media(prefers-reduced-motion:reduce){.skel,.ldd{animation:none}#ldbar i,#ldwrap,#ldtag{transition:none}}
+/* v82 activity pill: spinning ring (runs on the compositor, so it keeps moving during heavy work), a sweep on the bar, a check when done */
+#ldbar{position:relative}
+#ldwrap.busy #ldbar::after{content:'';position:absolute;top:0;bottom:0;left:0;width:30%;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--glow) 70%,#fff),transparent);animation:ldsw 1.15s cubic-bezier(.4,0,.2,1) infinite;will-change:transform}
+@keyframes ldsw{from{transform:translateX(-100%)}to{transform:translateX(340%)}}
+#ldtag{gap:9px;padding:7px 14px 7px 11px;font-size:13px;font-weight:500;box-shadow:0 6px 24px rgba(0,0,0,.28)}
+.ldring{width:14px;height:14px;border-radius:50%;border:2px solid color-mix(in srgb,var(--glow) 25%,transparent);border-top-color:var(--glow);animation:ldspin .8s linear infinite;will-change:transform;flex:none}
+@keyframes ldspin{to{transform:rotate(360deg)}}
+.ldok{display:none;width:16px;height:16px;border-radius:50%;background:#3ecf8e;color:#0b1220;font-size:10px;font-weight:800;line-height:16px;text-align:center;flex:none}
+#ldwrap.done .ldring,#ldwrap.ldbad .ldring{display:none}#ldwrap.done .ldok{display:inline-block}
+#ldwrap.ldbad .ldok{display:inline-block;background:#ff8a80;font-size:0}#ldwrap.ldbad .ldok::before{content:'!';font-size:11px}
+#ldn{color:var(--mut);font-size:11.5px;font-weight:400}#ldn:empty{display:none}
+#ldtag .ldd{display:none}
+.skel{position:relative;overflow:hidden;background:rgba(255,255,255,.07);animation:none}
+.skel::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent);transform:translateX(-100%);animation:skx 1.4s linear infinite;will-change:transform}
+@keyframes skx{to{transform:translateX(100%)}}
+@media(max-width:699px){#ldtag{position:fixed;top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 104px);transform:translate(-50%,6px)}#ldwrap.on #ldtag{transform:translate(-50%,0)}}
+.bootsk{max-width:1200px;margin:18px auto 0;padding:0 4px}.bootsk .bshero{padding:22px}.bsgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}.bsgrid.two{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+@media(prefers-reduced-motion:reduce){.skel,.ldd,.skel::after,#ldwrap.busy #ldbar::after{animation:none}.ldring{animation-duration:2.4s}#ldbar i,#ldwrap,#ldtag{transition:none}}
 @media print{#ldwrap{display:none}}
 
 /* v46 auto-connect: scores, not-connected lists, slide connect buttons */

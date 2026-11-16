@@ -30,9 +30,18 @@ const pgTitle=p=>{const t=evTitles()[String(p).toLowerCase().replace(/\/$/,'')];
 function evTitles(){const t={};for(const c of emCamps())for(const [u,v] of Object.entries(c.titles||{}))t[u.replace(/^https?:\/\/[^/]+/,'').toLowerCase().replace(/\/$/,'')]=v;return t}
 function evM(){const d=evData();if(!d)return null;const ps=gsPosts(),sg=(SG.data&&SG.data.items?SG.data.items.length+'|'+SG.data.checked:'')+'|'+(spCat(),SPC.k);
  const cn=typeof cnApplied==='function'?cnApplied():null;const k=[ps.length,ps[0]&&ps[0].id,S.web.length,S.email.length,d.updated,localStorage.pulseEvDec||'',sg,P.todayKey(),typeof cnStamp==='function'?cnStamp():''].join('~');if(EVC.key===k&&EVC.M)return EVC.M;
+ // v82: last session's matches come back from this device when nothing they depend on has changed
+ if(EVC.disk&&EVC.disk.k===k){try{EVC.M=evRestore(EVC.disk);EVC.key=k;EVC.roll=new Map();EVC.prior=new Map();EVC.disk=null;return EVC.M}catch(e){EVC.disk=null}}
  const links=[...(d.links||[]),...EVD.get().map(x=>({ev:x.ev,ch:x.key.slice(0,2),item:x.key,act:x.act,local:1}))];
  try{EVC.M=P.evMatch({events:d.events,posts:ps,web:S.web,email:emCamps(),signage:sgAll(),links,titles:evTitles(),postById:evById(),today:P.todayKey(),conn:cn})}catch(e){console.warn('event matching',e);EVC.M={byItem:new Map(),byEvent:new Map(),review:[],manual:0}}
- EVC.key=k;EVC.roll=new Map();EVC.prior=new Map();return EVC.M}
+ EVC.key=k;EVC.roll=new Map();EVC.prior=new Map();evSave(k,EVC.M);return EVC.M}
+function evSave(k,M){clearTimeout(EVC.st);EVC.st=setTimeout(()=>{try{DB.set('evm',{k,items:[...M.byItem],manual:M.manual})}catch(e){}},1500)}
+// rebuild byEvent and the review list from the saved byItem, the same way P.evMatch finishes
+function evRestore(d){const byItem=new Map(d.items),byEvent=new Map(),review=[];
+ for(const [k,a] of byItem){const live=a.filter(x=>x.state!=='no').sort((p,q)=>q.score-p.score);if(!live.length)continue;
+  for(const x of live)if(x.state==='auto'||x.state==='manual')(byEvent.get(x.ev)||byEvent.set(x.ev,[]).get(x.ev)).push(x);
+  const rv=live.filter(x=>x.state==='review');if(rv.length&&!live.some(x=>x.state==='manual'||x.state==='auto'))review.push({key:k,ch:k.slice(0,2),best:rv[0],alts:live.filter(x=>x!==rv[0]).slice(0,3)})}
+ review.sort((a,b)=>b.best.score-a.best.score);return {byItem,byEvent,review,manual:d.manual}}
 function evRoll(ev){const M=evM();if(!M)return null;let r=EVC.roll.get(ev.id);if(!r){r=P.evRoll(ev,M.byEvent.get(ev.id)||[],{postById:evById(),web:S.web,email:emCamps()});EVC.roll.set(ev.id,r)}return r}
 // the same event a year earlier, social only (web/email history starts in 2026)
 function evPrior(ev){if(EVC.prior.has(ev.id))return EVC.prior.get(ev.id);const pe=P.evPrior(ev,evList());let out=null;
