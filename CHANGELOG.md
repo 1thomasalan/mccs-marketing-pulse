@@ -2,6 +2,24 @@
 
 Newest first. Every version is a git tag; see Settings › Version history in the app.
 
+## v83 (2026-11-17)
+Social plan and planning runway
+- New Social plan page: every post planned in the Wrike Social Calendar, checked against what went out on Facebook MCCS Okinawa and Instagram @mccsoki
+- Each planned post shows if it went out, its views, Facebook only (Instagram not found), found on another MCCS page, or not found
+- Coming up on social: the next 14 days with each item's Wrike status and days to go
+- Planning runway: how many weeks ahead are planned (goal 3 weeks) and how much of the next 7 days is ready (goal: all Scheduled or Completed 7 days out)
+- Lead time (added in Wrike to post date) starts measuring today and appears once enough new items arrive
+- Today has a Social plan card with the runway and anything due in 3 days that is not ready
+
+## v82 (2026-11-16)
+Faster opening and a clearer loading sign
+- Pulse opens much faster. Matching posts to programs and events now takes a fraction of the time
+- Today shows its layout right away while the numbers fill in
+- Event matches are saved on your device, so Today does not redo them each time you open the app
+- Only data that changed is downloaded after an update, and all sources download at the same time
+- The app opens from your device's copy and updates itself in the background
+- New loading sign: a spinning ring with what Pulse is doing, then a green check when it is up to date. On phones it sits just above the menu bar
+
 ## v81 (2026-11-16)
 Meeting brief for a department
 - New Meeting brief: one page for a department meeting. Open it from the Programs page (it uses the branch you picked) or from any program
