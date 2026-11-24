@@ -2,6 +2,14 @@
 
 Newest first. Every version is a git tag; see Settings › Version history in the app.
 
+## v84 (2026-11-24)
+Email: full year of newsletters and a 12-month summary
+- Every 2026 newsletter now shows in All campaigns, back to January 15, with open rate, click rate, opens, clicks, bounces and unsubscribes
+- The four newest newsletters have their full reports, with resends and link clicks updated
+- The summary at the top can now cover the past 12 months, and says so with its dates. It compares with the 12 months before
+- Best and lowest open rates are worked out from the newsletters in that window when the summary does not list them
+- Subscribers now shows the change since the first newsletter of the year, January 15
+
 ## v83 (2026-11-17)
 Social plan and planning runway
 - New Social plan page: every post planned in the Wrike Social Calendar, checked against what went out on Facebook MCCS Okinawa and Instagram @mccsoki

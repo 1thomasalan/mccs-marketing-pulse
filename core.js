@@ -234,7 +234,8 @@ P.emName=n=>String(n||'').replace(/^\s*\d{1,2}\/\d{1,2}\/\d{2,4}\s*-\s*/,'').tri
 P.emailKind=function(text){const h=String(text).replace(/^\uFEFF/,'').slice(0,300);
   if(/^"?Section"?,"?Metric"?,"?Value"?/i.test(h)&&/Email Performance|Email marketing funnel/.test(text))return 'hub';
   if(/^"?Link"?,"?Unique Clicks"?/i.test(h))return 'links';
-  if(/^\s*\{/.test(h)&&/"kind"\s*:\s*"camp"/.test(text))return 'camp';return null};
+  if(/^\s*\{/.test(h)&&/"kind"\s*:\s*"camp"/.test(text))return 'camp';
+  if(/^\s*\{/.test(h)&&/"kind"\s*:\s*"hub"/.test(text))return 'hubjson';return null}; // v84: Email Hub summary typed from a screenshot (any date range, label e.g. 'Past 12 months')
 P.parseEmailHub=function(text,fname){const rows=P.parseCSV(String(text).replace(/^\uFEFF/,''));const g={};let blk=null;const top=[],low=[];
   for(const r of rows){const [sec,met,val,cmp]=r;if(!sec)continue;if(met==='Campaign'){blk=/Top/i.test(sec)?top:/Low/i.test(sec)?low:null;continue}
     if(/campaigns by/i.test(sec)){const L=/Top/i.test(sec)?top:low;const dt=P.emDate(val)||P.emDate(met)||{};L.push({name:P.emName(met)||'(untitled)',full:met,date:dt.d||'',time:dt.t||'',rate:enum_(cmp)});continue}
@@ -252,7 +253,7 @@ P.parseEmailLinks=function(text,fname){const rows=P.parseCSV(String(text).replac
   for(const r of rows.slice(1)){if(!r[0])continue;if(/^Total/i.test(r[0])){total=enum_(r[1]);continue}links.push([r[0],enum_(r[1])||0])}
   const fd=String(fname||'').match(/(\d{4})-(\d{2})-(\d{2})/);return {kind:'links',exported:fd?fd.slice(1).join('-'):'',links,total:total==null?links.reduce((a,l)=>a+l[1],0):total}};
 P.parseEmail=function(text,fname){const k=P.emailKind(text);if(k==='hub')return P.parseEmailHub(text,fname);if(k==='links')return P.parseEmailLinks(text,fname);
-  if(k==='camp'){const o=JSON.parse(text);return Array.isArray(o)?o:[o]}return null};
+  if(k==='camp'){const o=JSON.parse(text);return Array.isArray(o)?o:[o]}if(k==='hubjson'){const o=JSON.parse(text);o.top=o.top||[];o.low=o.low||[];return o}return null};
 // list holds one 'hub' per end date and 'camp' entries by id; a 'links' item attaches to the newest campaign sent on/before its export date that has no links yet
 P.mergeEmail=function(list,item){list=(list||[]).slice();const items=Array.isArray(item)?item:[item];let note='';
   for(const it of items){if(!it)continue;

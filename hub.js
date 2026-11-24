@@ -92,7 +92,7 @@ const chCov=R=>({so:R&&R.so.n>0,we:R&&R.we.pages.length>0,em:R&&R.em.camps.lengt
 // email in the current range: campaigns sent in range (opens), else the latest send
 function hubEmail(){setRange();const cs=emCamps(),inR=cs.filter(c=>c.date>=S.s&&c.date<=S.e),pr=cs.filter(c=>c.date>=S.cs&&c.date<=S.ce);
  if(inR.length){const o=inR.reduce((a,c)=>a+(c.opens||0),0),po=pr.reduce((a,c)=>a+(c.opens||0),0);return {opens:o,prev:pr.length&&fairCmp(['em']).ok?po:null,n:inR.length,camps:inR,lab:`opens · ${inR.length} newsletter${inR.length>1?'s':''}`,inRange:1}}
- const h=emHub();if(cs[0])return {opens:0,latest:cs[0],n:0,camps:[],lab:`no sends in range · last ${hd(cs[0].date)}`};return {opens:0,n:0,camps:[],lab:h?'year-to-date only':'no email data'}}
+ const h=emHub();if(cs[0])return {opens:0,latest:cs[0],n:0,camps:[],lab:`no sends in range · last ${hd(cs[0].date)}`};return {opens:0,n:0,camps:[],lab:h?emLabL(h)+' only':'no email data'}}
 // the blended headline: social views + web users + email opens (signage is exposure, shown beside it, not added)
 function hubBlend(){setRange();const ps=gsPosts(),L=P.filter(ps,S.s,S.e,'all'),C=P.filter(ps,S.cs,S.ce,'all'),t=P.totals(L),c=P.totals(C);
  const W=S.web.length?wctx():{wr:null,wc:null},wr=W.wr,wc=W.wc,wNear=!!(wr&&wr.near&&webHas(wr)),wOK=webHas(wr)&&!wNear,wCmp=wOK&&wcmp(wr,wc);const em=hubEmail();const fS=fairCmp(['fb','ig']);

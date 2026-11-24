@@ -283,7 +283,7 @@ function seg(name,opts,val){return `<div class="seg" data-seg="${name}">${opts.m
 function impMark(k,file){let o={};try{o=JSON.parse(localStorage.pulseImp||'{}')}catch(e){}o[k]={file,at:new Date().toISOString()};localStorage.pulseImp=JSON.stringify(o)}
 const socSrc=p=>{const l=S.posts.filter(r=>r.plat===p);if(!l.length)return null;const ds=l.map(r=>r.d).sort();return {lab:'Posts through',through:ds[ds.length-1],what:`${nf(l.length)} posts, ${P.rangeLabel(ds[0],ds[ds.length-1])}`}};
 const webSrc=()=>{if(!S.web.length)return null;const st=S.web.map(x=>x.start).sort()[0],en=S.web.map(x=>x.end).sort().pop(),k=new Set(S.web.map(x=>x.kind||'snap'));return {through:en,what:`${[k.has('ch')||k.has('pg')?'daily traffic & pages':'',k.has('snap')||[...k].some(x=>!['ch','pg'].includes(x))?'weekly snapshots':''].filter(Boolean).join(' + ')}, ${P.rangeLabel(st,en)}`}};
-const emSrc=()=>{const h=emHub(),cs=emCamps();if(!h&&!cs.length)return null;const en=[h&&h.end,...cs.map(c=>c.date)].filter(Boolean).sort().pop();return {through:en,what:[h?`year-to-date summary through ${P.fmtDate(h.end)}`:'',cs.length?`${cs.length} campaign report${cs.length>1?'s':''}, latest ${cs[0].name} (${P.fmtDate(cs[0].date)})`:''].filter(Boolean).join(' · ')}};
+const emSrc=()=>{const h=emHub(),cs=emCamps();if(!h&&!cs.length)return null;const en=[h&&h.end,...cs.map(c=>c.date)].filter(Boolean).sort().pop();return {through:en,what:[h?`${emLabL(h)} summary through ${P.fmtDate(h.end)}`:'',cs.length?`${cs.length} campaign report${cs.length>1?'s':''}, latest ${cs[0].name} (${P.fmtDate(cs[0].date)})`:''].filter(Boolean).join(' · ')}};
 // Signage (signage.js): SG.meta is the plaintext signage.json the GitHub Action writes about every 15 min
 // ({checked: ISO time of the last ScreenCloud check, updated: when the screens last changed}); SG.data is the decrypted
 // signage.bin ({total, live, offline, groups[], items[]}). Read-only here.
@@ -513,7 +513,7 @@ function buildReport(){setRange();const wEnd=srcSpan('we').b,eEnd=srcSpan('em').
    ins=eIn.length>1?`<b>Best send:</b> ${esc(best.name)}, ${pct1(best.openRate)} opened`:`<b>${esc(best.name)}</b> (${P.fmtDate(best.date)}): ${pct1(best.openRate)} opened${best.links&&best.links.length?`, top link ${esc(((best.titles||{})[best.links[0][0]])||'clicked '+best.links[0][1]+'x')}`:''}`;
    note=scopeLine([`${eIn.length} campaign${eIn.length>1?'s':''} sent ${esc(rl)}`,'rates weighted by emails delivered','no comparison in this band'],'bscope')}
   else{const lc=emCamps()[0];const sx=emSubs(S.e);cells=[sx?[nf(sx.n),'subscribers ('+P.fmtDate(sx.date)+')']:[P.fmt(eH.sent),'emails sent'],[eH.openRate+'%','open rate'],[eH.clickRate+'%','click rate'],[nf(eH.unsubs),'unsubscribes']];
-   ins=lc?`<b>Latest:</b> ${esc(lc.name)}, ${pct1(lc.openRate)} opened`:`<b>Opens:</b> ${eH.dev.openMobile}% on mobile`;note=scopeLine([{t:`year to date, ${esc(P.rangeLabel(eH.start,eH.end))} (doesn't follow the report range)`,w:1},'no campaign sent in this range','no comparison in this band'],'bscope')}
+   ins=lc?`<b>Latest:</b> ${esc(lc.name)}, ${pct1(lc.openRate)} opened`:`<b>Opens:</b> ${eH.dev.openMobile}% on mobile`;note=scopeLine([{t:`${emLabL(eH)}, ${esc(P.rangeLabel(eH.start,eH.end))} (doesn't follow the report range)`,w:1},'no campaign sent in this range','no comparison in this band'],'bscope')}
   eband=`<div class="wc wband eband"><span class="pill" style="min-width:40%">Email at a Glance</span><div class="w5">${cells.map(([v,l])=>`<div><b>${v}</b><small>${l}</small></div>`).join('')}<div class="wins" contenteditable>${ins}</div></div>${note}</div>`}
  const pair=(a,b,cls)=>a&&b?`<div class="${cls}">${a}${b}</div>`:(a||b?`<div class="r1">${a||b}</div>`:'');
  const fbN=new Set(L.filter(r=>r.plat==='fb').map(r=>r.page)).size,igN=new Set(L.filter(r=>r.plat==='ig').map(r=>r.page)).size;
@@ -639,6 +639,12 @@ function webTodayCard(){const {wr,ins}=wctx();if(!webHas(wr))return '';const t=w
 const EMC='#f3d9a4';
 const emHub=()=>S.email.filter(x=>x.kind==='hub').sort((a,b)=>a.end<b.end?1:-1)[0]||null;
 const emCamps=()=>S.email.filter(x=>x.kind==='camp').sort((a,b)=>a.date<b.date?1:-1);
+// v84: hub summary can cover any window (label 'Past 12 months'); older hubs are year to date
+// v84: event tags as plain spans inside a tappable row (a button inside a button broke the row layout)
+const evTagS=k=>evTag(k).replace(/<button class="evtag"/g,'<span class="evtag"').replace(/<\/button>/g,'</span>');
+const emLab=h=>h&&h.label||'Year to date',emLabL=h=>emLab(h).toLowerCase();
+// best/lowest open rates: from the hub when it lists them, else from campaign reports sent in the hub window
+function emTopLow(h,cs){if(h.top&&h.top.length)return {top:h.top,low:h.low};const w=cs.filter(c=>c.openRate!=null&&c.date>=h.start&&c.date<=h.end).map(c=>({name:c.name,full:c.full,date:c.date,rate:c.openRate}));const s=[...w].sort((a,b)=>b.rate-a.rate);return {top:s.slice(0,5),low:s.slice(-5).reverse(),n:w.length}}
 const pct1=v=>v==null||!isFinite(+v)?'—':(Math.round(v*10)/10)+'%';
 // rate changes are percentage points ("pts"); counts are numbers
 const emD=(v,unit,good)=>{if(v==null||!isFinite(+v))return '<span class="mut">no comparison data</span>';const up=v>=0,ok=good==null?up:(good?up:!up);return `<span class="${ok?'up':'down'}">${up?'▲':'▼'} ${unit==='n'?nf(Math.abs(v)):Math.abs(v)+' pts'}</span>`};
@@ -656,26 +662,26 @@ function modeSwitch(){return hubPills(S.mode==='web'||S.mode==='email'?S.mode:'s
   return `<div class="wswitch">${m.map(([k,l])=>`<button data-mode="${k}" class="${(S.mode===k||(k==='social'&&!['web','email'].includes(S.mode)))?'on':''}">${l}</button>`).join('')}</div>`}
 function exploreEmail(){setRange();const h=emHub(),cs=emCamps();const end=[h&&h.end,...cs.map(c=>c.date)].filter(Boolean).sort().pop();
   const old=cs.length?cs[cs.length-1].date:'',inR=c=>c.date>=S.s&&c.date<=S.e,nIn=cs.filter(inR).length,up=updOf(['email']);
-  const sc=scopeLine([h?{t:`${esc(P.rangeLabel(h.start,h.end))}: year to date, doesn't follow your range`,w:1,tip:'Selected range '+P.rangeLabel(S.s,S.e)}:cs.length?{t:`${cs.length} campaign report${cs.length>1?'s':''}, ${esc(P.rangeLabel(old,cs[0].date))}: doesn't follow your range`,w:1}:'','Constant Contact','rate changes in pts',h?'vs same period last year (Constant Contact)':'campaigns vs their last 10 sends',end?'data through '+fYr(end):'']);
+  const sc=scopeLine([h?{t:`${esc(P.rangeLabel(h.start,h.end))}: ${emLabL(h)}, doesn't follow your range`,w:1,tip:'Selected range '+P.rangeLabel(S.s,S.e)}:cs.length?{t:`${cs.length} campaign report${cs.length>1?'s':''}, ${esc(P.rangeLabel(old,cs[0].date))}: doesn't follow your range`,w:1}:'','Constant Contact','rate changes in pts',h?(h.label?'vs the 12 months before (Constant Contact)':'vs same period last year (Constant Contact)'):'campaigns vs their last 10 sends',end?'data through '+fYr(end):'']);
   const head=`<div class="xlead"><div class="hero small"><h1>Email</h1><div class="sub">your newsletter, by the numbers</div>${sc}</div>${modeSwitch()}</div>`;
   if(!h&&!cs.length)return head+`<div class="card" style="margin-top:20px"><h2>No email data yet</h2><p class="mut">Upload a Constant Contact Email Hub report CSV in Settings › Import.</p></div>`;
   const mini=(l,v,d,s)=>`<div class="card kpi mini nt"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
   let o=head;
-  if(h){const mxT=Math.max(...h.top.map(c=>c.rate),...h.low.map(c=>c.rate),1);
-    o+=`<div class="rlabel">Year to date</div>
+  if(h){const TL=emTopLow(h,cs),mxT=Math.max(...TL.top.map(c=>c.rate),...TL.low.map(c=>c.rate),1);
+    o+=`<div class="rlabel">${emLab(h)} <small class="mut">· ${esc(P.rangeLabel(h.start,h.end))}</small></div>
     <div class="grid g4">${(()=>{const x=emSubs();return x?mini('Subscribers',nf(x.n),emSubsD(x),emSubsSub(x)):mini('Emails sent',P.fmt(h.sent),emD(h.vsPrev.sent,'n'),`${P.fmt(h.delivered)} delivered (${Math.round(h.delivered/h.sent*100)}%)`)})()
       +mini('Open rate',h.openRate+'%',emD(h.vsPrev.openRate),h.vsInd.openRate!=null?`${h.vsInd.openRate>=0?h.vsInd.openRate+' pts above':Math.abs(h.vsInd.openRate)+' pts below'} industry average`:'')
       +mini('Click rate',h.clickRate+'%',emD(h.vsPrev.clickRate),`${h.ctor}% of openers clicked`)
       +mini('Unsubscribed',nf(h.unsubs),emD(h.vsPrev.unsubs,'n',false),`${P.fmt(h.bounced)} bounced`)}</div>
-    <div class="cols"><div class="card nt"><h2>Email funnel<small>year to date</small></h2>${emFunnel([['Sent',h.sent],['Delivered',h.delivered,Math.round(h.delivered/h.sent*100)+'%'],['Opened',h.opened,h.openRate+'%'],['Clicked',h.clicked,h.clickRate+'%']])}<p class="mut sm">Opens include Apple Mail privacy “proxy” opens, so the open rate runs high. Clicks are the steadier signal.</p></div>
-     <div class="card nt"><h2>Devices<small>year to date</small></h2><p class="mut sm" style="margin:0 0 2px">Opens · ${P.fmt(h.opened)}</p>${emSplit(h.dev.openMobile,h.dev.openDesktop,'Mobile','Desktop')}<p class="mut sm" style="margin:14px 0 2px">Clicks · ${P.fmt(h.clicked)}</p>${emSplit(h.dev.clickMobile,h.dev.clickDesktop,'Mobile','Desktop')}<p class="mut sm">Most people read on phones, but most clicks come from desktop.</p></div></div>
-    <div class="cols e2"><div class="card nt"><h2>Best open rates<small>top 5</small></h2>${emRateList(h.top,mxT)}</div><div class="card nt"><h2>Lowest open rates<small>bottom 5</small></h2>${emRateList(h.low,mxT)}</div></div>`}
+    <div class="cols"><div class="card nt"><h2>Email funnel<small>${emLabL(h)}</small></h2>${emFunnel([['Sent',h.sent],['Delivered',h.delivered,Math.round(h.delivered/h.sent*100)+'%'],['Opened',h.opened,h.openRate+'%'],['Clicked',h.clicked,h.clickRate+'%']])}<p class="mut sm">Opens include Apple Mail privacy “proxy” opens, so the open rate runs high. Clicks are the steadier signal.</p></div>
+     <div class="card nt"><h2>Devices<small>${emLabL(h)}</small></h2><p class="mut sm" style="margin:0 0 2px">Opens · ${P.fmt(h.opened)}</p>${emSplit(h.dev.openMobile,h.dev.openDesktop,'Mobile','Desktop')}<p class="mut sm" style="margin:14px 0 2px">Clicks · ${P.fmt(h.clicked)}</p>${emSplit(h.dev.clickMobile,h.dev.clickDesktop,'Mobile','Desktop')}<p class="mut sm">Most people read on phones, but most clicks come from desktop.</p></div></div>
+    <div class="cols e2"><div class="card nt"><h2>Best open rates<small>top 5${TL.n?' of '+TL.n+' campaigns':''}</small></h2>${emRateList(TL.top,mxT)}</div><div class="card nt"><h2>Lowest open rates<small>bottom 5${TL.n?' of '+TL.n+' campaigns':''}</small></h2>${emRateList(TL.low,mxT)}</div></div>`}
   o+=`<div class="sec" style="margin-top:28px">Campaigns</div>`;
   if(!cs.length)o+=`<div class="card nt"><p class="mut">Campaign reports appear here as you add them.</p></div>`;
-  else{const c=cs[0];o+=`<button class="card nt ecamp" data-ecamp="${esc(c.id)}"><div class="mut sm"><span class="tag em">LATEST</span>${P.fmtDate(c.date,{year:'numeric'})}${c.time?' · '+fmtT(c.time)+' JST':''}</div><h2 style="margin-top:8px">${esc(c.name)}</h2>${evTag('em:'+c.id)?`<div class="wtag">${evTag('em:'+c.id)}</div>`:''}
+  else{const c=cs[0];o+=`<button class="card nt ecamp" data-ecamp="${esc(c.id)}"><div class="mut sm"><span class="tag em">LATEST</span>${P.fmtDate(c.date,{year:'numeric'})}${c.time?' · '+fmtT(c.time)+' JST':''}</div><h2 style="margin-top:8px">${esc(c.name)}</h2>${evTag('em:'+c.id)?`<div class="wtag">${evTagS('em:'+c.id)}</div>`:''}
       <div class="grid g4 tight">${[['Sends',nf(c.sends)],['Open rate',pct1(c.openRate),c.vs10?emD(c.vs10.openRate):''],['Click rate',pct1(c.clickRate),c.vs10?emD(c.vs10.clickRate):''],['Link clicks',c.linksTotal!=null?nf(c.linksTotal):nf(c.clicks)]].map(([a,b,d])=>`<div class="card kpi mini"><div class="l">${a}</div><div class="v">${b}</div>${d?`<div class="d">${d} <small class="mut">vs last 10 sends</small></div>`:''}</div>`).join('')}</div>
       ${c.links&&c.links.length?`<p class="mut sm" style="margin:12px 0 2px">Top link: ${esc(emLink(c.links[0][0],c))} · ${c.links[0][1]} clicks</p>`:''}<p class="mut sm" style="margin-top:6px">Tap for the full campaign report</p></button>
-      ${cs.length>1?`<div class="card nt" style="margin-top:14px"><h2>All campaigns<small>${cs.length} · ${nIn} sent in ${esc(P.rangeLabel(S.s,S.e))}</small></h2>${cs.map(x=>`<button class="hbar ${inR(x)?'inr':'outr'}" data-ecamp="${esc(x.id)}"><span class="nm">${esc(x.name)} <small class="mut">· ${P.fmtDate(x.date)}${inR(x)?' · in range':' · outside range'}</small>${evTag('em:'+x.id)}</span><span class="tr"><span style="width:${x.openRate||0}%;background:${EMC}"></span></span><b>${pct1(x.openRate)}</b></button>`).join('')}</div>`:''}`}
+      ${cs.length>1?`<div class="card nt" style="margin-top:14px"><h2>All campaigns<small>${cs.length} · ${nIn} sent in ${esc(P.rangeLabel(S.s,S.e))}</small></h2>${cs.map(x=>`<button class="hbar ${inR(x)?'inr':'outr'}" data-ecamp="${esc(x.id)}"><span class="nm">${esc(x.name)} <small class="mut">· ${P.fmtDate(x.date)}${inR(x)?' · in range':' · outside range'}</small> ${evTagS('em:'+x.id)}</span><span class="tr"><span style="width:${x.openRate||0}%;background:${EMC}"></span></span><b>${pct1(x.openRate)}</b></button>`).join('')}</div>`:''}`}
   return o+`<p class="mut sm" style="text-align:center;margin-top:18px">Email data through ${fYr(end)}. Email doesn't follow the date range yet; it needs one export per campaign.</p>`}
 const fmtT=t=>{const [h,m]=t.split(':').map(Number);return `${h%12||12}:${String(m).padStart(2,'0')} ${h<12?'AM':'PM'}`};
 function emailCampSheet(id){const c=S.email.find(x=>x.kind==='camp'&&x.id===id);if(!c)return;const r=c.resend;
@@ -698,7 +704,7 @@ function emailCampSheet(id){const c=S.email.find(x=>x.kind==='camp'&&x.id===id);
   <div class="sec">Social posts for this event</div>${posts.length?`<p class="sm" style="margin:0 0 6px">${nf(posts.length)} posts within a month of the send, ${P.fmt(pt.v)} views.</p><button class="chip" id="emSoc">Open the campaign report</button>`:`<p class="mut sm">No social posts mention “${esc(c.name)}” within a month of the send.</p>`}`,1,share);
   const b=$('#emSoc');if(b)b.onclick=()=>{S.campAll=1;campaignSheet(c.name,P.filter(S.posts,S.s,S.e,S.plat))}}
 function emailTodayCard(){const cs=emCamps(),h=emHub();if(!cs.length&&!h)return '';const c=cs[0];
-  return `<button class="card wtoday etoday" id="toEmail"><h2>Newsletter<small>${c?'latest send':'year to date'}</small></h2><div class="wbr"><div class="wic">✉</div><div><div class="wbn">${c?pct1(c.openRate)+' opened':h.openRate+'% open rate'}</div><div class="mut sm">${c?`${esc(c.name)} · ${P.fmtDate(c.date)} · ${nf(c.sends)} sent`:`${P.fmt(h.sent)} emails sent this year`}</div></div></div>
+  return `<button class="card wtoday etoday" id="toEmail"><h2>Newsletter<small>${c?'latest send':emLabL(h)}</small></h2><div class="wbr"><div class="wic">✉</div><div><div class="wbn">${c?pct1(c.openRate)+' opened':h.openRate+'% open rate'}</div><div class="mut sm">${c?`${esc(c.name)} · ${P.fmtDate(c.date)} · ${nf(c.sends)} sent`:`${P.fmt(h.sent)} emails sent this year`}</div></div></div>
   ${c?`<div class="wrow"><span>Click rate</span><b>${pct1(c.clickRate)}</b></div>`:''}${h?`<div class="wrow"><span>Year-to-date open rate</span><b>${h.openRate}%</b></div>`:''}</button>`}
 // ---- synced data from Hark ----
 // ---- post thumbnails (encrypted, one file per post; published by the MCCS Social Media project) ----
@@ -873,7 +879,7 @@ async function spCheckNow(c){c=c||$('#spCheck');if(c){c.textContent='Checking…
 function syncRetry(){return $('#spCheck')?spCheckNow():sync()}
 
 // v52 app version next to the name: read from the service-worker cache actually serving the app (pulse-vNN in sw.js), so it updates itself on every deploy
-const PULSE_V='v83';
+const PULSE_V='v84';
 function pulseVer(){return localStorage.pulseVer||PULSE_V}
 (async()=>{try{if(!('caches' in window))return;const k=(await caches.keys()).map(x=>/^pulse-(v\d+)$/.exec(x)).filter(Boolean).map(m=>m[1]).sort((a,b)=>+b.slice(1)-+a.slice(1))[0];const v=k||PULSE_V;
   if(localStorage.pulseVer!==v){localStorage.pulseVer=v;document.querySelectorAll('.pver').forEach(e=>e.textContent=v)}}catch(e){}})();
